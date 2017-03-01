@@ -58,6 +58,10 @@ public abstract class SubTopology implements SubTopologyMethod {
 	 * 4. All the node names should be different. <br/>
 	 * 5. Checking all the eth names of one VM must be different.  <br/>
 	 * 6. Complete all the information of each connection. <br/>
+	 * 7. The VM cannot have public address, if the status of the sub-topology
+	 * is 'fresh'.
+	 * 8. The VM must have public address, if the status of the sub-topology 
+	 * is 'running'.
 	 * 
 	 * Input is the status of the sub-topology. 
 	 * @return
@@ -151,6 +155,11 @@ public abstract class SubTopology implements SubTopologyMethod {
 				return false;
 			}
 			
+			if(topologyStatus.equals("running") && (curVM.publicAddress == null)){
+				logger.error("VM '"+curVM.name+"' must have public address in 'running' status!");
+				return false;
+			}
+			
 			//check the eths in the VM
 			Map<String, String> ethNameCheck = new HashMap<String, String>();
 			for(int j = 0 ; j<curVM.ethernetPort.size() ; j++){
@@ -185,18 +194,20 @@ public abstract class SubTopology implements SubTopologyMethod {
 				//Validate the name of subnet or connection. 
 				//Also update the information of the corresponding connection.
 				if(curEth.subnetName != null){
-					Subnet findSubnet = null;
-					for(int si = 0 ; si < subnets.size() ; si++){
-						if(subnets.get(si).name.equals(curEth.subnetName)){
-							findSubnet = subnets.get(si);
-							break;
+					if(curEth.subnet != null){
+						Subnet findSubnet = null;
+						for(int si = 0 ; si < subnets.size() ; si++){
+							if(subnets.get(si).name.equals(curEth.subnetName)){
+								findSubnet = subnets.get(si);
+								break;
+							}
 						}
+						if(findSubnet == null){
+							logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
+							return false;
+						}
+						curEth.subnet = findSubnet;
 					}
-					if(findSubnet == null){
-						logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
-						return false;
-					}
-					curEth.subnet = findSubnet;
 				}
 				if(curEth.connectionName != null){
 					SubConnectionPoint findScp = null;

@@ -321,12 +321,14 @@ public class TopTopology implements TopTopologyMethod{
 							return false;
 						}
 						//Here curTcp.fatherTopology must not be null due to the checking before.
-						if(topologies.get(i).fatherTopology.scalingAddressPool.containsKey(curTcp.address)){
-							logger.debug("In sub-topology"+topologies.get(i).topology+" ,the address ("+curTcp.address+") of the connector occupied the scaling pool!");
-							topologies.get(i).fatherTopology.scalingAddressPool.put(curTcp.address, false);
-						}else{
-							logger.error("The address ("+curTcp.address+") in sub-topology "+topologies.get(i).topology+" is out of the scope of scaling pool!");
-							return false;
+						if(topologies.get(i).fatherTopology.scalingAddressPool != null){
+							if(topologies.get(i).fatherTopology.scalingAddressPool.containsKey(curTcp.address)){
+								logger.debug("In sub-topology"+topologies.get(i).topology+" ,the address ("+curTcp.address+") of the connector occupied the scaling pool!");
+								topologies.get(i).fatherTopology.scalingAddressPool.put(curTcp.address, false);
+							}else{
+								logger.error("The address ("+curTcp.address+") in sub-topology "+topologies.get(i).topology+" is out of the scope of scaling pool!");
+								return false;
+							}
 						}
 					}
 				}

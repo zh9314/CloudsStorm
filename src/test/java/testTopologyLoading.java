@@ -13,9 +13,10 @@ public class testTopologyLoading {
 	
 
 	public static void main(String[] args) {
-		TopologyAnalysisMain tam = new TopologyAnalysisMain("zh_all_test.yml");
+		TopologyAnalysisMain tam = new TopologyAnalysisMain("ES/scaling/zh_all_test.yml");
 		if(!tam.fullLoadWholeTopology())
 		{
+			logger.error("sth wrong!");
 			return;
 		}
 		
@@ -29,10 +30,10 @@ public class testTopologyLoading {
 			}
 		}
 		//tam.overwiteControlFiles();
-		/*for(Entry<String, String> entry: test.entrySet()){
+		for(Entry<String, String> entry: test.entrySet()){
 			System.out.println(entry.getKey());
 			System.out.println(entry.getValue());
-		}*/
+		}
 		
 		//tam.overwiteControlFiles();
 		

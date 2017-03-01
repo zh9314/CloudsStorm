@@ -148,9 +148,11 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	 * The checking items includes: <br/>
 	 * 1. The 'instanceId', 'vpcId', 'subnetId' and 'securityGroupId' should be null, 
 	 * if the topology status is 'fresh'. <br/>
-	 * 2. If the 'diskSize' is null, then the default value is 8. <br/>
-	 * 3. The value of 'diskSize', whose unit is GigaBytes, must be positive. <br/>
-	 * 4. One VM can only belong to one subnet. <br/>
+	 * 2. The 'instanceId', 'vpcId', 'subnetId' and 'securityGroupId' must not be null, 
+	 * if the topology status is 'running'. <br/>
+	 * 3. If the 'diskSize' is null, then the default value is 8. <br/>
+	 * 4. The value of 'diskSize', whose unit is GigaBytes, must be positive. <br/>
+	 * 5. One VM can only belong to one subnet. <br/>
 	 * 
 	 */
 	@Override
@@ -166,6 +168,16 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 					|| curVM.vpcId != null
 					|| curVM.subnetId != null){
 					logger.error("Some information in VM '"+curVM.name+"' cannot be defined in a 'fresh' sub-topology!");
+					return false;
+				}
+			}
+			
+			if(topologyStatus.equals("running")){
+				if(curVM.instanceId == null
+					|| curVM.securityGroupId == null
+					|| curVM.vpcId == null
+					|| curVM.subnetId == null){
+					logger.error("Some information in VM '"+curVM.name+"' must be defined in a 'running' sub-topology!");
 					return false;
 				}
 			}

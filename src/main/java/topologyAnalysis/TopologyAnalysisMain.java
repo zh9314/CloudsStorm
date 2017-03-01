@@ -186,7 +186,7 @@ public class TopologyAnalysisMain{
 		}
 		for(int i = 0 ; i<wholeTopology.topologies.size() ; i++){
 			SubTopologyInfo curInfo = wholeTopology.topologies.get(i);
-			if(curInfo.status.trim().toLowerCase().equals("scaled")){
+			if(curInfo.tag.trim().toLowerCase().equals("scaled")){
 				if(curInfo.copyOf == null){
 					logger.error("The field 'copyOf' of 'scaled' sub-topology '"+curInfo.topology+"' must be set!");
 					return false;
@@ -199,6 +199,11 @@ public class TopologyAnalysisMain{
 				//Father topology cannot be itself.
 				if(sti.topology.equals(curInfo.topology)){
 					logger.error("The origin topology of 'scaled' sub-topology '"+curInfo.topology+"' cannot be itself!");
+					return false;
+				}
+				//Father topology must have tag of 'scaling'.
+				if(!sti.tag.equals("scaling")){
+					logger.error("The father topology of 'scaled' sub-topology '"+curInfo.topology+"' must have the 'tag' of 'scaling'!");
 					return false;
 				}
 				curInfo.fatherTopology = sti;

@@ -44,6 +44,8 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
         	this.subnets = exoGENISubTopology.subnets;
         	this.connections = exoGENISubTopology.connections;
         	this.components = exoGENISubTopology.components;
+        	this.duration = exoGENISubTopology.duration;
+        	this.sliceName = exoGENISubTopology.sliceName;
         	logger.info("Sub-topology of ExoGENI from "+topologyPath+" is loaded without validation successfully!");
         } catch (Exception e) {
             logger.error(e.toString());
