@@ -142,6 +142,15 @@ public abstract class SubTopology implements SubTopologyMethod {
 			}else
 				vmNameCheck.put(vn, "");
 			
+			//check the 'script' in the VM.
+			if(curVM.script != null){
+				String currentDir = CommonTool.getPathDir(loadingPath);
+				if(!curVM.loadScript(currentDir))
+					logger.warn("Cannot load the script file from "+curVM.script+"! You can load it later on!");
+				else 
+					logger.info("Script of "+curVM.script+" is loaded!");
+			}
+			
 			if(curVM.role != null){
 				if(!curVM.role.trim().toLowerCase().equals("master") 
 					&& !curVM.role.trim().toLowerCase().equals("slave")){

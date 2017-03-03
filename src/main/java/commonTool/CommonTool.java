@@ -212,13 +212,19 @@ public class CommonTool {
 	
 	/**
 	 * The input parameter is a path of the file. 
-	 * It can be the path of the system or an url.
-	 * Examples: url@http://www.mydomain.com/pathToFile/myId_dsa or file@/home/id_dsa
+	 * It can be the path of the system or an url or a file name. <br/>
+	 * Examples: url@http://www.mydomain.com/pathToFile/myId_dsa or file@/home/id_dsa 
+	 * name@id_rsa.pub. <br/>
+	 * The input parameter of 'currentDir' is useful, when the 'filePath' is just a file name. 
+	 * The 'currentDir' must end up with a file separator.
 	 * @return the content of the file. If the file cannot be opened, then return null.
 	 */
-	public static String getFileContent(String filePath){
+	public static String getFileContent(String filePath, String currentDir){
 		String outputString = "";
 		int firstIndex = filePath.indexOf("@");
+		if(firstIndex == -1){
+			return null;
+		}
 		String prefix = filePath.substring(0, firstIndex);
 		String realPath = filePath.substring(firstIndex+1, filePath.length());
 		if(prefix.equals("file")){
@@ -240,6 +246,15 @@ public class CommonTool {
 				FileUtils.copyURLToFile(url, inputFile, 10000, 10000);
 				outputString = FileUtils.readFileToString(inputFile, "UTF-8");
 				FileUtils.deleteQuietly(inputFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}else if(prefix.equals("name")){
+			//In this case, 'realPath' is the file name.
+			File inputFile = new File(currentDir+realPath);
+			try {
+				outputString = FileUtils.readFileToString(inputFile, "UTF-8");
 			} catch (IOException e) {
 				e.printStackTrace();
 				return null;

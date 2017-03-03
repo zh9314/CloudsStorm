@@ -1,8 +1,14 @@
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
+
+import commonTool.Log4JUtils;
 
 import topologyAnalysis.TopologyAnalysisMain;
 
@@ -13,7 +19,10 @@ public class testTopologyLoading {
 	
 
 	public static void main(String[] args) {
-		TopologyAnalysisMain tam = new TopologyAnalysisMain("ES/scaling/zh_all_test.yml");
+		   
+	    Log4JUtils.setErrorLogFile("test.log");
+	      
+		TopologyAnalysisMain tam = new TopologyAnalysisMain("ES/standard2/zh_all_test.yml");
 		if(!tam.fullLoadWholeTopology())
 		{
 			logger.error("sth wrong!");

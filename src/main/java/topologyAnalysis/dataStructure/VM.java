@@ -19,17 +19,18 @@ public abstract class VM {
 	public String OStype;
 	
 	//Currently, the SIDE subsystem uses this field for GUI.
+	//This script defines for individual VM.
 	public String script;
 	
 	/**
 	 * Indicate the real content of the script.
 	 * Examples: url@http://www.mydomain.com/pathToFile/myId_dsa 
-	 * or file@/home/id_dsa or null (the file path is absolute path).
+	 * or file@/home/id_dsa or name@test.sh or null (the file path is absolute path).
 	 * This is not case sensitive.
-	 * The file must be exists. Otherwise, the topology will not be loaded. 
+	 * The file must be exists. Otherwise, there will be a warning. 
 	 */
 	@JsonIgnore
-	public String scriptString;
+	public String v_scriptString;
 	
 	
 	//The role of this node in docker cluster. 
@@ -48,26 +49,20 @@ public abstract class VM {
 	public ArrayList<Eth> ethernetPort;
 	
 	/**
-	 * Load script content from input parameter string for current VM.
-	 * If it is null, then load from the field 'script'.
+	 * Load script content from 'script' of current VM.
 	 */
-	public boolean loadScript(String scriptContent){
-		if(scriptContent == null){
-			if(script == null){
-				logger.error("Please configure the script path first!");
-				return false;
-			}
-			
-			if((scriptContent = CommonTool.getFileContent(script)) == null){
-				logger.error("File of script cannot be loaded!");
-				return false;
-			}
-			
-			return true;
-		}else{
-			scriptString = scriptContent;
-			return true;
+	public boolean loadScript(String currentDir){
+		if(script == null){
+			logger.warn("Please configure the script path first!");
+			return false;
 		}
+		
+		if((v_scriptString = CommonTool.getFileContent(script, currentDir)) == null){
+			logger.error("File of script cannot be loaded!");
+			return false;
+		}
+		
+		return true;
 	}
 	
 }

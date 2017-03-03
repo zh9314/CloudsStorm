@@ -43,11 +43,10 @@ public interface TopTopologyMethod {
 	
 	
 	/**
-	 * Load public key content from the input pbContent.
-	 * If the input is null, then load from the value of field 'publicKeyPath'.
+	 * Load public key content according to the field 'publicKeyPath'.
 	 * @return successful or not.
 	 */
-	public boolean loadPublicKey(String pbContent);
+	public boolean loadPublicKey(String currentDir);
 	
 	/**
 	 * This is a format checking function for top level topology. <br/>

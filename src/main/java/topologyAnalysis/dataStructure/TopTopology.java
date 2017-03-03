@@ -29,12 +29,20 @@ public class TopTopology implements TopTopologyMethod{
 	@JsonIgnore
 	public String publicKeyString;
 	
-	/*
-	 * Can be the url of the ssh key file or the absolute path of the file on the local machine 
-	 * Examples: url@http://www.mydomain.com/pathToFile/myId_dsa 
-	 * or file@/home/id_dsa or null (the file path is absolute path).
+	/**
+	 * This field can be <br/>
+	 * 1. the url of the ssh key file  <br/>
+	 * 2. the absolute path of the file on the local machine <br/>
+	 * 3. the file name of the file. By default, this file will be at the same 
+	 * folder of the description files. <br/>
+	 * Examples: url@http://www.mydomain.com/pathToFile/myId_dsa <br/>
+	 * file@/home/id_dsa (the file path is absolute path)<br/>
+	 * name@id_rsa.pub (just fileName) <br/>
+	 * null <br/>
 	 * This is not case sensitive.
-	 * The file must be exists. Otherwise, the topology will not be loaded. 
+	 * The file must exist. Otherwise, there will be a warning log message for this.
+	 * And you can load these information manually later on.  <br/>
+	 * All the "script" field is designed like this.
 	 */
 	public String publicKeyPath;
 	
@@ -47,7 +55,7 @@ public class TopTopology implements TopTopologyMethod{
 	public ArrayList<SubTopologyInfo> topologies;
 	
 	public ArrayList<TopConnection> connections;
-
+	
 
 	@Override
 	public boolean loadTopTopology(String topologyPath) {
@@ -346,6 +354,16 @@ public class TopTopology implements TopTopologyMethod{
 		if(!privateAddressChecking())
 			return false;
 		
+		//Checking the existing of the 'publicKeyPath', if the 'userName' is set.
+		if(this.userName != null && !this.userName.equals("")){
+			String currentDir = CommonTool.getPathDir(this.loadingPath);
+			if(!this.loadPublicKey(currentDir)){
+				logger.warn("The public key cannot be loaded! You can set it later!");
+			}else{
+				logger.info("Public key "+this.publicKeyPath+" is loaded!");
+			}
+		}
+		
 		//Checking the names of different sub-topologies.
 		Map<String, String> topologyNameCheck = new HashMap<String, String>();
 		if(topologies == null){
@@ -430,28 +448,19 @@ public class TopTopology implements TopTopologyMethod{
 
 
 	@Override
-	public boolean loadPublicKey(String pbContent) {
-		if(pbContent == null){
-			if(publicKeyPath == null){
-				logger.error("Please configure the public key path first!");
-				return false;
-			}
-			
-			if((publicKeyString = CommonTool.getFileContent(publicKeyPath)) == null){
-				logger.error("File of public key cannot be loaded!");
-				return false;
-			}
-			
-			return true;
-		}else{
-			publicKeyString = pbContent;
-			return true;
+	public boolean loadPublicKey(String currentDir) {
+		if(publicKeyPath == null){
+			logger.warn("Please configure the public key path first!");
+			return false;
 		}
+			
+		if((publicKeyString = CommonTool.getFileContent(publicKeyPath, currentDir)) == null){
+			logger.warn("File of "+publicKeyPath+" cannot be loaded!");
+			return false;
+		}
+			
+		return true;
 	}
 
-	
-
-	
-	
 	
 }
