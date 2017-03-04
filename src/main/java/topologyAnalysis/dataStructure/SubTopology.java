@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import provisioning.credential.SSHKeyPair;
 import topologyAnalysis.method.SubTopologyMethod;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -29,6 +30,9 @@ public abstract class SubTopology implements SubTopologyMethod {
 	//For instance, ec2, exogeni.
 	@JsonIgnore
 	public String topologyType;
+	
+	@JsonIgnore
+	public SSHKeyPair accessKeyPair;
 	
 	
 	//Indicate a subnet that several can be put in.

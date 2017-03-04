@@ -54,8 +54,14 @@ public class testYAMLLoading {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
-		if(CommonTool.checkPrivateIPaddress("192.168.0.0")){
-			System.out.println("yes");
+		File curDir = new File("/Users/zh9314/");
+		File[] files = curDir.listFiles();
+		if(files != null){
+			for(File f: files){
+				if(f.isDirectory()){
+					System.out.println(f.getName());
+				}
+			}
 		}
 	}
 

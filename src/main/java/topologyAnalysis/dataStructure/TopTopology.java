@@ -8,6 +8,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import provisioning.credential.EC2Credential;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -51,6 +53,8 @@ public class TopTopology implements TopTopologyMethod{
 	 * This is corresponding to the ssh key.
 	 */
 	public String userName;
+	
+	public EC2Credential ec2Credential;
 	
 	public ArrayList<SubTopologyInfo> topologies;
 	

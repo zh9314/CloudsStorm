@@ -48,6 +48,9 @@ public class SubTopologyInfo {
 	
 	//Indicate where this sub-topology is copied from, if this is a scaled one. 
 	public String copyOf;
+	
+	////Identify the key pairs used to access this sub-topology. This is mainly used by provisioner itself.
+	public String sshKeyPairId;
 		
 	//Point to the origin sub-topology, if this is a scaled one.
 	@JsonIgnore
