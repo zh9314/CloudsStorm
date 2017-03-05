@@ -16,11 +16,26 @@ public class EC2Database extends Database {
 	
 	private static final Logger logger = Logger.getLogger(EC2Database.class);
 	
-	//Example, key -> Virginia, value -> ec2.us-east-1.amazonaws.com
+	//Example, key -> virginia, value -> ec2.us-east-1.amazonaws.com
 	public Map<String, String> domain_endpoint = new HashMap<String, String>();
 	
-	//Example, OS -> Ubuntu 16.04, domain -> Virginia, AMI -> ami-40d28157
+	//Example, OS -> ubuntu 16.04, domain -> virginia, AMI -> ami-40d28157
+	//all the fields are stored in lower case.
 	public ArrayList<AmiInfo> amiInfo = new ArrayList<AmiInfo>();
+	
+	/**
+	 * Get the ami string according to the OS and domain.
+	 * Null is returned if there is no such ami.
+	 */
+	public String getAMI(String OS, String domain){
+		for(int ai = 0 ; ai < amiInfo.size() ; ai++){
+			if(amiInfo.get(ai).OS.equals(OS.trim().toLowerCase()) 
+				&& amiInfo.get(ai).domain.equals(domain.trim().toLowerCase())){
+				return amiInfo.get(ai).AMI;
+			}
+		}
+		return null;
+	}
 	
 	/**
 	 * Load the domain information from file. The content is split with "&&".<br/>

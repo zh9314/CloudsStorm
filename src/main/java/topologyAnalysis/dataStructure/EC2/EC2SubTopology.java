@@ -21,8 +21,6 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	
 	private static final Logger logger = Logger.getLogger(EC2SubTopology.class);
 	
-	
-	
 	//Indicate different VMs.
 	public ArrayList<EC2VM> components;
 	
@@ -138,7 +136,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	public void setTopologyInformation(String topologyName) {
 		this.topologyName = topologyName;
 		this.topologyType = "EC2";
-		this.provisioningAgentClassName = "";
+		this.provisioningAgentClassName = "provisioning.engine.SEngine.EC2SEngine";
 		
 	}
 	
@@ -191,8 +189,32 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 						logger.error("Field 'diskSize' of EC2VM '"+curVM.name+"' must be positive!");
 						return false;
 					}
+					if(diskSize > 16000){   ///Maxium is 16TB.
+						logger.error("Field 'diskSize' of EC2VM '"+curVM.name+"' out of the range according to current capability!");
+						return false;
+					}
 					} catch (NumberFormatException e) {
 						logger.error("Field 'diskSize' of EC2VM '"+curVM.name+"' must be a positive number!");
+						return false;
+					}
+			}
+			
+			//check the IOPS
+			if(curVM.IOPS == null){
+				curVM.IOPS = "0";
+			}else{
+				try {
+					int IOPS = Integer.parseInt(curVM.IOPS);
+					if(IOPS<=0){
+						logger.error("Field 'IOPS' of EC2VM '"+curVM.name+"' must be positive!");
+						return false;
+					}
+					if(IOPS>20000){
+						logger.error("Field 'IOPS' of EC2VM '"+curVM.name+"' out of the range according to current capability!");
+						return false;
+					}
+					} catch (NumberFormatException e) {
+						logger.error("Field 'IOPS' of EC2VM '"+curVM.name+"' must be a positive number!");
 						return false;
 					}
 			}

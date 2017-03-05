@@ -29,7 +29,7 @@ public class UserCredential {
 	/**
 	 * This is a map for provisioner and user to control some specific Cloud to provision or stop etc.
 	 * The key is the Cloud provider name.
-	 * Currently they are 'ec2', 'exogeni'. 
+	 * Currently they are 'ec2', ('exogeni', 'geni'). 
 	 * The value is the content of the specific cloud credential. 
 	 */
 	public Map<String, Credential> cloudAccess;

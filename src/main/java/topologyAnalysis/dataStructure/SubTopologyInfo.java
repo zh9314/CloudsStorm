@@ -16,6 +16,10 @@ public class SubTopologyInfo {
 	//Indicate the location of the sub-topology
 	public String domain;
 	
+	//This is used for real provisioning
+	@JsonIgnore
+	public String endpoint;
+	
 	/**
 	 * Indicate the status of the sub-topology. The string should all in lower case.
 	 * They can be, <br/> 
@@ -71,5 +75,5 @@ public class SubTopologyInfo {
 	//The key is a private IP address and the value is to identify whether this address is available. 
 	@JsonIgnore
 	public Map<String, Boolean> scalingAddressPool;
-
+	
 }

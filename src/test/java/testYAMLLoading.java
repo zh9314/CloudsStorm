@@ -1,7 +1,12 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
+
+import provisioning.database.EC2.AmiInfo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -10,9 +15,11 @@ import commonTool.CommonTool;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.TopTopology;
 import topologyAnalysis.dataStructure.EC2.EC2SubTopology;
+import topologyAnalysis.dataStructure.EC2.EC2VM;
 
 
 public class testYAMLLoading {
+	
 
 	private static final Logger logger = Logger.getLogger(testYAMLLoading.class);
 	
@@ -54,15 +61,31 @@ public class testYAMLLoading {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
-		File curDir = new File("/Users/zh9314/");
-		File[] files = curDir.listFiles();
-		if(files != null){
-			for(File f: files){
-				if(f.isDirectory()){
-					System.out.println(f.getName());
-				}
-			}
+		int x = 5;
+		long startTime = System.currentTimeMillis();
+		ExecutorService executor = Executors.newFixedThreadPool(x);
+		ArrayList<EC2VM> array = new ArrayList<EC2VM>();
+		for(int i = 0 ; i<5 ; i++){
+			EC2VM curVM = new EC2VM();
+			curVM.AMI = "init";
+			array.add(curVM);
 		}
-	}
+		for(int i = 0 ; i<5 ; i++){
+			Runnable worker = new runTest(array.get(i));
+			executor.execute(worker);
+		}
+		executor.shutdown();
+		while (!executor.isTerminated()){
+			
+		}
+		long endTime = System.currentTimeMillis();
+		System.out.println("Used: "+(endTime-startTime)/1000);
+		for(int i = 0 ; i<array.size() ; i++){
+			System.out.println(array.get(i).AMI);
+		}
 
+
+		
+	}
+	
 }

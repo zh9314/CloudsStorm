@@ -41,10 +41,11 @@ public abstract class SubTopology implements SubTopologyMethod {
 	//Indicate how two VMs can be connected.
 	public ArrayList<SubConnection> connections;
 	
-	
+		
 	//Indicate the fully qualified class name of the provisioning agent for this sub-topology. 
 	@JsonIgnore
 	public String provisioningAgentClassName;
+
 	
 	
 
@@ -66,6 +67,7 @@ public abstract class SubTopology implements SubTopologyMethod {
 	 * is 'fresh'.
 	 * 8. The VM must have public address, if the status of the sub-topology 
 	 * is 'running'.
+	 * 9. Update the 'belongingVM' field in the SubConnectionPoint.
 	 * 
 	 * Input is the status of the sub-topology. 
 	 * @return
@@ -104,6 +106,24 @@ public abstract class SubTopology implements SubTopologyMethod {
 					logger.error("Two connection points in connection "+connections.get(i).name+" should be in the same subnet!" );
 					return false;
 				}
+				
+				//Update the 'belongingVM' field in the SubConnectionPoint.
+				//Get the VM in the sub-topology
+				String sourceVMName = this.connections.get(i).source.componentName;
+				VM vmInfo = this.getVMinSubClassbyName(sourceVMName);
+				if(vmInfo == null){
+					logger.error("There is no VM called "+sourceVMName+" in "+this.topologyName);
+					return false;
+				}
+				this.connections.get(i).source.belongingVM = vmInfo;
+				
+				String targetVMName = this.connections.get(i).target.componentName;
+				vmInfo = this.getVMinSubClassbyName(targetVMName);
+				if(vmInfo == null){
+					logger.error("There is no VM called "+targetVMName+" in "+this.topologyName);
+					return false;
+				}
+				this.connections.get(i).target.belongingVM = vmInfo;
 			}
 		}
 		
@@ -149,8 +169,10 @@ public abstract class SubTopology implements SubTopologyMethod {
 			//check the 'script' in the VM.
 			if(curVM.script != null){
 				String currentDir = CommonTool.getPathDir(loadingPath);
-				if(!curVM.loadScript(currentDir))
-					logger.warn("Cannot load the script file from "+curVM.script+"! You can load it later on!");
+				if(!curVM.loadScript(currentDir)){
+					logger.error("Cannot load the script file from "+curVM.script+"!");
+					return false;
+				}
 				else 
 					logger.info("Script of "+curVM.script+" is loaded!");
 			}
@@ -207,20 +229,18 @@ public abstract class SubTopology implements SubTopologyMethod {
 				//Validate the name of subnet or connection. 
 				//Also update the information of the corresponding connection.
 				if(curEth.subnetName != null){
-					if(curEth.subnet != null){
-						Subnet findSubnet = null;
-						for(int si = 0 ; si < subnets.size() ; si++){
-							if(subnets.get(si).name.equals(curEth.subnetName)){
-								findSubnet = subnets.get(si);
-								break;
-							}
+					Subnet findSubnet = null;
+					for(int si = 0 ; si < subnets.size() ; si++){
+						if(subnets.get(si).name.equals(curEth.subnetName)){
+							findSubnet = subnets.get(si);
+							break;
 						}
-						if(findSubnet == null){
-							logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
-							return false;
-						}
-						curEth.subnet = findSubnet;
 					}
+					if(findSubnet == null){
+						logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
+						return false;
+					}
+					curEth.subnet = findSubnet;
 				}
 				if(curEth.connectionName != null){
 					SubConnectionPoint findScp = null;

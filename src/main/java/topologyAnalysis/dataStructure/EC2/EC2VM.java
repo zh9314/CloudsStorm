@@ -8,11 +8,13 @@ public class EC2VM extends VM{
 
 	//The unit is GigaByte and must be a positive integer. 
 	//This field is only valid when this sub-topology is from EC2. 
+	//The default size is 8.
 	//The disk size of node in the ExoGENI is fixed.
 	public String diskSize;
 		
-	//Possible to be added later to satisfy the IOPS requirements of the developer.
-	//public String diskType;
+	//if IOPS < 1000, the disk type will be 'gp2'. if IOPS > 1000, the disk type will be 'io1'
+	//default amount is 0.
+	public String IOPS;
 	
 	//The following fields are used for deleting the sub-topology. 
 	//Only the field of instanceId can be written to the response file.
@@ -24,6 +26,19 @@ public class EC2VM extends VM{
 	public String securityGroupId;
 	
 	public String instanceId;
+	
+	public String volumeId;
+	
+	public String routeTableId;
+	
+	public String internetGatewayId;
+	
+	//Used for updating all the information above.
+	@JsonIgnore
+	public EC2Subnet subnetAllInfo;
+	
+	//This is the actual private address in EC2 subnet, 
+	public String actualPrivateAddress;
 	
 	
 	//This is only valid during provisioning. 

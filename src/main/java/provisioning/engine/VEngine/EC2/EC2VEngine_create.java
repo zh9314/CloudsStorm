@@ -4,14 +4,20 @@ import org.apache.log4j.Logger;
 
 import topologyAnalysis.dataStructure.EC2.EC2VM;
 
-public class EC2VEngine {
+public class EC2VEngine_create implements Runnable{
 	
-	private static final Logger logger = Logger.getLogger(EC2VEngine.class);
+	private static final Logger logger = Logger.getLogger(EC2VEngine_create.class);
 	
+	private EC2Agent ec2agent;
+	private EC2VM curVM;
 	
-	//The publicKeyId means the name of the public key in that datacenter.
-	public static boolean createVM(EC2Agent ec2agent, EC2VM curVM, 
+	public EC2VEngine_create(EC2Agent ec2agent, EC2VM curVM, 
 			String vpcCIDR, String privateAddress, String publicKeyId){
+		
+	}
+
+	//The publicKeyId means the name of the public key in that datacenter.
+	/*public static boolean createVM(){
 		String vpcId = ec2agent.createVPC(vpcCIDR);
 		if(vpcId == null){
 			logger.error("Cannot create vpc for "+curVM.name);
@@ -78,6 +84,12 @@ public class EC2VEngine {
 		curVM.volumeId = volumeId;
 		
 		return true;
+	}*/
+		
+		
+	@Override
+	public void run() {
+		
 	}
 
 }

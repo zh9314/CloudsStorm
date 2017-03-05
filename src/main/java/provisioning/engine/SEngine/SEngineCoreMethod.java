@@ -3,13 +3,20 @@ package provisioning.engine.SEngine;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import topologyAnalysis.dataStructure.SubTopology;
+import topologyAnalysis.dataStructure.SubTopologyInfo;
 
 public interface SEngineCoreMethod {
 	
 	/**
+	 * This method should always be invoked before real provisioning and after commonRuntimeCheck.<br/>
+	 * For different cloud providers, there may be some different checking and updating items.
+	 */
+	public boolean runtimeCheckandUpdate(SubTopologyInfo subTopologyInfo, Database database);
+	
+	/**
 	 * This is a method to provision the sub-topology specific to some Cloud.
 	 * The status of the sub-topology will be from 'fresh' -> 'running' or 'fresh' -> 'failed'
-	 * @param subTopology one of the sub-topology defined in the description files.
+	 * @param subTopologyInfo one of the sub-topology defined in the description files.
 	 * credential contains the credentials information to operate the Cloud.
 	 * database contains the information of the Cloud, AMI for instance.
 	 * @return successful or not. If the provisioning is not successful, 
@@ -18,7 +25,7 @@ public interface SEngineCoreMethod {
 	 * provisioning is successful, the controlling information will be written back 
 	 * to the original files, for example public address, instance id etc. 
 	 */
-	public boolean provision(SubTopology subTopology, Credential credential, Database database);
+	public boolean provision(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
 	
 	/**
 	 * This is a method to delete the topology. All the issues related with 
