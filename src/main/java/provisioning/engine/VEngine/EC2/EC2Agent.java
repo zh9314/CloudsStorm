@@ -1,8 +1,5 @@
 package provisioning.engine.VEngine.EC2;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +7,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AttachInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.AttachVolumeRequest;
-import com.amazonaws.services.ec2.model.AttachVolumeResult;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CreateInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.CreateInternetGatewayResult;
@@ -29,12 +25,13 @@ import com.amazonaws.services.ec2.model.DeleteInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.DeleteSubnetRequest;
 import com.amazonaws.services.ec2.model.DeleteVpcRequest;
-import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.DescribeRouteTablesRequest;
 import com.amazonaws.services.ec2.model.DescribeRouteTablesResult;
+import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
+import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
 import com.amazonaws.services.ec2.model.DetachInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateName;
@@ -86,14 +83,19 @@ public class EC2Agent {
 	
 	/**
 	 * Create a disk from the EC2 with a specified disk size and volume type according to the IOPS required.
-	 * This can be attached to a instance latter.
+	 * This can be attached to a instance latter. The subnetId must be one of the input,
+	 * because the volume must be created at the same availability zone of the instance.
 	 * About the EC2 volume type, can be found below. 
 	 * @see <a href="ec2">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html?icmpid=docs_ec2_console</a>
 	 * 
 	 * @return volumeId
 	 */
-	public String createVolume(int diskSize, int IOPS){
+	public String createVolume(int totalDiskSize, int IOPS, String subnetId){
 		CreateVolumeRequest createVolumeRequest = new CreateVolumeRequest();
+		int diskSize = totalDiskSize - 8;  ///This is the disk size for the attached volume
+		if(diskSize <= 0){
+			return null;
+		}
 		if(diskSize < 4){
 			createVolumeRequest.setVolumeType(VolumeType.Gp2);
 		}else{
@@ -104,9 +106,18 @@ public class EC2Agent {
 				createVolumeRequest.setIops(IOPS);
 			}
 		}
+		
+		ArrayList<String> subnetIds = new ArrayList<String>();
+		subnetIds.add(subnetId);
+		DescribeSubnetsRequest describeSubnetsRequest = new DescribeSubnetsRequest();
+		describeSubnetsRequest.setSubnetIds(subnetIds);
+		DescribeSubnetsResult describeSubnetResult = ec2Client.describeSubnets(describeSubnetsRequest);
+		String availabilityZone = describeSubnetResult.getSubnets().get(0).getAvailabilityZone();
+		
 		createVolumeRequest.setSize(diskSize);
-		DescribeAvailabilityZonesResult daz = ec2Client.describeAvailabilityZones();
-		createVolumeRequest.setAvailabilityZone(daz.getAvailabilityZones().get(0).getZoneName());
+		
+		//DescribeAvailabilityZonesResult daz = ec2Client.describeAvailabilityZones();
+		createVolumeRequest.setAvailabilityZone(availabilityZone);
 		CreateVolumeResult createVolumeResult = ec2Client.createVolume(createVolumeRequest);
 		return createVolumeResult.getVolume().getVolumeId();
 		
@@ -116,6 +127,7 @@ public class EC2Agent {
 		AttachVolumeRequest attachVolumeRequest = new AttachVolumeRequest();
 		attachVolumeRequest.setVolumeId(volumeId);
 		attachVolumeRequest.setInstanceId(instanceId);
+		attachVolumeRequest.setDevice("/dev/sdh");
 		ec2Client.attachVolume(attachVolumeRequest);
 		
 	}
@@ -213,106 +225,39 @@ public class EC2Agent {
 	}
 	
 	
-	////Public Address:Instance ID
-	public ArrayList<String> getPriPubAddressPair(ArrayList<String> instanceIds){
+	////Get the public address of the spcified instanceId.
+	////Wait for 100s for maximum.
+	public String getPublicAddress(String instanceId){
+		ArrayList<String> instanceIds = new ArrayList<String>();
+		instanceIds.add(instanceId);
 		DescribeInstancesRequest describeInstancesRequest =  new DescribeInstancesRequest()
 				.withInstanceIds(instanceIds);
-
-		String publicIpAddress = "";
-		String instanceId = "";
-		ArrayList<String> PriPubAddressPair = new ArrayList<String>();
-		
+		int count = 0;
 		while(true){
-			int count = 0;
 			DescribeInstancesResult describeInstancesResult = ec2Client.describeInstances(describeInstancesRequest);
 		    List<Reservation> reservations = describeInstancesResult.getReservations();
 	
-		    for(int i = 0 ; i<reservations.size() ; i++)
-		    {
-		    	List<Instance> instances = reservations.get(i).getInstances();
-		    	for(int j = 0 ; j<instances.size() ; j++)
-		    	{
-		    		instanceId = instances.get(j).getInstanceId();
-			        publicIpAddress = instances.get(j).getPublicIpAddress();
-			        if(publicIpAddress != null)
-			        {
-			        	count++;
-			        	PriPubAddressPair.add(publicIpAddress+":"+instanceId);
-			        }
-		    	}
+		    for(int i = 0 ; i<reservations.size() ; i++){
+			    	List<Instance> instances = reservations.get(i).getInstances();
+			    	for(int j = 0 ; j<instances.size() ; j++)
+			    	{
+			    		if(instances.get(j).getInstanceId().equals(instanceId))		
+			    			return instances.get(j).getPublicIpAddress();
+			    	}
 		    }
-		    if(count == instanceIds.size())
-		    	break;
-		    else
-		    	PriPubAddressPair.clear();
-	        
 	        try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return null;
 			}
-	        
+	        count++;
+	        if(count > 1000)
+	        		break;
 		}
-		
-		return PriPubAddressPair;
+		return null;
 	}
 	
-	
-	public void waitValid(ArrayList<String> addresses)
-	{
-		ArrayList<Boolean> tags = new ArrayList<Boolean>();
-		for(int i = 0 ; i<addresses.size() ; i++)
-			tags.add(Boolean.FALSE);
-		int count = 0;
-		while(count<300){
-			boolean allActive = true;
-			count++;
-			for(int i = 0 ; i<addresses.size() ; i++)
-			{
-				if(tags.get(i))
-					continue;
-				String [] pub_ins = addresses.get(i).split(":");
-				try{
-					String os = System.getProperty("os.name");
-					String cmdPrix = "ping -c 1 -w 1 ";
-					if(os.contains("OS"))
-						cmdPrix = "ping -c 1 -t 1 ";
-					Process process = Runtime.getRuntime().exec(cmdPrix+pub_ins[0]);
-					System.out.println("ping -c 1 -w 1 "+pub_ins[0]);
-					InputStreamReader ir = new InputStreamReader(process.getInputStream());
-					BufferedReader input = new BufferedReader (ir);
-					input.readLine();
-					String line = input.readLine();
-					if(line == null){
-						allActive = false;
-						continue;
-					}
-					System.out.println(line);
-					if(line.contains(" ms"))
-						tags.set(i, Boolean.TRUE);
-					else
-						allActive = false;
-						
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			
-			}
-			if(allActive)
-				break;
-		}
-		System.out.println("All instances valid");
-		
-	}
 	
 	public void terminateInstances(ArrayList<String> instances){
 		TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(instances);

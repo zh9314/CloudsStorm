@@ -75,6 +75,8 @@ public class UserCredential {
 						logger.error("Both missing public key file and public key id file for key pair "+f.getName());
 						return null;
 					}
+					
+					keyPairs.add(kp);
 				}
 			}
 		}else{

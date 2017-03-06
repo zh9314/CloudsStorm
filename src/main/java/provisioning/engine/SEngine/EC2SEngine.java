@@ -1,6 +1,7 @@
 package provisioning.engine.SEngine;
 
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -9,10 +10,12 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
+import provisioning.credential.SSHKeyPair;
 import provisioning.database.Database;
 import provisioning.database.EC2.EC2Database;
 import provisioning.engine.VEngine.EC2.EC2Agent;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createSubnet;
+import provisioning.engine.VEngine.EC2.EC2VEngine_createVM;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 import topologyAnalysis.dataStructure.Subnet;
@@ -55,6 +58,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
 		
+		long provisioningStart = System.currentTimeMillis();
 		////Create the vpc for all the VM without a subnet definition
 		String vpcId4all = ec2Agent.createVPC("192.168.0.0/16");
 		if(vpcId4all == null){
@@ -74,6 +78,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				curEC2Subnet.org_subnet.netmask = "24";
 				curEC2Subnet.org_subnet.subnet = "192.168."+subnetIndex+".0";
 				curEC2Subnet.vpcId = vpcId4all;
+				curVM.actualPrivateAddress = "192.168."+subnetIndex+".10";
 				curVM.subnetAllInfo = curEC2Subnet;
 				actualSubnets.add(curEC2Subnet);
 			}
@@ -124,7 +129,91 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		
 		logger.debug("All the subnets have been created!");
 		
-		return true;
+		////Provisioning VMs based on the feedback information of subnetId etc.
+		//First, create a key pair for this subtopology, if there is none.
+		if(ec2SubTopology.accessKeyPair == null){
+			String keyPairId = UUID.randomUUID().toString();
+			String publicKeyId = "publicKey-"+keyPairId;
+			String privateKeyString = ec2Agent.createKeyPair(publicKeyId);
+			if(privateKeyString == null){
+				logger.error("Unexpected error for creating ssh key pair for sub-topology '"+ec2SubTopology.topologyName+"'!");
+				return false;
+			}
+			subTopologyInfo.sshKeyPairId = keyPairId;
+			ec2SubTopology.accessKeyPair = new SSHKeyPair();
+			ec2SubTopology.accessKeyPair.publicKeyId = publicKeyId;
+			ec2SubTopology.accessKeyPair.privateKeyString = privateKeyString;
+			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
+		}
+		int vmPoolSize = ec2SubTopology.components.size();
+		ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
+		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			logger.debug(curVM.name+" "+curVM.actualPrivateAddress
+					+" "+curVM.subnetAllInfo.subnetId);
+			if(curVM.subnetAllInfo.vpcId == null){
+				logger.error("The vpc of '"+curVM+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
+				return false;
+			}else
+				curVM.vpcId = curVM.subnetAllInfo.vpcId;
+			if(curVM.subnetAllInfo.subnetId == null){
+				logger.error("The subnet of '"+curVM+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
+				return false;
+			}else
+				curVM.subnetId = curVM.subnetAllInfo.subnetId;
+			curVM.securityGroupId = curVM.subnetAllInfo.securityGroupId;
+			curVM.routeTableId = curVM.subnetAllInfo.routeTableId;
+			curVM.internetGatewayId = curVM.subnetAllInfo.internetGatewayId;
+			EC2VEngine_createVM ec2createVM = new EC2VEngine_createVM(
+					ec2Agent, curVM, 
+					ec2SubTopology.accessKeyPair.publicKeyId, 
+					ec2SubTopology.accessKeyPair.privateKeyString);
+			executor4vm.execute(ec2createVM);
+		}
+		
+		executor4vm.shutdown();
+		try {
+			int count = 0;
+			while (!executor4vm.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 100*vmPoolSize){
+					logger.error("Unknown error! Some subnet cannot be set up!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
+		long provisioningEnd = System.currentTimeMillis();
+		
+		boolean allSuccess = true;
+		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			if(curVM.instanceId == null || curVM.publicAddress == null){
+				allSuccess = false;
+				logger.error(curVM.name+" of sub-topology '"+ec2SubTopology.topologyName+"' is not provisioned!");
+			}
+		}
+		if(!allSuccess){   ///Errors happen during provisioning
+			subTopologyInfo.status = "failed";
+			long curTime = System.currentTimeMillis();
+			subTopologyInfo.statusInfo = "not provisioned: "+curTime;
+		}else{
+			long overhead = provisioningEnd - provisioningStart;
+			logger.debug("All the vms have been created! Provisioning overhead: "+overhead);
+			subTopologyInfo.status = "running";
+			subTopologyInfo.statusInfo = "provisioning overhead: "+overhead;
+		}
+		
+		if(!ec2SubTopology.overwirteControlOutput())
+			logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
+		
+		if(allSuccess)
+			return true;
+		else 
+			return false;
 	}
 	
 	//To test whether the VM belongs to a subnet.
@@ -155,7 +244,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 	}
 
 	/**
-	 * Update the AMI information.
+	 * 1. Update the AMI information.
+	 * 2. To be completed, check the validity of nodeType.
 	 */
 	@Override
 	public boolean runtimeCheckandUpdate(SubTopologyInfo subTopologyInfo,

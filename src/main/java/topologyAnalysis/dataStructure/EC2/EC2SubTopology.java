@@ -7,11 +7,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+
+import provisioning.credential.SSHKeyPair;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
+import commonTool.CommonTool;
 import topologyAnalysis.dataStructure.Eth;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.VM;
@@ -112,7 +116,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
     	try {
     		FileWriter yamlFileOut = new FileWriter(this.loadingPath, false);
     		String yamlString = mapper.writeValueAsString(this);
-			String content = "";
+		String content = "";
         	String [] lines = yamlString.split("\\\n");
         	for(int i = 0 ; i<lines.length ; i++){
         		if(lines[i].trim().equals("subnetName: null")
@@ -124,6 +128,46 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
         	yamlFileOut.write(content);
         	yamlFileOut.close();
         	
+        	////Write the ssh key pair to files.
+        SSHKeyPair curKey = 	((SubTopology)this).accessKeyPair;
+        if(curKey == null)
+        		logger.info("There is no ssh key for sub-topology '"+this.topologyName+"'");
+        else{
+	        	String currentDir = CommonTool.getPathDir(this.loadingPath);
+	        	if(curKey.SSHKeyPairId == null){
+	        		logger.error("Invalid key pair because of 'null' keyPairId!");
+	        		return false;
+	        	}
+	        	String keyDirPath = currentDir+curKey.SSHKeyPairId+File.separator;
+	        	File keyDir = new File(keyDirPath);
+	        	if(!keyDir.mkdir()){
+	        		logger.error("Cannot create directory "+keyDirPath);
+	        		return false;
+	        	}
+	        	if(curKey.privateKeyString == null){
+	        		logger.error("Invalid ssh key pairs ("+curKey.SSHKeyPairId+") because of 'null' privateKeyString!");
+	        		return false;
+	        	}
+	        	if(curKey.publicKeyId == null && curKey.publicKeyString == null){
+	        		logger.equals("Invalid ssh key pairs ("+curKey.SSHKeyPairId+") because of 'null' publicKeyString or publicKeyId!");
+	        		return false;
+	        	}
+	        	File priKeyFile = new File(keyDirPath+"id_rsa");
+	        	FileUtils.writeStringToFile(priKeyFile, curKey.privateKeyString, "UTF-8", false);
+	        	
+	        	if(curKey.publicKeyId != null){
+	        		File pubKeyIdFile = new File(keyDirPath+"name.pub");
+	        		FileUtils.writeStringToFile(pubKeyIdFile, 
+	        				curKey.publicKeyId, "UTF-8", false);
+	        	}
+	        	
+	        	if(curKey.publicKeyString != null){
+	        		File pubKeyFile = new File(keyDirPath+"id_rsa.pub");
+	        		FileUtils.writeStringToFile(pubKeyFile, 
+	        				curKey.publicKeyString, "UTF-8", false);
+	        	}
+        }
+   
 		} catch (IOException e) {
 			e.printStackTrace();
 			logger.error(e.getMessage());
@@ -149,7 +193,8 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	 * 2. The 'instanceId', 'vpcId', 'subnetId' and 'securityGroupId' must not be null, 
 	 * if the topology status is 'running'. <br/>
 	 * 3. If the 'diskSize' is null, then the default value is 8. <br/>
-	 * 4. The value of 'diskSize', whose unit is GigaBytes, must be positive. <br/>
+	 * 4. The value of 'diskSize', whose unit is GigaBytes, must be positive. 
+	 * For EC2, the 'diskSize' cannot be smaller than 8.  <br/>
 	 * 5. One VM can only belong to one subnet. <br/>
 	 * 
 	 */
@@ -185,8 +230,8 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 			}else{
 				try {
 					int diskSize = Integer.parseInt(curVM.diskSize);
-					if(diskSize<=0){
-						logger.error("Field 'diskSize' of EC2VM '"+curVM.name+"' must be positive!");
+					if(diskSize<8){
+						logger.error("The minimum number for field 'diskSize' of EC2VM '"+curVM.name+"' is 8!");
 						return false;
 					}
 					if(diskSize > 16000){   ///Maxium is 16TB.
@@ -205,7 +250,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 			}else{
 				try {
 					int IOPS = Integer.parseInt(curVM.IOPS);
-					if(IOPS<=0){
+					if(IOPS<0){
 						logger.error("Field 'IOPS' of EC2VM '"+curVM.name+"' must be positive!");
 						return false;
 					}

@@ -33,6 +33,7 @@ public interface SubTopologyMethod {
 	@JsonIgnore
 	public ArrayList<VM> getVMsinSubClass();
 	
+	
 	/**
 	 * Generate the output yaml strings to respond user.
 	 * @return A key-value pair. 

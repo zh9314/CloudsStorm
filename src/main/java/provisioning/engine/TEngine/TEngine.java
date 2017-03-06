@@ -56,6 +56,11 @@ public class TEngine {
 				logger.error("The S-Engine for sub-topology '"+subTopologyInfo.topology+"' cannot be found!");
 			}
 		}
+		
+		///overwrite the control information back to the top-topology
+		if(!topTopology.overwirteControlOutput())
+			logger.error("Control information of top-topology has not been overwritten to the origin file!");
+		
 	}
 
 }

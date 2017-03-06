@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -61,7 +62,7 @@ public class testYAMLLoading {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
-		int x = 5;
+		/*int x = 5;
 		long startTime = System.currentTimeMillis();
 		ExecutorService executor = Executors.newFixedThreadPool(x);
 		ArrayList<EC2VM> array = new ArrayList<EC2VM>();
@@ -82,8 +83,9 @@ public class testYAMLLoading {
 		System.out.println("Used: "+(endTime-startTime)/1000);
 		for(int i = 0 ; i<array.size() ; i++){
 			System.out.println(array.get(i).AMI);
-		}
+		}*/
 
+		System.out.println(UUID.randomUUID().toString());
 
 		
 	}

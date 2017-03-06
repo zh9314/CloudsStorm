@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import provisioning.credential.EC2Credential;
@@ -130,7 +131,9 @@ public class TopTopology implements TopTopologyMethod{
 		File yamlFileOut = new File(this.loadingPath);
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		try {
-			mapper.writeValue(yamlFileOut, this);
+			String yamlString = mapper.writeValueAsString(this);
+			FileUtils.writeStringToFile(yamlFileOut, 
+					yamlString, "UTF-8", false);
 		} catch (IOException e) {
 			e.printStackTrace();
 			logger.error(e.getMessage());
