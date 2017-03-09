@@ -242,8 +242,6 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				e.printStackTrace();
 			}
 		}
-		long es = System.currentTimeMillis();
-		logger.debug("start waiting! "+es);
 		executor4conf.shutdown();
 		try {
 			int count = 0;
@@ -254,15 +252,16 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 					return false;
 				}
 			}
-			long ee = System.currentTimeMillis();
-			logger.debug("The output for count "+count+" time: "+(ee-es));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
 			return false;
 		}
 		
-		logger.debug("here here");
+		long configureEnd = System.currentTimeMillis();
+		long configureOverhead = configureEnd - provisioningEnd;
+		subTopologyInfo.statusInfo += "; configuration overhead: " + configureOverhead;
+		
 		if(!ec2SubTopology.overwirteControlOutput()){
 			logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
 			return false;

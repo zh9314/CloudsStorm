@@ -262,8 +262,8 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 				);
 			}
 			logOutput.close();
-			logger.info("Script for '"+curVM.name+"' is executed!");
 			FileUtils.deleteQuietly(scriptFile);
+			logger.info("Script for '"+curVM.name+"' is executed!");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
