@@ -36,6 +36,8 @@ public class TEngine {
 				continue;
 			}
 			try {
+				subTopologyInfo.userName = topTopology.userName;
+				subTopologyInfo.publicKeyString = topTopology.publicKeyString;
 				Object sEngine = Class.forName(subTopologyInfo.subTopology.provisioningAgentClassName).newInstance();
 				if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
 					logger.error("Some information is missing for provisioning sub-topology '"+subTopologyInfo.topology+"'!");

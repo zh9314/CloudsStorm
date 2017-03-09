@@ -2,9 +2,8 @@ package provisioning.engine.VEngine.EC2;
 
 import topologyAnalysis.dataStructure.EC2.EC2Subnet;
 
-public class EC2VEngine_createSubnet implements Runnable{
+public class EC2VEngine_createSubnet extends EC2VEngine implements Runnable{
 	
-	private EC2Agent ec2agent;
 	private EC2Subnet ec2subnet;
 	
 	public EC2VEngine_createSubnet(EC2Agent ec2agent, EC2Subnet ec2subnet){

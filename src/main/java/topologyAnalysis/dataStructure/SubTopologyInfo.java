@@ -76,4 +76,10 @@ public class SubTopologyInfo {
 	@JsonIgnore
 	public Map<String, Boolean> scalingAddressPool;
 	
+	//Used for ssh configuration. equal to the field of 'userName' and 'publicKeyString' in top-topology.
+	@JsonIgnore
+	public String userName;
+	@JsonIgnore
+	public String publicKeyString;
+	
 }

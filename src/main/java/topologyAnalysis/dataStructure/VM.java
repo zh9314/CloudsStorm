@@ -20,6 +20,8 @@ public abstract class VM {
 	
 	//Currently, the SIDE subsystem uses this field for GUI.
 	//This script defines for individual VM.
+	//It's important to keep in mind that this is only the script path.
+	//The real content in the field of 'v_scriptString'
 	public String script;
 	
 	/**

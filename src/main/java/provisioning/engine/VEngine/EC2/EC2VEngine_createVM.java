@@ -3,20 +3,17 @@ package provisioning.engine.VEngine.EC2;
 
 import org.apache.log4j.Logger;
 
-
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
 
 import topologyAnalysis.dataStructure.EC2.EC2VM;
 
-public class EC2VEngine_createVM implements Runnable{
+public class EC2VEngine_createVM extends EC2VEngine implements Runnable{
 	
 	private static final Logger logger = Logger.getLogger(EC2VEngine_createVM.class);
 	
-	private EC2Agent ec2agent;
-	private EC2VM curVM;
 	private String publicKeyId;
-	private String privateKeyString;
+	//private String privateKeyString;
 	
 	public EC2VEngine_createVM(EC2Agent ec2agent, EC2VM curVM, 
 			String publicKeyId, String privateKeyString){

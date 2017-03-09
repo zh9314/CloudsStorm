@@ -85,7 +85,7 @@ public class testYAMLLoading {
 			System.out.println(array.get(i).AMI);
 		}*/
 
-		System.out.println(UUID.randomUUID().toString());
+		System.out.println(System.getProperty("java.io.tmpdir"));
 
 		
 	}

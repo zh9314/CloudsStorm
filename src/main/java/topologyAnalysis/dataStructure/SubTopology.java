@@ -68,6 +68,8 @@ public abstract class SubTopology implements SubTopologyMethod {
 	 * 8. The VM must have public address, if the status of the sub-topology 
 	 * is 'running'.
 	 * 9. Update the 'belongingVM' field in the SubConnectionPoint.
+	 * 10. Checking that all the private address in one subnet must be 
+	 * in the same subnet. 
 	 * 
 	 * Input is the status of the sub-topology. 
 	 * @return

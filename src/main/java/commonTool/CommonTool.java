@@ -99,6 +99,18 @@ public class CommonTool {
 		return -1;
 	}
 	
+	/**
+	 * Convert netmask int to string (255.255.255.0 returned if nm > 32 or nm < 1)
+	 * @param nm
+	 * @return
+	 */
+	public static String netmaskIntToString(int nm) {
+		if ((nm > 32) || (nm < 1)) 
+			return "255.255.255.0";
+		else
+			return netmaskConverter[nm - 1];
+	}
+	
 	//The input string is just the IP address without netmask.
 	//It will also return false, if the IP address is not valid.
 	public static boolean checkPrivateIPaddress(String ip){

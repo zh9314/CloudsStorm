@@ -128,7 +128,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
         	yamlFileOut.write(content);
         	yamlFileOut.close();
         	
-        	////Write the ssh key pair to files.
+        	////Write the ssh key pair to files, if needed
         SSHKeyPair curKey = 	((SubTopology)this).accessKeyPair;
         if(curKey == null)
         		logger.info("There is no ssh key for sub-topology '"+this.topologyName+"'");
@@ -140,6 +140,10 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	        	}
 	        	String keyDirPath = currentDir+curKey.SSHKeyPairId+File.separator;
 	        	File keyDir = new File(keyDirPath);
+	        	if(keyDir.exists()){
+	        		logger.info("The key pair '"+curKey.SSHKeyPairId+"' has already been stored!");
+	        		return true;
+	        	}
 	        	if(!keyDir.mkdir()){
 	        		logger.error("Cannot create directory "+keyDirPath);
 	        		return false;

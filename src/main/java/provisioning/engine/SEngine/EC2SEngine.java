@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import commonTool.CommonTool;
+
 import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
 import provisioning.credential.SSHKeyPair;
@@ -16,6 +18,7 @@ import provisioning.database.EC2.EC2Database;
 import provisioning.engine.VEngine.EC2.EC2Agent;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createSubnet;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createVM;
+import provisioning.engine.VEngine.EC2.EC2VEngine;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 import topologyAnalysis.dataStructure.Subnet;
@@ -200,6 +203,10 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			subTopologyInfo.status = "failed";
 			long curTime = System.currentTimeMillis();
 			subTopologyInfo.statusInfo = "not provisioned: "+curTime;
+			if(!ec2SubTopology.overwirteControlOutput()){
+				logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
+			}
+			return false;
 		}else{
 			long overhead = provisioningEnd - provisioningStart;
 			logger.debug("All the vms have been created! Provisioning overhead: "+overhead);
@@ -207,13 +214,62 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			subTopologyInfo.statusInfo = "provisioning overhead: "+overhead;
 		}
 		
-		if(!ec2SubTopology.overwirteControlOutput())
-			logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
-		
-		if(allSuccess)
-			return true;
-		else 
+		////Configure all the inner connections
+		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+ec2SubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object sEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)sEngine).cmd = "all";
+				((EC2VEngine)sEngine).curVM = curVM;
+				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)sEngine).publicKeyString = subTopologyInfo.publicKeyString;
+				((EC2VEngine)sEngine).userName = subTopologyInfo.userName;
+				((EC2VEngine)sEngine).subConnections = ec2SubTopology.connections;
+				((EC2VEngine)sEngine).currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
+				//logger.debug("wtf?");
+				executor4conf.execute(((Runnable)sEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		long es = System.currentTimeMillis();
+		logger.debug("start waiting! "+es);
+		executor4conf.shutdown();
+		try {
+			int count = 0;
+			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*vmPoolSize){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+			long ee = System.currentTimeMillis();
+			logger.debug("The output for count "+count+" time: "+(ee-es));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
 			return false;
+		}
+		
+		logger.debug("here here");
+		if(!ec2SubTopology.overwirteControlOutput()){
+			logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
+			return false;
+		}
+		logger.info("The control information of "+ec2SubTopology.topologyName+" has been written back!");
+		return true;
+		
 	}
 	
 	//To test whether the VM belongs to a subnet.

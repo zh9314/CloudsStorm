@@ -233,6 +233,12 @@ public class EC2Agent {
 		DescribeInstancesRequest describeInstancesRequest =  new DescribeInstancesRequest()
 				.withInstanceIds(instanceIds);
 		int count = 0;
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		
 		while(true){
 			DescribeInstancesResult describeInstancesResult = ec2Client.describeInstances(describeInstancesRequest);
 		    List<Reservation> reservations = describeInstancesResult.getReservations();
@@ -241,8 +247,12 @@ public class EC2Agent {
 			    	List<Instance> instances = reservations.get(i).getInstances();
 			    	for(int j = 0 ; j<instances.size() ; j++)
 			    	{
-			    		if(instances.get(j).getInstanceId().equals(instanceId))		
-			    			return instances.get(j).getPublicIpAddress();
+			    		if(instances.get(j).getInstanceId().equals(instanceId)){
+			    			if(instances.get(j).getPublicIpAddress() == null)
+			    				continue;
+			    			else
+			    				return instances.get(j).getPublicIpAddress();
+			    		}
 			    	}
 		    }
 	        try {
