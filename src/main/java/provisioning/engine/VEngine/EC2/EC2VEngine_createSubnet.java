@@ -1,5 +1,6 @@
 package provisioning.engine.VEngine.EC2;
 
+
 import topologyAnalysis.dataStructure.EC2.EC2Subnet;
 
 public class EC2VEngine_createSubnet extends EC2VEngine implements Runnable{
@@ -16,6 +17,7 @@ public class EC2VEngine_createSubnet extends EC2VEngine implements Runnable{
 		//In this case, we need to set up vpc first.
 		if(ec2subnet.vpcId == null){
 			String vpcCIDR = ec2subnet.org_subnet.subnet+"/"+ec2subnet.org_subnet.netmask;
+			
 			String vpcId = ec2agent.createVPC(vpcCIDR);
 			try {
 				Thread.sleep(2000);
@@ -26,8 +28,22 @@ public class EC2VEngine_createSubnet extends EC2VEngine implements Runnable{
 			ec2subnet.vpcId = vpcId;
 		}
 		
-		String routeTableId = ec2agent.getAssociateRouteTableId(ec2subnet.vpcId);
+		String routeTableId = null;
+		int count = 0;
+		while((routeTableId = ec2agent.getAssociateRouteTableId(ec2subnet.vpcId)) == null){
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				return ;
+			}
+			count++;
+			if(count > 200)
+				return ;
+		}
 		String internetGatewayId = ec2agent.createInternetGateway(ec2subnet.vpcId);
+		if(internetGatewayId == null)
+			return ;
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {

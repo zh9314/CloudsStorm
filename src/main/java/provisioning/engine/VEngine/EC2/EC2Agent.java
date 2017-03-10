@@ -137,14 +137,14 @@ public class EC2Agent {
 		DescribeRouteTablesRequest describeRouteTablesRequest = new DescribeRouteTablesRequest();
 	    DescribeRouteTablesResult describeRouteTablesResult = ec2Client.describeRouteTables(describeRouteTablesRequest);
 	    List<RouteTable> rTables = describeRouteTablesResult.getRouteTables();
-	    String routeTableId = "";
+	    String routeTableId = null;
 	    for(int i = 0 ; i<rTables.size() ; i++){
-	    	String tmpVpcId = rTables.get(i).getVpcId();
-	    	System.out.println(tmpVpcId+" "+rTables.get(i).getRouteTableId());
-	    	if(tmpVpcId.equals(vpcId)){
-	    		routeTableId = rTables.get(i).getRouteTableId();
-	    		break;
-	    	}
+		    	String tmpVpcId = rTables.get(i).getVpcId();
+		    	System.out.println(tmpVpcId+" "+rTables.get(i).getRouteTableId());
+		    	if(tmpVpcId.equals(vpcId)){
+		    		routeTableId = rTables.get(i).getRouteTableId();
+		    		break;
+		    	}
 	    }
 		return routeTableId;
 	}

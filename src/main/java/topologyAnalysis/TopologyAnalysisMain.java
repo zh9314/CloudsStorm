@@ -141,7 +141,7 @@ public class TopologyAnalysisMain{
 					return false;
 				}
 				sourceTcp.belongingVM = vmInfo;
-				sourceTcp.peerAddress = targetTcp.address;
+				sourceTcp.peerTCP = targetTcp;
 				if(sti.connectors == null)
 					sti.connectors = new ArrayList<TopConnectionPoint>();
 				sti.connectors.add(sourceTcp);
@@ -166,7 +166,7 @@ public class TopologyAnalysisMain{
 					return false;
 				}
 				targetTcp.belongingVM = vmInfo;
-				targetTcp.peerAddress = sourceTcp.address;
+				targetTcp.peerTCP = sourceTcp;
 				if(sti.connectors == null)
 					sti.connectors = new ArrayList<TopConnectionPoint>();
 				sti.connectors.add(targetTcp);

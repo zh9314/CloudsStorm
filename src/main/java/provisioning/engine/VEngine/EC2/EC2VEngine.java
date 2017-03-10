@@ -3,7 +3,7 @@ package provisioning.engine.VEngine.EC2;
 import java.util.ArrayList;
 
 import topologyAnalysis.dataStructure.SubConnection;
-import topologyAnalysis.dataStructure.TopConnection;
+import topologyAnalysis.dataStructure.TopConnectionPoint;
 import topologyAnalysis.dataStructure.EC2.EC2VM;
 
 
@@ -18,7 +18,7 @@ public class EC2VEngine {
 	//Possible value: "all", "connection", "script", "ssh"
 	public String cmd;
 	public ArrayList<SubConnection> subConnections;
-	public ArrayList<TopConnection> topConnections;
+	public ArrayList<TopConnectionPoint> topConnectors;
 	public String privateKeyString;
 	////Used for generating the log file of executing the script on that VM
 	public String currentDir;

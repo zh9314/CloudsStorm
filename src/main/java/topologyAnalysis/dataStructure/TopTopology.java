@@ -314,9 +314,9 @@ public class TopTopology implements TopTopologyMethod{
 							logger.debug("In sub-topology"+topologies.get(i).topology+" ,the address ("+curTcp.address+") of the connector has already been contained in the scaling pool!");
 							topologies.get(i).scalingAddressPool.put(curTcp.address, false);
 						}
-						if(topologies.get(i).scalingAddressPool.containsKey(curTcp.peerAddress)){
-							logger.debug("In sub-topology"+topologies.get(i).topology+" ,the peer address ("+curTcp.peerAddress+") of the connector has already been contained in the scaling pool!");
-							topologies.get(i).scalingAddressPool.put(curTcp.peerAddress, false);
+						if(topologies.get(i).scalingAddressPool.containsKey(curTcp.peerTCP.address)){
+							logger.debug("In sub-topology"+topologies.get(i).topology+" ,the peer address ("+curTcp.peerTCP.address+") of the connector has already been contained in the scaling pool!");
+							topologies.get(i).scalingAddressPool.put(curTcp.peerTCP.address, false);
 						}
 					}
 				}
@@ -378,6 +378,11 @@ public class TopTopology implements TopTopologyMethod{
 			return false;
 		}
 		for(int i = 0 ; i<topologies.size() ; i++){
+			//Update the subTopologyInfo after checking the userName and publicKeyString
+			SubTopologyInfo curInfo = topologies.get(i);
+			curInfo.userName = this.userName;
+			curInfo.publicKeyString = this.publicKeyString;
+			
 			String tn = topologies.get(i).topology;
 			if(tn == null){
 				logger.error("The sub-topology name must be specified and cannot be set as 'null'!");

@@ -22,6 +22,12 @@ public class TopConnectionPoint{
 	
 	//Record the address of the peer in this connection.
 	//Used for generating the available scaling pool.
+	//@JsonIgnore
+	//public String peerAddress;
+	
+	//Record the address of the peer in this connection.
+	//Used for generating the available scaling pool.
 	@JsonIgnore
-	public String peerAddress;
+	public TopConnectionPoint peerTCP;
+	
 }

@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -16,7 +17,7 @@ import com.jcabi.ssh.Shell;
 import commonTool.CommonTool;
 import provisioning.engine.VEngine.VEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubConnection;
-import topologyAnalysis.dataStructure.TopConnection;
+import topologyAnalysis.dataStructure.TopConnectionPoint;
 
 /**
  * This is a specific EC2 VM engine which is responsible for connection and run 
@@ -53,7 +54,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 	 */
 	public void connectionConf(){
 		String confFilePath = System.getProperty("java.io.tmpdir") + File.separator 
-				+ "ec2_conf_" + curVM.name + System.nanoTime() + ".sh"; 
+				+ "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
 		logger.debug("confFilePath: "+confFilePath);
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
@@ -65,12 +66,14 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 				String linkName = curSubCon.name+".sub";
 				String remotePubAddress = "", remotePrivateAddress = "", 
 						netmask = "", subnet = "", localPrivateAddress = "";
+				boolean findVM = false;
 				if(curSubCon.source.belongingVM.name.equals(curVM.name)){
 					remotePubAddress = curSubCon.target.belongingVM.publicAddress;
 					remotePrivateAddress = curSubCon.target.address;
 					localPrivateAddress = curSubCon.source.address;
 					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curSubCon.source.netmask));
 					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curSubCon.source.netmask));
+					findVM = true;
 				}
 				
 				if(curSubCon.target.belongingVM.name.equals(curVM.name)){
@@ -79,7 +82,10 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 					localPrivateAddress = curSubCon.target.address;
 					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curSubCon.target.netmask));
 					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curSubCon.target.netmask));
+					findVM = true;
 				}
+				if(!findVM)
+					continue;
 				fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 				fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 				fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
@@ -90,27 +96,25 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		}
 		
 		////Configure for topconnections
-		if(this.topConnections != null){
-			for(int tci = 0 ; tci<this.subConnections.size() ; tci++){
-				TopConnection curTopCon = this.topConnections.get(tci);
-				String linkName = curTopCon.name+".top";
-				String remotePubAddress = "", remotePrivateAddress = "", 
+		if(this.topConnectors != null){
+			for(int tci = 0 ; tci<this.topConnectors.size() ; tci++){
+				TopConnectionPoint curTCP = this.topConnectors.get(tci);
+				String linkName = "", remotePubAddress = "", remotePrivateAddress = "", 
 						netmask = "", subnet = "", localPrivateAddress = "";
-				if(curTopCon.source.belongingVM.name.equals(curVM.name)){
-					remotePubAddress = curTopCon.target.belongingVM.publicAddress;
-					remotePrivateAddress = curTopCon.target.address;
-					localPrivateAddress = curTopCon.source.address;
-					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curTopCon.source.netmask));
-					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curTopCon.source.netmask));
-				}
+				int curIndex = 0;
+				if(curTCP.belongingVM.name.equals(curVM.name)){
+					linkName = "top_" + curIndex;
+					curIndex++;
+					remotePubAddress = curTCP.peerTCP.belongingVM.publicAddress;
+					if(remotePubAddress == null)
+						continue;
+					remotePrivateAddress = curTCP.peerTCP.address;
+					localPrivateAddress = curTCP.address;
+					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curTCP.netmask));
+					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curTCP.netmask));
+				}else
+					continue;
 				
-				if(curTopCon.target.belongingVM.name.equals(curVM.name)){
-					remotePubAddress = curTopCon.source.belongingVM.publicAddress;
-					remotePrivateAddress = curTopCon.source.address;
-					localPrivateAddress = curTopCon.target.address;
-					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curTopCon.target.netmask));
-					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curTopCon.target.netmask));
-				}
 				fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 				fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 				fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
@@ -121,7 +125,8 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		}
 		fw.close();
 		
-		
+
+		Thread.sleep(2000);
 		Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
 		File file = new File(confFilePath);
 		new Shell.Safe(shell).exec(
@@ -129,16 +134,46 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		  new FileInputStream(file),
 		  new NullOutputStream(), new NullOutputStream()
 		);
-		Thread.sleep(1000);
+		FileUtils.deleteQuietly(file);
 		new Shell.Safe(shell).exec(
 				  "rm connection.sh",
 				  null,
 				  new NullOutputStream(), new NullOutputStream()
 		);
-		FileUtils.deleteQuietly(file);
+		
 		}catch (IOException | InterruptedException e) {
 			e.printStackTrace();
-			logger.error(e.getMessage());
+			logger.error(curVM.name +": "+ e.getMessage());
+			if(e.getMessage().contains("timeout: socket is not established")){   ////In this case, we give another chance to test.
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e1) {
+				}
+				File file = new File(confFilePath);
+				if(file.exists()){
+					try {
+						Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+						new Shell.Safe(shell).exec(
+								  "cat > connection.sh && sudo bash connection.sh ",
+								  new FileInputStream(file),
+								  new NullOutputStream(), new NullOutputStream()
+								);
+						FileUtils.deleteQuietly(file);
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+				try {
+					Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+					new Shell.Safe(shell).exec(
+							  "rm connection.sh",
+							  null,
+							  new NullOutputStream(), new NullOutputStream()
+					);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -146,7 +181,6 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 	public void run() {
 		if(cmd.equals("all")){
 			connectionConf();
-			logger.debug("here 1");
 			sshConf();
 			runScript();
 		}else if(cmd.equals("connection")){

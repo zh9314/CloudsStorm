@@ -285,128 +285,129 @@ public abstract class SubTopology implements SubTopologyMethod {
 	 * @return false if there is invalid netmask.
 	 */
 	private boolean netmaskFormating(){
-		if(this.connections == null){
-			return true;
-		}
-		for(int i = 0 ; i<this.connections.size() ; i++){
-			String netmask = "";
-			SubConnectionPoint scpSource = this.connections.get(i).source;
-			netmask = scpSource.netmask;
-			int netmaskNum = 0;
-			if(netmask == null){
-				logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" must be specified!");
-				return false;
-			}
-			if(netmask.contains(".")){
-				if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
-					logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" is not valid!");
+		if(this.connections != null){
+			for(int i = 0 ; i<this.connections.size() ; i++){
+				String netmask = "";
+				SubConnectionPoint scpSource = this.connections.get(i).source;
+				netmask = scpSource.netmask;
+				int netmaskNum = 0;
+				if(netmask == null){
+					logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" must be specified!");
 					return false;
 				}
-			}else{
-				try {
-					netmaskNum = Integer.parseInt(netmask);
-					if(netmaskNum<=0 || netmaskNum>=32){
-						logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" should be between 1 and 31 (included)!");
-						return false;
-					}
-					} catch (NumberFormatException e) {
+				if(netmask.contains(".")){
+					if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
 						logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" is not valid!");
 						return false;
 					}
-			}
-			scpSource.netmask = String.valueOf(netmaskNum);
-			String networkAddress = scpSource.address;
-			if(networkAddress == null){
-				logger.error("The filed 'address' of source connection "+this.connections.get(i).name+" cannot be null!");
-				return false;
-			}
-			if(!CommonTool.checkPrivateIPaddress(networkAddress)){
-				logger.error("The filed 'address' (value='"+networkAddress+"') of source connection "+this.connections.get(i).name+" should be private network address!");
-				return false;
-			}
-			
-			SubConnectionPoint scpTarget = this.connections.get(i).target;
-			netmask = scpTarget.netmask;
-			if(netmask == null){
-				logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" must be specified!");
-				return false;
-			}
-			if(netmask.contains(".")){
-				if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
-					logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" is not valid!");
+				}else{
+					try {
+						netmaskNum = Integer.parseInt(netmask);
+						if(netmaskNum<=0 || netmaskNum>=32){
+							logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" should be between 1 and 31 (included)!");
+							return false;
+						}
+						} catch (NumberFormatException e) {
+							logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" is not valid!");
+							return false;
+						}
+				}
+				scpSource.netmask = String.valueOf(netmaskNum);
+				String networkAddress = scpSource.address;
+				if(networkAddress == null){
+					logger.error("The filed 'address' of source connection "+this.connections.get(i).name+" cannot be null!");
 					return false;
 				}
-			}else{
-				try {
-					netmaskNum = Integer.parseInt(netmask);
-					if(netmaskNum<=0 || netmaskNum>=32){
-						logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" should be between 1 and 31 (included)!");
-						return false;
-					}
-					} catch (NumberFormatException e) {
+				if(!CommonTool.checkPrivateIPaddress(networkAddress)){
+					logger.error("The filed 'address' (value='"+networkAddress+"') of source connection "+this.connections.get(i).name+" should be private network address!");
+					return false;
+				}
+				
+				SubConnectionPoint scpTarget = this.connections.get(i).target;
+				netmask = scpTarget.netmask;
+				if(netmask == null){
+					logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" must be specified!");
+					return false;
+				}
+				if(netmask.contains(".")){
+					if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
 						logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" is not valid!");
 						return false;
 					}
-			}
-			scpTarget.netmask = String.valueOf(netmaskNum);
-			networkAddress = scpTarget.address;
-			if(networkAddress == null){
-				logger.error("The filed 'address' of target connection "+this.connections.get(i).name+" cannot be null!");
-				return false;
-			}
-			if(!CommonTool.checkPrivateIPaddress(networkAddress)){
-				logger.error("The filed 'address' (value='"+networkAddress+"') of target connection "+this.connections.get(i).name+" should be private network address!");
-				return false;
-			}
-
-			//Two connection points of a connection should comes from different nodes.
-			if(scpSource.componentName.equals(scpTarget.componentName)){
-				logger.error("Two connection points of the connection '"+this.connections.get(i).name+"' should comes from different nodes!");
-				return false;
-			}
-			
-		}
-		
-		for(int i = 0 ; i<this.subnets.size() ; i++){
-			String subnet = this.subnets.get(i).subnet;
-			String netmask = this.subnets.get(i).netmask;
-			
-			int netmaskNum = 0;
-			if(netmask == null){
-				logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" must be specified!");
-				return false;
-			}
-			if(netmask.contains(".")){
-				if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
-					logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" is not valid!");
+				}else{
+					try {
+						netmaskNum = Integer.parseInt(netmask);
+						if(netmaskNum<=0 || netmaskNum>=32){
+							logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" should be between 1 and 31 (included)!");
+							return false;
+						}
+						} catch (NumberFormatException e) {
+							logger.error("Field 'netmask' of target connection "+this.connections.get(i).name+" is not valid!");
+							return false;
+						}
+				}
+				scpTarget.netmask = String.valueOf(netmaskNum);
+				networkAddress = scpTarget.address;
+				if(networkAddress == null){
+					logger.error("The filed 'address' of target connection "+this.connections.get(i).name+" cannot be null!");
 					return false;
 				}
-			}else{
-				try {
-					netmaskNum = Integer.parseInt(netmask);
-					if(netmaskNum<=0 || netmaskNum>=32){
-						logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" should be between 1 and 31 (included)!");
-						return false;
-					}
-					} catch (NumberFormatException e) {
+				if(!CommonTool.checkPrivateIPaddress(networkAddress)){
+					logger.error("The filed 'address' (value='"+networkAddress+"') of target connection "+this.connections.get(i).name+" should be private network address!");
+					return false;
+				}
+	
+				//Two connection points of a connection should comes from different nodes.
+				if(scpSource.componentName.equals(scpTarget.componentName)){
+					logger.error("Two connection points of the connection '"+this.connections.get(i).name+"' should comes from different nodes!");
+					return false;
+				}
+				
+			}
+		}
+		
+		if(this.subnets != null){
+			for(int i = 0 ; i<this.subnets.size() ; i++){
+				String subnet = this.subnets.get(i).subnet;
+				String netmask = this.subnets.get(i).netmask;
+				
+				int netmaskNum = 0;
+				if(netmask == null){
+					logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" must be specified!");
+					return false;
+				}
+				if(netmask.contains(".")){
+					if((netmaskNum = CommonTool.netmaskStringToInt(netmask)) == -1){
 						logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" is not valid!");
 						return false;
 					}
-			}
-			this.subnets.get(i).netmask = String.valueOf(netmaskNum);
-			
-			if(subnet == null){
-				logger.error("The filed 'address' of subnet "+this.subnets.get(i).name+" cannot be null!");
-				return false;
-			}
-			if(!CommonTool.checkPrivateIPaddress(subnet)){
-				logger.error("The filed 'subnet' (value='"+subnet+"') of subnet "+this.subnets.get(i).name+" should be private subnet!");
-				return false;
-			}
-			String validdationSubent = CommonTool.getSubnet(subnet, netmaskNum);
-			if(!subnet.equals(validdationSubent)){
-				logger.error("The subnet and netmask number of subnet "+this.subnets.get(i)+" are not valid!");
-				return false;
+				}else{
+					try {
+						netmaskNum = Integer.parseInt(netmask);
+						if(netmaskNum<=0 || netmaskNum>=32){
+							logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" should be between 1 and 31 (included)!");
+							return false;
+						}
+						} catch (NumberFormatException e) {
+							logger.error("Field 'netmask' of subnet "+this.subnets.get(i).name+" is not valid!");
+							return false;
+						}
+				}
+				this.subnets.get(i).netmask = String.valueOf(netmaskNum);
+				
+				if(subnet == null){
+					logger.error("The filed 'address' of subnet "+this.subnets.get(i).name+" cannot be null!");
+					return false;
+				}
+				if(!CommonTool.checkPrivateIPaddress(subnet)){
+					logger.error("The filed 'subnet' (value='"+subnet+"') of subnet "+this.subnets.get(i).name+" should be private subnet!");
+					return false;
+				}
+				String validdationSubent = CommonTool.getSubnet(subnet, netmaskNum);
+				if(!subnet.equals(validdationSubent)){
+					logger.error("The subnet and netmask number of subnet "+this.subnets.get(i)+" are not valid!");
+					return false;
+				}
 			}
 		}
 		return true;

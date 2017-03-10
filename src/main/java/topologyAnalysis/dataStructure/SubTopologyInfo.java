@@ -66,7 +66,8 @@ public class SubTopologyInfo {
 	
 	
 	//This is completed from the field of 'connections'.
-	//This is useful when this sub-topology is scaling part.
+	//This is useful when this sub-topology is scaling part and configure the 
+	//inter domain connection.
 	@JsonIgnore
 	public ArrayList<TopConnectionPoint> connectors;
 	

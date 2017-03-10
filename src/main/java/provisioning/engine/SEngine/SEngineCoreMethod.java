@@ -27,6 +27,10 @@ public interface SEngineCoreMethod {
 	 */
 	public boolean provision(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
 	
+
+	//Configure the connections among sub-topologies
+	public boolean confTopConnection(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
+	
 	/**
 	 * This is a method to delete the topology. All the issues related with 
 	 * the topology will also be deleted.

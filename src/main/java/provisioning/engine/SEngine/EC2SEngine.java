@@ -60,21 +60,30 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				return false;
 		}
 		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
+		logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
 		
 		long provisioningStart = System.currentTimeMillis();
-		////Create the vpc for all the VM without a subnet definition
-		String vpcId4all = ec2Agent.createVPC("192.168.0.0/16");
-		if(vpcId4all == null){
-			logger.error("Error happens during creating VPC for sub-topology "+subTopologyInfo.topology );
-			return false;
-		}
+		
 		///Define Subnet for these VMs.
 		ArrayList<EC2Subnet> actualSubnets = new ArrayList<EC2Subnet>();
 		int subnetIndex = -1;
+		boolean first = true;
+		String vpcId4all = null;
 		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
 			EC2VM curVM = ec2SubTopology.components.get(vi);
 			//if the vm does not belong to a subnet
 			if(getSubnet(curVM) == null){
+				//If there exists a VM without a subnet.
+				//All these VMs should be in one VPC.
+				if(first){
+					first = false;
+					////Create the vpc for all the VM without a subnet definition
+					vpcId4all = ec2Agent.createVPC("192.168.0.0/16");
+					if(vpcId4all == null){
+						logger.error("Error happens during creating VPC for sub-topology "+subTopologyInfo.topology );
+						return false;
+					}
+				}
 				subnetIndex++;
 				EC2Subnet curEC2Subnet = new EC2Subnet();
 				curEC2Subnet.org_subnet = new Subnet();
@@ -155,12 +164,12 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			logger.debug(curVM.name+" "+curVM.actualPrivateAddress
 					+" "+curVM.subnetAllInfo.subnetId);
 			if(curVM.subnetAllInfo.vpcId == null){
-				logger.error("The vpc of '"+curVM+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
+				logger.error("The vpc of '"+curVM.name+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
 				return false;
 			}else
 				curVM.vpcId = curVM.subnetAllInfo.vpcId;
 			if(curVM.subnetAllInfo.subnetId == null){
-				logger.error("The subnet of '"+curVM+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
+				logger.error("The subnet of '"+curVM.name+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be provisioned!");
 				return false;
 			}else
 				curVM.subnetId = curVM.subnetAllInfo.subnetId;
@@ -200,12 +209,6 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			}
 		}
 		if(!allSuccess){   ///Errors happen during provisioning
-			subTopologyInfo.status = "failed";
-			long curTime = System.currentTimeMillis();
-			subTopologyInfo.statusInfo = "not provisioned: "+curTime;
-			if(!ec2SubTopology.overwirteControlOutput()){
-				logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
-			}
 			return false;
 		}else{
 			long overhead = provisioningEnd - provisioningStart;
@@ -235,6 +238,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				((EC2VEngine)sEngine).userName = subTopologyInfo.userName;
 				((EC2VEngine)sEngine).subConnections = ec2SubTopology.connections;
 				((EC2VEngine)sEngine).currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
+				//((EC2VEngine)sEngine).topConnectors = subTopologyInfo.connectors;
 				//logger.debug("wtf?");
 				executor4conf.execute(((Runnable)sEngine));
 			} catch (InstantiationException | IllegalAccessException
@@ -321,6 +325,69 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				logger.error("The EC2 AMI of 'OStype' '"+curVM.OStype+"' in domain '"+domain+"' is not known!");
 				return false;
 			}
+		}
+		
+		return true;
+	}
+
+	@Override
+	public boolean confTopConnection(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
+		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
+		EC2Credential ec2Credential = (EC2Credential)credential;
+		EC2Database ec2Database = (EC2Database)database;
+		String domain = subTopologyInfo.domain.trim().toLowerCase();
+		if(subTopologyInfo.endpoint == null){
+			if((subTopologyInfo.endpoint = ec2Database.domain_endpoint.get(domain)) == null){
+				logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some EC2 endpoint!");
+				return false;
+			}
+		}
+		
+		if(ec2Agent == null){
+			if(!setEC2Agent(ec2Credential))
+				return false;
+		}
+		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
+		
+		////Configure all the inter connections
+		ExecutorService executor4conf = Executors.newFixedThreadPool(ec2SubTopology.components.size());
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+ec2SubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object sEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)sEngine).cmd = "connection";
+				((EC2VEngine)sEngine).curVM = curVM;
+				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)sEngine).topConnectors = subTopologyInfo.connectors;
+				
+				executor4conf.execute(((Runnable)sEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		executor4conf.shutdown();
+		try {
+			int count = 0;
+			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*ec2SubTopology.components.size()){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
 		}
 		
 		return true;
