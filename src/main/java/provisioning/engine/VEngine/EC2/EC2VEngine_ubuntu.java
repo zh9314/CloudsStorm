@@ -99,6 +99,11 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		if(this.topConnectors != null){
 			for(int tci = 0 ; tci<this.topConnectors.size() ; tci++){
 				TopConnectionPoint curTCP = this.topConnectors.get(tci);
+				
+				///If this tunnel connection has already been configured, skipped it
+				if(curTCP.ethName != null)
+					continue;
+				
 				String linkName = "", remotePubAddress = "", remotePrivateAddress = "", 
 						netmask = "", subnet = "", localPrivateAddress = "";
 				int curIndex = 0;
@@ -106,14 +111,19 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 					linkName = "top_" + curIndex;
 					curIndex++;
 					remotePubAddress = curTCP.peerTCP.belongingVM.publicAddress;
-					if(remotePubAddress == null)
+					if(remotePubAddress == null){
+						curTCP.ethName = null;
 						continue;
+					}
 					remotePrivateAddress = curTCP.peerTCP.address;
 					localPrivateAddress = curTCP.address;
 					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curTCP.netmask));
 					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curTCP.netmask));
 				}else
 					continue;
+				
+				///record the ethName
+				curTCP.ethName = linkName;
 				
 				fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 				fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
@@ -189,11 +199,15 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			sshConf();
 		}else if(cmd.equals("script")){
 			runScript();
+		}else if(cmd.equals("remove")){
+			removeEth();
 		}else{
 			logger.error("The command for thread of '"+curVM.name+"' is wrong!");
 			return;
 		}
 	}
+	
+	
 
 	@Override
 	public void sshConf() {
@@ -300,6 +314,52 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			logger.info("Script for '"+curVM.name+"' is executed!");
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void removeEth() {
+		try{
+		
+		///always one element in this topConnnectors
+		TopConnectionPoint curTCP = this.topConnectors.get(0);
+		String tunnelName = curTCP.ethName;
+		String remotePrivateAddress = curTCP.peerTCP.address; 
+		if(tunnelName == null){
+			logger.warn("TunnelName of '"+curVM.name+"' has been deleted for unknown reason!");
+			return ;
+		}
+		String confFilePath = System.getProperty("java.io.tmpdir") + File.separator 
+				+ "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
+		logger.debug("rmEthFilePath: "+confFilePath);
+		FileWriter fw = new FileWriter(confFilePath, false);
+		
+		fw.write("route del -host "+remotePrivateAddress+" dev "+tunnelName+"\n");
+		fw.write("ip tunnel del "+tunnelName+"\n");
+		fw.flush();
+		fw.close();
+		
+		///Identify this tunnel is deleted in the control file.
+		curTCP.ethName = null;
+
+		Thread.sleep(2000);
+		Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+		File file = new File(confFilePath);
+		new Shell.Safe(shell).exec(
+		  "cat > rmConnection.sh && sudo bash rmConnection.sh ",
+		  new FileInputStream(file),
+		  new NullOutputStream(), new NullOutputStream()
+		);
+		FileUtils.deleteQuietly(file);
+		new Shell.Safe(shell).exec(
+				  "rm rmConnection.sh",
+				  null,
+				  new NullOutputStream(), new NullOutputStream()
+		);
+		
+		}catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+			logger.error(curVM.name +": "+ e.getMessage());
 		}
 	}
 

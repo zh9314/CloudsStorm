@@ -21,4 +21,10 @@ public interface VEngineCoreMethod {
 	 */
 	public void runScript();
 	
+	/**
+	 * This method is to remove the tunnel connected to the failed 
+	 * sub-topology.
+	 */
+	public void removeEth();
+	
 }

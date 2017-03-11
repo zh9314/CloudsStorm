@@ -9,6 +9,11 @@ public class TopConnectionPoint{
 	public String netmask;
 	public String address;
 	
+	//Used for recording the eth name on the VM.
+	//When the other part of this connection is failed. We need deleted this ethName.
+	//Originally, it should be null. This field is just used for controlling.
+	public String ethName;
+	
 	
 	//The format should be 'IP-IP'. The IP in the front is smaller.
 	//Only the sub-topology marked as 'scaling' can set this field.

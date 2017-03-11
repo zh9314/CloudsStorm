@@ -16,6 +16,10 @@ public class SubTopologyInfo {
 	//Indicate the location of the sub-topology
 	public String domain;
 	
+	//This field is valid only when the sub-toopology is 'failed'.
+	//If it is null, then the value of 'optionalDomain' is the same with 'domain'.
+	//public String optionalDomain;
+	
 	//This is used for real provisioning
 	@JsonIgnore
 	public String endpoint;

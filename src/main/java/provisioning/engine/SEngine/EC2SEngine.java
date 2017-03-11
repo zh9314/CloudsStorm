@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import commonTool.CommonTool;
-
 import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
 import provisioning.credential.SSHKeyPair;
@@ -22,6 +21,7 @@ import provisioning.engine.VEngine.EC2.EC2VEngine;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 import topologyAnalysis.dataStructure.Subnet;
+import topologyAnalysis.dataStructure.TopConnectionPoint;
 import topologyAnalysis.dataStructure.EC2.EC2SubTopology;
 import topologyAnalysis.dataStructure.EC2.EC2Subnet;
 import topologyAnalysis.dataStructure.EC2.EC2VM;
@@ -46,14 +46,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 	}
 	
-	@Override
-	public boolean provision(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
+	private boolean createSubTopology(SubTopologyInfo subTopologyInfo, Credential credential, Database database){
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")){
-			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' has ever been provisioned!");
-			return false;
-		}
 		
 		if(ec2Agent == null){
 			if(!setEC2Agent(ec2Credential))
@@ -272,6 +267,18 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 		logger.info("The control information of "+ec2SubTopology.topologyName+" has been written back!");
 		return true;
+	}
+	
+	@Override
+	public boolean provision(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
+		if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")){
+			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not in the status of 'fresh'!");
+			return false;
+		}
+		if(createSubTopology(subTopologyInfo, credential, database))
+			return true;
+		else 
+			return false;
 		
 	}
 	
@@ -380,6 +387,80 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 200*ec2SubTopology.components.size()){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
+		
+		return true;
+	}
+
+	@Override
+	public boolean recover(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database) {
+		long recoverStart = System.currentTimeMillis();
+		if(!subTopologyInfo.status.trim().toLowerCase().equals("failed")){
+			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not in the status of 'failed'!");
+			return false;
+		}
+		if(createSubTopology(subTopologyInfo, credential, database)){
+			long recoverEnd = System.currentTimeMillis();
+			subTopologyInfo.statusInfo += "; recovery overhead: " 
+					+ (recoverEnd - recoverStart);
+			return true;
+		}
+		else 
+			return false;
+	}
+	
+	@Override
+	public boolean markFailure(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database){
+		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
+		
+		if(subTopologyInfo.connectors == null || subTopologyInfo.connectors.size() == 0)
+			return true;
+		ExecutorService executor4del = Executors.newFixedThreadPool(subTopologyInfo.connectors.size());
+		for(int vi = 0 ; vi < subTopologyInfo.connectors.size() ; vi++){
+			TopConnectionPoint curTCP = subTopologyInfo.connectors.get(vi);
+			if(curTCP.peerTCP.ethName != null)   ////This means the peer sub-topology is not failed
+				continue;
+			
+			ArrayList<TopConnectionPoint> curConnector = new ArrayList<TopConnectionPoint>();
+			curConnector.add(curTCP);
+			EC2VM curVM = ((EC2VM)curTCP.belongingVM);
+			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+ec2SubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object sEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)sEngine).cmd = "remove";
+				((EC2VEngine)sEngine).curVM = curVM;
+				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)sEngine).topConnectors = curConnector;   ///only one element in this arraylist.
+				
+				executor4del.execute(((Runnable)sEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		executor4del.shutdown();
+		try {
+			int count = 0;
+			while (!executor4del.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*subTopologyInfo.connectors.size()){
 					logger.error("Unknown error! Some VM cannot be configured!");
 					return false;
 				}

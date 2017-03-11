@@ -288,6 +288,8 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 
 	@Override
 	public VM getVMinSubClassbyName(String vmName) {
+		if(this.components == null)
+			return null;
 		for(int i = 0 ; i<components.size() ; i++){
 			if(components.get(i).name.equals(vmName)){
 				return components.get(i);
@@ -298,7 +300,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	
 	@Override
 	public ArrayList<VM> getVMsinSubClass() {
-		if(components.size() == 0)
+		if(this.components == null || components.size() == 0)
 			return null;
 		ArrayList<VM> vms = new ArrayList<VM>();
 		for(int i = 0 ; i<components.size() ; i++)

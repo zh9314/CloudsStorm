@@ -12,15 +12,15 @@ import topologyAnalysis.dataStructure.SubTopologyInfo;
  * This is a class to help T-Engine to create different S-Engine in thread 
  * and use S-Engnie to provision a sub-topology
  */
-public class SEngine_create implements Runnable {
+public class SEngine_provision implements Runnable {
 	
-	private static final Logger logger = Logger.getLogger(SEngine_create.class);
+	private static final Logger logger = Logger.getLogger(SEngine_provision.class);
 
 	private SubTopologyInfo subTopologyInfo;
 	private Credential credential;
 	private Database database;
 	
-	public SEngine_create(SubTopologyInfo subTopologyInfo, 
+	public SEngine_provision(SubTopologyInfo subTopologyInfo, 
 			Credential credential, Database database){
 		this.subTopologyInfo = subTopologyInfo;
 		this.credential = credential;

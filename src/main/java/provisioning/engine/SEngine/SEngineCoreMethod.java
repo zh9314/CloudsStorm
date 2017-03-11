@@ -15,7 +15,9 @@ public interface SEngineCoreMethod {
 	
 	/**
 	 * This is a method to provision the sub-topology specific to some Cloud.
-	 * The status of the sub-topology will be from 'fresh' -> 'running' or 'fresh' -> 'failed'
+	 * The status of the sub-topology will be from
+	 * 'fresh' -> 'running'  
+	 * or 'fresh' -> 'failed'
 	 * @param subTopologyInfo one of the sub-topology defined in the description files.
 	 * credential contains the credentials information to operate the Cloud.
 	 * database contains the information of the Cloud, AMI for instance.
@@ -31,6 +33,19 @@ public interface SEngineCoreMethod {
 	//Configure the connections among sub-topologies
 	public boolean confTopConnection(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
 	
+	//Recover the sub-topology from the field 'domain'
+	public boolean recover(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
+	
+	/**
+	 * Mark the failed topology. Also make the 'ethName' as null, when this tunnel 
+	 * is connected to the failed sub-topology.  
+	 * @param subTopologyInfo
+	 * @param credential
+	 * @param database
+	 * @return
+	 */
+	public boolean markFailure(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database);
 	/**
 	 * This is a method to delete the topology. All the issues related with 
 	 * the topology will also be deleted.
