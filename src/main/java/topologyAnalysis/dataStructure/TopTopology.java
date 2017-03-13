@@ -388,6 +388,10 @@ public class TopTopology implements TopTopologyMethod{
 				logger.error("The sub-topology name must be specified and cannot be set as 'null'!");
 				return false;
 			}
+			if(tn.contains(".")){
+				logger.error("Invaild topology of "+tn+"! It cannot contain '.'!");
+				return false;
+			}
 			if(topologyNameCheck.containsKey(tn)){
 				logger.error("There are two same topology name '"+tn+"' in top level description.");
 				return false;

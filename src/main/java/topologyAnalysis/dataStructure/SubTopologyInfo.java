@@ -10,7 +10,7 @@ public class SubTopologyInfo {
 	//The name of the topology. It is also the file name of the low level description.
 	public String topology;
 	
-	//Currently, only support "EC2" and "ExoGENI"/"GENI". This is not case sensitive.
+	//Currently, only support "EC2" and "ExoGENI". This is not case sensitive.
 	public String cloudProvider;
 	
 	//Indicate the location of the sub-topology

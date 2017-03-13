@@ -25,7 +25,7 @@ public class SEngine_recover implements Runnable {
 	@Override
 	public void run() {
 		try {
-			Object sEngine = Class.forName(subTopologyInfo.subTopology.provisioningAgentClassName).newInstance();
+			Object sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
 			if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
 				logger.error("Some information is missing for recovering sub-topology '"+subTopologyInfo.topology+"'!");
 				return ;

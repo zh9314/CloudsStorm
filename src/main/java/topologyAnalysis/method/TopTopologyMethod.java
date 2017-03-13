@@ -75,7 +75,9 @@ public interface TopTopologyMethod {
 	 * 12. All the names of 'topology' must be different with each other. <br/>
 	 * 13. All the addresses in the same connection should be in the same subnet 
 	 * and these two addresses must be different.  <br/>
-	 * 14. Two connection points of a connection must come from different sub-topology.
+	 * 14. Two connection points of a connection must come from different sub-topology. <br/>
+	 * 15. Two connection points cannot come from two sub-topologies with the same 'scaling' tag. <br/>
+	 * 16. Topology name cannot contain '.' 
 	 */
 	public boolean formatChecking();
 	

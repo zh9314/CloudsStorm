@@ -106,10 +106,21 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 				
 				String linkName = "", remotePubAddress = "", remotePrivateAddress = "", 
 						netmask = "", subnet = "", localPrivateAddress = "";
-				int curIndex = 0;
+				
 				if(curTCP.belongingVM.name.equals(curVM.name)){
-					linkName = "top_" + curIndex;
-					curIndex++;
+					boolean nameExists = true;
+					int curIndex = 0;
+					while(nameExists){
+						nameExists = false;
+						linkName = "top_" + curIndex;
+						for(int tcj = 0 ; tcj < this.topConnectors.size() ; tcj++){
+							if(linkName.equals(topConnectors.get(tcj).ethName)){
+								nameExists = true;
+								break;
+							}
+						}
+						curIndex++;
+					}
 					remotePubAddress = curTCP.peerTCP.belongingVM.publicAddress;
 					if(remotePubAddress == null){
 						curTCP.ethName = null;

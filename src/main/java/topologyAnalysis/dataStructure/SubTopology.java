@@ -44,7 +44,7 @@ public abstract class SubTopology implements SubTopologyMethod {
 		
 	//Indicate the fully qualified class name of the provisioning agent for this sub-topology. 
 	@JsonIgnore
-	public String provisioningAgentClassName;
+	//public String provisioningAgentClassName;
 
 	
 	
@@ -70,6 +70,7 @@ public abstract class SubTopology implements SubTopologyMethod {
 	 * 9. Update the 'belongingVM' field in the SubConnectionPoint.
 	 * 10. Checking that all the private address in one subnet must be 
 	 * in the same subnet. 
+	 * 11. VM name cannot contain '.'
 	 * 
 	 * Input is the status of the sub-topology. 
 	 * @return
@@ -160,6 +161,10 @@ public abstract class SubTopology implements SubTopologyMethod {
 			String vn = curVM.name;
 			if(vn == null){
 				logger.error("The VM name must be specified and cannot be set as 'null'!");
+				return false;
+			}
+			if(vn.contains(".")){
+				logger.error("The VM name '"+vn+"' should not contain '.'!");
 				return false;
 			}
 			if(vmNameCheck.containsKey(vn)){

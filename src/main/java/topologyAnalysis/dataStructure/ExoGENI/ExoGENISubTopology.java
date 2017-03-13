@@ -138,7 +138,7 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
 	public void setTopologyInformation(String topologyName) {
 		this.topologyName = topologyName;
 		this.topologyType = "ExoGENI";
-		this.provisioningAgentClassName = "";
+		//this.provisioningAgentClassName = "";
 		
 	}
 

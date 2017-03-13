@@ -47,7 +47,7 @@ public class TopologyAnalysisMain{
 			String className = "";
 			if(cp.equals("ec2"))
 				className = packagePrefix+".EC2.EC2SubTopology";
-			else if(cp.equals("exogeni") || cp.equals("geni"))
+			else if(cp.equals("exogeni"))
 				className = packagePrefix+".ExoGENI.ExoGENISubTopology";
 			else{
 				logger.error("Cloud provider of "+cp+" has not been supported yet!");
@@ -133,6 +133,7 @@ public class TopologyAnalysisMain{
 					logger.error("The sub-topology of connection point "+sourceTcp.componentName+" doesn't exist!");
 					return false;
 				}
+				String sourceSubTopologyTag = sti.tag.trim().toLowerCase();
 				
 				//Get the VM in the sub-topology
 				VM vmInfo = sti.subTopology.getVMinSubClassbyName(VMName);
@@ -158,6 +159,7 @@ public class TopologyAnalysisMain{
 					logger.error("The sub-topology of connection point "+targetTcp.componentName+" doesn't exist!");
 					return false;
 				}
+				String targetSubTopologyTag = sti.tag.trim().toLowerCase();
 				
 				//Get the VM in the sub-topology
 				vmInfo = sti.subTopology.getVMinSubClassbyName(VMName);
@@ -173,6 +175,13 @@ public class TopologyAnalysisMain{
 				
 				if(targetTopologyName.equals(sourceTopologyName)){
 					logger.error("The two connection points of '"+wholeTopology.connections.get(i).name+"' must come from two different topologies!");
+					return false;
+				}
+				
+				///The two connected sub-topologies at least one tag of 'fixed'
+				if(!sourceSubTopologyTag.equals("fixed")
+					&& !targetSubTopologyTag.equals("fixed")){
+					logger.error("One of the two connected sub-topologies '"+sourceTopologyName+"' and '"+targetTopologyName+"' must have the tag of 'fixed'!");
 					return false;
 				}
 			}

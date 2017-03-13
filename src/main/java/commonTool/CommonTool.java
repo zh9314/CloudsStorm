@@ -6,9 +6,13 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+
+import topologyAnalysis.dataStructure.TopConnection;
+import topologyAnalysis.dataStructure.TopConnectionPoint;
 
 
 public class CommonTool {
@@ -278,6 +282,31 @@ public class CommonTool {
 		return outputString;
 		
 	}
+	
+	/**
+	 * Given a source or target connection point and a set of top connections. 
+	 * This method is to find whether there is a top connection contains this point.
+	 */
+	public static TopConnection getTopConnectionByPoint(ArrayList<TopConnection> topConnections,
+			TopConnectionPoint tcp){
+		TopConnection resultCon = null;
+		for(int ti = 0 ; ti < topConnections.size() ; ti++){
+			if(topConnections.get(ti).source.portName.equals(tcp.portName)
+				&& topConnections.get(ti).source.address.equals(tcp.address)
+				&& topConnections.get(ti).source.componentName.equals(tcp.componentName)){
+				resultCon = topConnections.get(ti);
+				break;
+			}
+			if(topConnections.get(ti).target.portName.equals(tcp.portName)
+					&& topConnections.get(ti).target.address.equals(tcp.address)
+					&& topConnections.get(ti).target.componentName.equals(tcp.componentName)){
+					resultCon = topConnections.get(ti);
+					break;
+				}
+		}
+		return resultCon;
+	}
+	
 	
 	//This is used for converting the ip integer into binary string.
 	//As the number of bits between '.' in IP is 8. 

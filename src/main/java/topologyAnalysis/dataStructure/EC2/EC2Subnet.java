@@ -4,7 +4,7 @@ package topologyAnalysis.dataStructure.EC2;
 import topologyAnalysis.dataStructure.Subnet;
 
 
-//Used for runtime setting up.
+//Just used for runtime setting up.
 public class EC2Subnet {
 	public Subnet org_subnet;
 	

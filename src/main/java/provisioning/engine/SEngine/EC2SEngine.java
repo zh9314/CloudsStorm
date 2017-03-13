@@ -1,6 +1,7 @@
 package provisioning.engine.SEngine;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,16 +13,21 @@ import commonTool.CommonTool;
 import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
 import provisioning.credential.SSHKeyPair;
+import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.EC2.EC2Database;
 import provisioning.engine.VEngine.EC2.EC2Agent;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createSubnet;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createVM;
 import provisioning.engine.VEngine.EC2.EC2VEngine;
+import topologyAnalysis.dataStructure.Eth;
+import topologyAnalysis.dataStructure.SubConnection;
+import topologyAnalysis.dataStructure.SubConnectionPoint;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 import topologyAnalysis.dataStructure.Subnet;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
+import topologyAnalysis.dataStructure.VM;
 import topologyAnalysis.dataStructure.EC2.EC2SubTopology;
 import topologyAnalysis.dataStructure.EC2.EC2Subnet;
 import topologyAnalysis.dataStructure.EC2.EC2VM;
@@ -311,7 +317,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 
 	/**
 	 * 1. Update the AMI information.
-	 * 2. To be completed, check the validity of nodeType.
+	 * 2. Update the endpoint information.
+	 * 3. To be completed, check the validity of nodeType.
 	 */
 	@Override
 	public boolean runtimeCheckandUpdate(SubTopologyInfo subTopologyInfo,
@@ -472,6 +479,176 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 		
 		return true;
+	}
+
+	@Override
+	public SubTopologyInfo generateScalingCopy(String domain, 
+			SubTopologyInfo scalingTemplate, UserCredential userCredential) {
+		
+		SubTopologyInfo generatedSTI = new SubTopologyInfo();
+		generatedSTI.cloudProvider = scalingTemplate.cloudProvider;
+		generatedSTI.copyOf = scalingTemplate.topology;
+		generatedSTI.domain = domain;
+		generatedSTI.fatherTopology = scalingTemplate;
+		generatedSTI.publicKeyString = scalingTemplate.publicKeyString;
+		generatedSTI.userName = scalingTemplate.userName;
+		generatedSTI.status = "fresh";
+		generatedSTI.tag = "scaled";
+		generatedSTI.topology = scalingTemplate.topology + "_" + UUID.randomUUID().toString();
+		
+		EC2SubTopology ec2subTopology = new EC2SubTopology();
+		EC2SubTopology tempSubTopology = (EC2SubTopology)scalingTemplate.subTopology;
+		SSHKeyPair kp = null;
+		if((kp = userCredential.sshAccess.get(domain.trim().toLowerCase())) == null){
+			generatedSTI.sshKeyPairId = null;
+			ec2subTopology.accessKeyPair = null;
+		}else{
+			generatedSTI.sshKeyPairId = kp.SSHKeyPairId;
+			ec2subTopology.accessKeyPair = kp;
+		}
+		
+		String currentDir = CommonTool.getPathDir(tempSubTopology.loadingPath);
+		ec2subTopology.loadingPath = currentDir + generatedSTI.topology + ".yml";
+		ec2subTopology.topologyName = generatedSTI.topology;
+		ec2subTopology.topologyType = "EC2";
+		ec2subTopology.components = new ArrayList<EC2VM>();
+		for(int vi = 0 ; vi < tempSubTopology.components.size() ; vi++){
+			EC2VM curVM = (EC2VM)tempSubTopology.components.get(vi);
+			EC2VM newVM = new EC2VM();
+			newVM.diskSize = curVM.diskSize;
+			newVM.dockers = curVM.diskSize;
+			newVM.IOPS = curVM.IOPS;
+			newVM.name = curVM.name;
+			newVM.nodeType = curVM.nodeType;
+			newVM.OStype = curVM.OStype;
+			newVM.role = curVM.role;
+			newVM.script = curVM.script;
+			newVM.type = curVM.type;
+			newVM.v_scriptString = curVM.v_scriptString;
+			newVM.ethernetPort = new ArrayList<Eth>();
+			for(int ei = 0 ; ei < curVM.ethernetPort.size() ; ei++){
+				Eth newEth = new Eth();
+				newEth.address = curVM.ethernetPort.get(ei).address;
+				newEth.connectionName = curVM.ethernetPort.get(ei).connectionName;
+				newEth.name = curVM.ethernetPort.get(ei).name;
+				newEth.subnetName = curVM.ethernetPort.get(ei).subnetName;
+				newVM.ethernetPort.add(newEth);
+				
+			}
+			
+			ec2subTopology.components.add(newVM);
+		}
+		
+		
+		if(tempSubTopology.subnets != null){
+			ec2subTopology.subnets = new ArrayList<Subnet>();
+			for(int si = 0 ; si < tempSubTopology.subnets.size() ; si++){
+				Subnet newSubnet = new Subnet();
+				Subnet curSubnet = tempSubTopology.subnets.get(si);
+				newSubnet.name = curSubnet.name;
+				newSubnet.netmask = curSubnet.netmask;
+				newSubnet.subnet = curSubnet.subnet;
+				ec2subTopology.subnets.add(newSubnet);
+			}
+		}
+		
+		if(tempSubTopology.connections != null){
+			ec2subTopology.connections = new ArrayList<SubConnection>();
+			for(int ci = 0 ; ci < tempSubTopology.connections.size() ; ci++){
+				SubConnection newConnection = new SubConnection();
+				SubConnection curConnection = tempSubTopology.connections.get(ci);
+				newConnection.bandwidth = curConnection.bandwidth;
+				newConnection.latency = curConnection.latency;
+				newConnection.name = curConnection.name;
+				
+				newConnection.source = new SubConnectionPoint();
+				newConnection.source.address = curConnection.source.address;
+				newConnection.source.componentName = curConnection.source.componentName;
+				newConnection.source.netmask = curConnection.source.netmask;
+				newConnection.source.portName = curConnection.source.portName;
+				
+				newConnection.target = new SubConnectionPoint();
+				newConnection.target.address = curConnection.target.address;
+				newConnection.target.componentName = curConnection.target.componentName;
+				newConnection.target.netmask = curConnection.target.netmask;
+				newConnection.target.portName = curConnection.target.portName;
+				
+				ec2subTopology.connections.add(newConnection);
+			}
+		}
+		generatedSTI.subTopology = ec2subTopology;
+		
+		////Calculate the private IP addresses for the connectors.
+		////And update the connectors.
+		if(scalingTemplate.scalingAddressPool == null){
+			logger.error("The address pool for scaling sub-topology cannot be null");
+			return null;
+		}
+		generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
+		Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;
+		for(int tci = 0 ; tci < scalingTemplate.connectors.size() ; tci++){
+			String availableIP = null;
+			TopConnectionPoint curTCP = scalingTemplate.connectors.get(tci);
+			for (Map.Entry<String, Boolean> entry : scalingAddressPool.entrySet()){
+				if(entry.getValue()){   ////this denotes that the IP address is free
+					availableIP = entry.getKey();
+					///Since the scalingAddressPool contains all the ip addresses,
+					///it's very important to test whether this IP address is in the same subnet with its peer connection point.
+					String availableSubnet = CommonTool.getSubnet(availableIP, Integer.valueOf(curTCP.peerTCP.netmask));
+					String peerSubnet = CommonTool.getSubnet(curTCP.peerTCP.address, Integer.valueOf(curTCP.peerTCP.netmask));
+					if(availableSubnet.equals(peerSubnet)){
+						entry.setValue(Boolean.FALSE);
+						break;
+					}
+				}
+			}
+			if(availableIP == null){
+				logger.error("No free IP address available in address pool!");
+				return null;
+			}
+			TopConnectionPoint newTCP = new TopConnectionPoint();
+			String [] t_VM = curTCP.componentName.split("\\.");
+			String VMName = t_VM[1]; 
+			newTCP.componentName = generatedSTI.topology + "." + VMName;
+			newTCP.address = availableIP;
+			newTCP.netmask = curTCP.netmask;
+			newTCP.portName = curTCP.portName;
+			
+			//Create a new peer top connection point
+			TopConnectionPoint newPeerTCP = new TopConnectionPoint();
+			newPeerTCP.address = curTCP.peerTCP.address;
+			newPeerTCP.belongingVM = curTCP.peerTCP.belongingVM;
+			newPeerTCP.componentName = curTCP.peerTCP.componentName;
+			newPeerTCP.netmask = curTCP.peerTCP.netmask;
+			newPeerTCP.portName = curTCP.peerTCP.portName;
+			newPeerTCP.peerTCP = newTCP;
+			
+			newTCP.peerTCP = newPeerTCP;
+			
+			//Get the VM in the sub-topology
+			VM vmInfo = ec2subTopology.getVMinSubClassbyName(VMName);
+			if(vmInfo == null){
+				logger.error("There is no VM called "+VMName+" in "+ec2subTopology.topologyName);
+				return null;
+			}
+			newTCP.belongingVM = vmInfo;
+			
+			generatedSTI.connectors.add(newTCP);
+		}
+		return generatedSTI;
+	}
+
+	@Override
+	public boolean autoScal(SubTopologyInfo subTopologyInfo, Credential credential,
+			Database database) {
+		if(!subTopologyInfo.status.equals("fresh") && !subTopologyInfo.tag.equals("scaled")){
+			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not a 'scaled' part!");
+			return false;
+		}
+		if(createSubTopology(subTopologyInfo, credential, database))
+			return true;
+		else 
+			return false;
 	}
 
 }

@@ -3,6 +3,7 @@ package provisioning.credential;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -24,7 +25,7 @@ public class UserCredential {
 	 * The key is the sub-topology name defined in the sub-topology. 
 	 * The value is the content of the ssh key pair for accessing. 
 	 */
-	public Map<String, SSHKeyPair> sshAccess;
+	public Map<String, SSHKeyPair> sshAccess = new HashMap<String, SSHKeyPair>();
 	
 	/**
 	 * This is a map for provisioner and user to control some specific Cloud to provision or stop etc.
@@ -101,6 +102,7 @@ public class UserCredential {
 					return false;
 				}else{
 					topTopology.topologies.get(ti).subTopology.accessKeyPair = kp;
+					sshAccess.put(topTopology.topologies.get(ti).domain.trim().toLowerCase(), kp);
 				}
 			}else{
 				if(!topTopology.topologies.get(ti).status.trim().toLowerCase().equals("fresh")){

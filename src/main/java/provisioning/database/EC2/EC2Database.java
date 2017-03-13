@@ -16,6 +16,10 @@ public class EC2Database extends Database {
 	
 	private static final Logger logger = Logger.getLogger(EC2Database.class);
 	
+	public EC2Database(){
+		this.toolInfo.put("sengine", "provisioning.engine.SEngine.EC2SEngine");
+	}
+	
 	//Example, key -> virginia, value -> ec2.us-east-1.amazonaws.com
 	public Map<String, String> domain_endpoint = new HashMap<String, String>();
 	

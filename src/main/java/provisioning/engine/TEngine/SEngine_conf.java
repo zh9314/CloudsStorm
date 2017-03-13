@@ -25,7 +25,7 @@ public class SEngine_conf implements Runnable{
 	@Override
 	public void run() {
 		try {
-			Object sEngine = Class.forName(subTopologyInfo.subTopology.provisioningAgentClassName).newInstance();
+			Object sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
 			
 			if(!((SEngineCoreMethod)sEngine).confTopConnection(subTopologyInfo, credential, database)){
 				logger.error("Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");

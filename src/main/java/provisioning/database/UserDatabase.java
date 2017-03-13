@@ -10,7 +10,7 @@ import java.util.Map;
 public class UserDatabase {
 	/**
 	 * The key is the cloud provider name (all are in lower case).
-	 * Currently they are 'ec2', ('exogeni', 'geni'). 
+	 * Currently they are 'ec2', ('exogeni'). 
 	 * The value is the content of the specific cloud database. 
 	 */
 	public Map<String, Database> databases;

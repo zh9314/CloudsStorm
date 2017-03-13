@@ -184,7 +184,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	public void setTopologyInformation(String topologyName) {
 		this.topologyName = topologyName;
 		this.topologyType = "EC2";
-		this.provisioningAgentClassName = "provisioning.engine.SEngine.EC2SEngine";
+		//this.provisioningAgentClassName = "provisioning.engine.SEngine.EC2SEngine";
 		
 	}
 	
@@ -200,6 +200,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	 * 4. The value of 'diskSize', whose unit is GigaBytes, must be positive. 
 	 * For EC2, the 'diskSize' cannot be smaller than 8.  <br/>
 	 * 5. One VM can only belong to one subnet. <br/>
+	 * 
 	 * 
 	 */
 	@Override

@@ -1,6 +1,7 @@
 package provisioning.engine.SEngine;
 
 import provisioning.credential.Credential;
+import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
@@ -46,11 +47,27 @@ public interface SEngineCoreMethod {
 	 */
 	public boolean markFailure(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database);
+	
 	/**
 	 * This is a method to delete the topology. All the issues related with 
 	 * the topology will also be deleted.
 	 * @return 
 	 */
 	public boolean stop(SubTopology subTopology, Credential credential, Database database);
+
+	/**
+	 * generate a scaled sub-topology in some domain.
+	 * @param domain
+	 * @return
+	 */
+	public SubTopologyInfo generateScalingCopy(String domain, 
+			SubTopologyInfo scalingTemplate, UserCredential userCredential);
+	
+	/**
+	 * This sub-topology must have a tag of 'scaled' and status of 'fresh'. Then the sub-topology 
+	 * is provisioned from the datacenter. 
+	 * @return 
+	 */
+	public boolean autoScal(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
 
 }
