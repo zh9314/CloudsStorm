@@ -192,6 +192,8 @@ public abstract class SubTopology implements SubTopologyMethod {
 				}
 			}
 			
+			
+			
 			if(topologyStatus.equals("fresh") && (curVM.publicAddress != null)){
 				logger.error("VM '"+curVM.name+"' cannot have public address in 'fresh' status!");
 				return false;
@@ -217,6 +219,7 @@ public abstract class SubTopology implements SubTopologyMethod {
 					return false;
 				}else
 					ethNameCheck.put(en, "");
+				
 				
 				if(curEth.connectionName != null && (curEth.subnetName != null || curEth.address != null)){
 					logger.error("The eth '"+en+"' of VM '"+curVM.name+"' can not be both connection or subnet!");

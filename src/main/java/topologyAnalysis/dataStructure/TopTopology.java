@@ -383,6 +383,19 @@ public class TopTopology implements TopTopologyMethod{
 			curInfo.userName = this.userName;
 			curInfo.publicKeyString = this.publicKeyString;
 			
+			//check the connectors and the tunnelName
+			if(curInfo.status.equals("fresh") || curInfo.status.equals("stopped")
+				|| curInfo.status.equals("deleted") || curInfo.status.equals("failed")){
+				if(curInfo.connectors != null){
+					for(int ci = 0 ; ci < curInfo.connectors.size() ; ci++){
+						if(curInfo.connectors.get(ci).ethName != null){
+							logger.error("The '"+curInfo.status+"' sub-topology '"+curInfo.topology+"' cannot have a valid ethName!");
+							return false;
+						}
+					}
+				}
+			}
+			
 			String tn = topologies.get(i).topology;
 			if(tn == null){
 				logger.error("The sub-topology name must be specified and cannot be set as 'null'!");

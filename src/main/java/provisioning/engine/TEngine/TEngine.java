@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import commonTool.CommonTool;
+import provisioning.RecoverRequest;
 import provisioning.ScalingRequest;
 import provisioning.credential.Credential;
 import provisioning.credential.UserCredential;
@@ -93,6 +94,11 @@ public class TEngine {
 		ExecutorService executor4conf = Executors.newFixedThreadPool(subTopologyInfos.size());
 		for(int sti = 0 ; sti <subTopologyInfos.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = subTopologyInfos.get(sti);
+			if(!subTopologyInfo.status.equals("running")){
+				logger.error("'"+subTopologyInfo.status+"' sub-topology cannot be configured to connect!");
+				returnResult = false;
+				continue;
+			}
 			logger.info("Connecting sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
@@ -134,7 +140,8 @@ public class TEngine {
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void recoverAll(TopTopology topTopology, UserCredential userCredential, UserDatabase userDatabase){
+	public void recoverAll(TopTopology topTopology, UserCredential userCredential, 
+			UserDatabase userDatabase, ArrayList<RecoverRequest> recoverReqs){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
 			return ;
@@ -144,6 +151,44 @@ public class TEngine {
 		}
 		
 		long recoverStart = System.currentTimeMillis();
+		
+		////update the failed domain information according to the recovery requests
+		if(recoverReqs == null){
+			logger.error("The recover reqeusts cannot be null!");
+			return ;
+		}
+		for(int reqi = 0 ; reqi < recoverReqs.size() ; reqi++){
+			String cloudProvider = recoverReqs.get(reqi).cloudProvider;
+			String domain = recoverReqs.get(reqi).domain;
+			String recoverTopologyName = recoverReqs.get(reqi).topologyName;
+			boolean findTopology = false;
+			for(int si = 0 ; si < topTopology.topologies.size() ; si++){
+				if(topTopology.topologies.get(si).topology.equals(recoverTopologyName)){
+					findTopology = true;
+					if(!topTopology.topologies.get(si).status.equals("failed")){
+						logger.error("The sub-topology '"+recoverTopologyName+"' is not 'failed'!");
+						return;
+					}
+					topTopology.topologies.get(si).domain = domain;
+					topTopology.topologies.get(si).cloudProvider = cloudProvider;
+					if(userCredential.sshAccess.containsKey(domain)){
+						topTopology.topologies.get(si).sshKeyPairId = userCredential.sshAccess.get(domain).SSHKeyPairId;
+						topTopology.topologies.get(si).subTopology.accessKeyPair = userCredential.sshAccess.get(domain);
+					}
+					else{
+						topTopology.topologies.get(si).sshKeyPairId = null;
+						topTopology.topologies.get(si).subTopology.accessKeyPair = null;
+					}	
+					break;
+				}
+			}
+			if(!findTopology){
+				logger.error("The sub-topology '"+recoverTopologyName+"' cannot be found!");
+				return;
+			}
+		}
+		
+		
 		///This list contains all the failed sub-topologies
 		ArrayList<SubTopologyInfo> failedSTs = new ArrayList<SubTopologyInfo>();
 		///This list contains all the original sub-topologies which are not failed and must be running.

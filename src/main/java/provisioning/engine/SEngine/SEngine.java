@@ -12,7 +12,7 @@ public abstract class SEngine {
 	 * cannot be null.
 	 */
 	public boolean commonRuntimeCheck(SubTopologyInfo subTopologyInfo){
-		if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh") && 
+		if(subTopologyInfo.status.trim().toLowerCase().equals("running") && 
 				subTopologyInfo.sshKeyPairId == null){
 			return false;
 		}

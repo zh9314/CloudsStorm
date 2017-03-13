@@ -121,6 +121,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 						}
 						curIndex++;
 					}
+					logger.debug("Get topconnection name "+linkName);
 					remotePubAddress = curTCP.peerTCP.belongingVM.publicAddress;
 					if(remotePubAddress == null){
 						curTCP.ethName = null;

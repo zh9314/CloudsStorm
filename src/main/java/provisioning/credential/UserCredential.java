@@ -105,7 +105,7 @@ public class UserCredential {
 					sshAccess.put(topTopology.topologies.get(ti).domain.trim().toLowerCase(), kp);
 				}
 			}else{
-				if(!topTopology.topologies.get(ti).status.trim().toLowerCase().equals("fresh")){
+				if(topTopology.topologies.get(ti).status.trim().toLowerCase().equals("running")){
 					logger.error("Missing access keys for provisioned sub-topology '"+topTopology.topologies.get(ti).topology+"'!");
 					return false;
 				}
