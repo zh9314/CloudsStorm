@@ -78,6 +78,7 @@ public interface TopTopologyMethod {
 	 * 14. Two connection points of a connection must come from different sub-topology. <br/>
 	 * 15. Two connection points cannot come from two sub-topologies with the same 'scaling' tag. <br/>
 	 * 16. Topology name cannot contain '.' 
+	 * 17. The folder of 'clusterKeyPair' must exist, if there is a running sub-topology.
 	 */
 	public boolean formatChecking();
 	

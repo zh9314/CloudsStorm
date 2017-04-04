@@ -7,9 +7,14 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.KeyPair;
 
 import topologyAnalysis.dataStructure.TopConnection;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
@@ -305,6 +310,40 @@ public class CommonTool {
 				}
 		}
 		return resultCon;
+	}
+	
+	/**
+	 * This method is used to generate a pair of ssh key.
+	 * The input value is the folder to store these keys.
+	 * The value of 'keyDirPath' must end up with the file separator. 
+	 * The private key is always named as id_rsa and the 
+	 * public key is always named as id_rsa.pub. 
+	 * The return value is boolean.
+	 * @return
+	 */
+	public static boolean rsaKeyGenerate(String keyDirPath){
+	    	File keyDir = new File(keyDirPath);
+	    	if(keyDir.exists()){
+	    		logger.error("The key pair for "+keyDirPath+" has already exist!");
+	    		return false;
+	    	}
+	    	if(!keyDir.mkdir()){
+	    		logger.error("Cannot create directory "+keyDirPath);
+	    		return false;
+	    	}
+	    	JSch jsch=new JSch();
+		KeyPair kpair;
+		try {
+			kpair = KeyPair.genKeyPair(jsch, KeyPair.RSA);
+			kpair.writePrivateKey(keyDirPath+"id_rsa");
+		    kpair.writePublicKey(keyDirPath+"id_rsa.pub", "clusterKeyPair-"+UUID.randomUUID().toString());
+	        kpair.dispose();
+		} catch (JSchException | IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+      
 	}
 	
 	

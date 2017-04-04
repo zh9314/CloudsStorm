@@ -2,6 +2,7 @@ package commonTool;
 
 import java.io.IOException;
 
+import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -44,6 +45,20 @@ public class Log4JUtils {
 			e.printStackTrace();
 			return false;
 		}    
+		return true;
+	}
+	
+	public static boolean setSystemOutputLogFile(){
+		Logger root = Logger.getRootLogger();
+		
+		PatternLayout patternLayout = new PatternLayout();
+		patternLayout.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] [%c.%M]	%m%n");
+		ConsoleAppender appender = new ConsoleAppender(patternLayout);
+		
+		appender.setThreshold(Level.DEBUG);
+		
+		root.addAppender(appender);
+		
 		return true;
 	}
 

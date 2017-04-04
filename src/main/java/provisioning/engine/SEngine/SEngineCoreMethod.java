@@ -3,7 +3,6 @@ package provisioning.engine.SEngine;
 import provisioning.credential.Credential;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
-import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 
 public interface SEngineCoreMethod {
@@ -49,11 +48,26 @@ public interface SEngineCoreMethod {
 			Credential credential, Database database);
 	
 	/**
-	 * This is a method to delete the topology. All the issues related with 
-	 * the topology will also be deleted.
+	 * This is a method demonstrate whether this cloud provider 
+	 * can support the feature of "stop".
+	 * @return
+	 */
+	public boolean supportStop();
+	
+	/**
+	 * This is a method to stop the sub-topology. All the issues related with 
+	 * the sub-topology will also be stopped.
 	 * @return 
 	 */
-	public boolean stop(SubTopology subTopology, Credential credential, Database database);
+	public boolean stop(SubTopologyInfo subTopologyInfo, 
+			Credential credential, Database database);
+	
+	/**
+	 * This is a method to start the sub-topology. 
+	 * @return 
+	 */
+	public boolean start(SubTopologyInfo subTopologyInfo, 
+			Credential credential, Database database);
 
 	/**
 	 * generate a scaled sub-topology in some domain.

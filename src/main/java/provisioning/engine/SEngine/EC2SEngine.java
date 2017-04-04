@@ -20,10 +20,10 @@ import provisioning.engine.VEngine.EC2.EC2Agent;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createSubnet;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createVM;
 import provisioning.engine.VEngine.EC2.EC2VEngine;
+import provisioning.engine.VEngine.EC2.EC2VEngine_startVM;
 import topologyAnalysis.dataStructure.Eth;
 import topologyAnalysis.dataStructure.SubConnection;
 import topologyAnalysis.dataStructure.SubConnectionPoint;
-import topologyAnalysis.dataStructure.SubTopology;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 import topologyAnalysis.dataStructure.Subnet;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
@@ -310,9 +310,37 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 	
 
 	@Override
-	public boolean stop(SubTopology subTopology, Credential credential, Database database) {
+	public boolean stop(SubTopologyInfo subTopologyInfo, 
+			Credential credential, Database database) {
+		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
+		boolean returnResult = true;
+		ArrayList<String> instances = new ArrayList<String>();
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			if(curVM.instanceId == null){
+				logger.error("The instanceId of "+curVM.name+" is unknown!");
+				returnResult = false;
+			}else{
+				instances.add(curVM.instanceId);
+				curVM.publicAddress = null;
+			}
+		}
+		if(instances.size() == 0){
+			logger.error("These is no valid instanceId to be stopped!");
+			returnResult = false;
+		}else{
+			if(ec2Agent == null){
+				EC2Credential ec2Credential = (EC2Credential)credential;
+				if(!setEC2Agent(ec2Credential))
+					return false;
+			}
+			ec2Agent.setEndpoint(subTopologyInfo.endpoint);
+			logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
+			
+			ec2Agent.stopInstances(instances);
+		}
 		
-		return false;
+		return returnResult;
 	}
 
 	/**
@@ -425,11 +453,11 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			return false;
 	}
 	
-	@Override
-	public boolean markFailure(SubTopologyInfo subTopologyInfo,
+	
+	///detach all the failed or stopped sub-topologies which are originally connected with this sub-topology.
+	private boolean detachSubTopology(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database){
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
-		
 		if(subTopologyInfo.connectors == null || subTopologyInfo.connectors.size() == 0)
 			return true;
 		ExecutorService executor4del = Executors.newFixedThreadPool(subTopologyInfo.connectors.size());
@@ -477,8 +505,16 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			logger.error("Unexpected error!");
 			return false;
 		}
-		
 		return true;
+	}
+	
+	@Override
+	public boolean markFailure(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database){
+		if(!detachSubTopology(subTopologyInfo, credential, database))
+			return false;
+		else
+			return true;
 	}
 
 	@Override
@@ -650,5 +686,160 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		else 
 			return false;
 	}
+
+	@Override
+	public boolean supportStop() {
+		return true;
+	}
+
+	@Override
+	public boolean start(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database) {
+		if(!subTopologyInfo.status.trim().toLowerCase().equals("stopped")){
+			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not in the status of 'stopped'!");
+			return false;
+		}
+		if(startSubTopology(subTopologyInfo, credential, database))
+			return true;
+		else 
+			return false;
+	}
+	
+	private boolean startSubTopology(SubTopologyInfo subTopologyInfo, Credential credential, Database database){
+		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
+		EC2Credential ec2Credential = (EC2Credential)credential;
+		
+		if(ec2Agent == null){
+			if(!setEC2Agent(ec2Credential))
+				return false;
+		}
+		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
+		logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
+		
+		long startingUpStart = System.currentTimeMillis();
+		
+		///Normally, the accessKeyPair should not be null
+		if(ec2SubTopology.accessKeyPair == null){
+			logger.warn("The key pair of a stopped sub-topology should not be null!");
+			String keyPairId = UUID.randomUUID().toString();
+			String publicKeyId = "publicKey-"+keyPairId;
+			String privateKeyString = ec2Agent.createKeyPair(publicKeyId);
+			if(privateKeyString == null){
+				logger.error("Unexpected error for creating ssh key pair for sub-topology '"+ec2SubTopology.topologyName+"'!");
+				return false;
+			}
+			subTopologyInfo.sshKeyPairId = keyPairId;
+			ec2SubTopology.accessKeyPair = new SSHKeyPair();
+			ec2SubTopology.accessKeyPair.publicKeyId = publicKeyId;
+			ec2SubTopology.accessKeyPair.privateKeyString = privateKeyString;
+			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
+		}
+		
+		int vmPoolSize = ec2SubTopology.components.size();
+		ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
+		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			if(curVM.instanceId == null){
+				logger.error("The instanceId of '"+curVM.name+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be achieved!");
+				return false;
+			}
+			EC2VEngine_startVM ec2createVM = new EC2VEngine_startVM(
+					ec2Agent, curVM, 
+					ec2SubTopology.accessKeyPair.privateKeyString);
+			executor4vm.execute(ec2createVM);
+		}
+		
+		executor4vm.shutdown();
+		try {
+			int count = 0;
+			while (!executor4vm.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 100*vmPoolSize){
+					logger.error("Unknown error! Some subnet cannot be set up!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
+		long startingUpEnd = System.currentTimeMillis();
+		
+		boolean allSuccess = true;
+		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			if(curVM.publicAddress == null){
+				allSuccess = false;
+				logger.error(curVM.name+" of sub-topology '"+ec2SubTopology.topologyName+"' is not fully started!");
+			}
+		}
+		if(!allSuccess){   ///Errors happen during starting up
+			return false;
+		}else{
+			long overhead = startingUpEnd - startingUpStart;
+			logger.debug("All the vms have been started! Starting overhead: "+overhead);
+			subTopologyInfo.status = "running";
+			subTopologyInfo.statusInfo = "starting overhead: "+overhead;
+		}
+		
+		////Configure all the inner connections
+		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+ec2SubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object sEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)sEngine).cmd = "all";
+				((EC2VEngine)sEngine).curVM = curVM;
+				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)sEngine).publicKeyString = subTopologyInfo.publicKeyString;
+				((EC2VEngine)sEngine).userName = subTopologyInfo.userName;
+				((EC2VEngine)sEngine).subConnections = ec2SubTopology.connections;
+				((EC2VEngine)sEngine).currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
+				//((EC2VEngine)sEngine).topConnectors = subTopologyInfo.connectors;
+				//logger.debug("wtf?");
+				executor4conf.execute(((Runnable)sEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		executor4conf.shutdown();
+		try {
+			int count = 0;
+			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*vmPoolSize){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
+		
+		long configureEnd = System.currentTimeMillis();
+		long configureOverhead = configureEnd - startingUpEnd;
+		subTopologyInfo.statusInfo += "; configuration overhead: " + configureOverhead;
+		
+		if(!ec2SubTopology.overwirteControlOutput()){
+			logger.error("Control information of '"+ec2SubTopology.topologyName+"' has not been overwritten to the origin file!");
+			return false;
+		}
+		logger.info("The control information of "+ec2SubTopology.topologyName+" has been written back!");
+		return true;
+	}
+
+
 
 }

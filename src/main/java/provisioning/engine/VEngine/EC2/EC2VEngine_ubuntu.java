@@ -242,6 +242,10 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			fw.write("useradd -d \"/home/"+userName+"\" -m -s \"/bin/bash\" "+userName+"\n");
 			fw.write("mkdir /home/"+userName+"/.ssh \n");
 			fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
+			fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
+			fw.write("chmod 400 id_rsa\n");
+			fw.write("mv id_rsa /home/"+userName+"/.ssh/id_rsa\n");
+			fw.write("rm id_rsa.pub\n");
 		    fw.write("chmod 740 /etc/sudoers \n");
 		    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
 		    fw.write("chmod 440 /etc/sudoers \n");
@@ -255,6 +259,21 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 					  new FileInputStream(pubFile),
 					  new NullOutputStream(), new NullOutputStream()
 					);
+			String clusterPubKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa.pub";
+			File clusterPubKey = new File(clusterPubKeyPath);
+			new Shell.Safe(shell).exec(
+					  "cat > id_rsa.pub",
+					  new FileInputStream(clusterPubKey),
+					  new NullOutputStream(), new NullOutputStream()
+					);
+			String clusterPriKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa";
+			File clusterPriKey = new File(clusterPriKeyPath);
+			new Shell.Safe(shell).exec(
+					  "cat > id_rsa",
+					  new FileInputStream(clusterPriKey),
+					  new NullOutputStream(), new NullOutputStream()
+					);
+			
 		    File sshFile = new File(runFilePath);
 			new Shell.Safe(shell).exec(
 			  "cat > sshconf.sh && sudo bash sshconf.sh ",

@@ -33,15 +33,15 @@ public class testTopologyLoading {
 		for(int i = 0 ; i<tam.wholeTopology.topologies.size() ; i++){
 			if(tam.wholeTopology.topologies.get(i).scalingAddressPool != null){
 				for(Entry<String, Boolean> entry: tam.wholeTopology.topologies.get(i).scalingAddressPool.entrySet()){
-					System.out.println(entry.getKey());
-					System.out.println(entry.getValue());
+					logger.info(entry.getKey());
+					logger.info(entry.getValue());
 				}
 			}
 		}
 		//tam.overwiteControlFiles();
 		for(Entry<String, String> entry: test.entrySet()){
-			System.out.println(entry.getKey());
-			System.out.println(entry.getValue());
+			logger.info(entry.getKey());
+			logger.info(entry.getValue());
 		}
 		
 		//tam.overwiteControlFiles();

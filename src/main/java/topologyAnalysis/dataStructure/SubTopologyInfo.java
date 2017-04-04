@@ -29,8 +29,8 @@ public class SubTopologyInfo {
 	 * They can be, <br/> 
 	 * &nbsp; fresh: have never been provisioned. <br/> 
 	 * &nbsp; running: provisioned. <br/> 
-	 * &nbsp; error: sth happens during provisioning. <br/> 
-	 * &nbsp; failed: the sub-topology cannot be accessed. <br/> 
+	 * &nbsp; failed: the sub-topology cannot be accessed, because 
+	 * of some errors happening. <br/> 
 	 * &nbsp; stopped: the sub-topology is stopped, can be activated again very fast. Currently can only be done by EC2. <br/> 
 	 * &nbsp; deleted: the sub-topology is deleted, re-provisioning needs some time. <br/> 
 	 */

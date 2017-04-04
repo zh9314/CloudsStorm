@@ -43,7 +43,7 @@ public class SEngine_detectFailure implements Runnable {
 				
 				return ;
 			}else
-				logger.info("Running sub-topology '"+subTopologyInfo.topology+"' has disconnected with the 'failed' sub-topology!");
+				logger.info("Running sub-topology '"+subTopologyInfo.topology+"' has disconnected with the 'failed' or 'stopped' sub-topology!");
 		} catch (InstantiationException | IllegalAccessException
 				| ClassNotFoundException e) {
 			e.printStackTrace();

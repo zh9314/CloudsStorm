@@ -44,6 +44,8 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RouteTable;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
+import com.amazonaws.services.ec2.model.StartInstancesRequest;
+import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.VolumeType;
 
@@ -224,6 +226,15 @@ public class EC2Agent {
 		return instanceId;
 	}
 	
+	public void startInstance(String instanceId){
+		StartInstancesRequest startInstancesRequest = new StartInstancesRequest().withInstanceIds(instanceId);
+		ec2Client.startInstances(startInstancesRequest);
+	}
+	
+	public void stopInstances(ArrayList<String> instances){
+		StopInstancesRequest stopInstancesRequest = new StopInstancesRequest().withInstanceIds(instances);
+		ec2Client.stopInstances(stopInstancesRequest);
+	}
 	
 	////Get the public address of the spcified instanceId.
 	////Wait for 100s for maximum.

@@ -88,7 +88,8 @@ public class UserCredential {
 	}
 	
 	/**
-	 * This method is used to initial the field 'sshAccess' combing the information from the TopTopology
+	 * This method is used to initial the field  
+	 * 'sshAccess' combing the information from the TopTopology
 	 * and the array of ssh key pairs loaded.
 	 * @return
 	 */

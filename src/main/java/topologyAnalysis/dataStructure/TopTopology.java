@@ -49,12 +49,20 @@ public class TopTopology implements TopTopologyMethod{
 	 */
 	public String publicKeyPath;
 	
+	/**
+	 * This is used to identify a pair of SSH keys for the inner connection 
+	 * among all the VM in the cluster. 
+	 */
+	//public String clusterKeyId;
+	
+	
 	/*
 	 * The user name defined by the user.
 	 * This is corresponding to the ssh key.
 	 */
 	public String userName;
 	
+	@JsonIgnore
 	public EC2Credential ec2Credential;
 	
 	public ArrayList<SubTopologyInfo> topologies;
@@ -377,11 +385,26 @@ public class TopTopology implements TopTopologyMethod{
 			logger.error("At least one topology should be defined in the top level description!");
 			return false;
 		}
+		
+		boolean runningST = false;
 		for(int i = 0 ; i<topologies.size() ; i++){
 			//Update the subTopologyInfo after checking the userName and publicKeyString
 			SubTopologyInfo curInfo = topologies.get(i);
 			curInfo.userName = this.userName;
 			curInfo.publicKeyString = this.publicKeyString;
+			
+			////The folder of 'clusterKeyPair' must exist, 
+			////if there is a running sub-topology.
+			if(curInfo.status.equals("running")){
+				runningST = true;
+				String currentDir = CommonTool.getPathDir(this.loadingPath);
+				String clusterKeyDir = currentDir+"clusterKeyPair"+File.separator;
+				File keyDir = new File(clusterKeyDir);
+				if(!keyDir.exists()){
+					logger.error("The folder of 'clusterKeyPair' must exist, because there is a running sub-topology '"+curInfo.topology+"'!");
+					return false;
+				}
+			}
 			
 			//check the connectors and the tunnelName
 			if(curInfo.status.equals("fresh") || curInfo.status.equals("stopped")
@@ -410,6 +433,18 @@ public class TopTopology implements TopTopologyMethod{
 				return false;
 			}else
 				topologyNameCheck.put(tn, "");
+		}
+		///When there is no running sub-topology, check and generate the cluster key pair.
+		if(!runningST){
+			String currentDir = CommonTool.getPathDir(this.loadingPath);
+			String clusterKeyDir = currentDir+"clusterKeyPair"+File.separator;
+			File keyDir = new File(clusterKeyDir);
+			if(!keyDir.exists()){
+				logger.info("There is no cluster key pair for this top-topology! Generating!");
+				if(!CommonTool.rsaKeyGenerate(clusterKeyDir))
+					return false;
+			}else
+				logger.info("The cluster key pair for this top-topology has already exist!");
 		}
 		
 		//Checking the connection name
