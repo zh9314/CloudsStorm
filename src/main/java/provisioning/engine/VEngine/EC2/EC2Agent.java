@@ -3,6 +3,8 @@ package provisioning.engine.VEngine.EC2;
 import java.util.ArrayList;
 import java.util.List;
 
+import topologyAnalysis.dataStructure.EC2.EC2VM;
+
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AttachInternetGatewayRequest;
@@ -24,6 +26,7 @@ import com.amazonaws.services.ec2.model.CreateVpcResult;
 import com.amazonaws.services.ec2.model.DeleteInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.DeleteSubnetRequest;
+import com.amazonaws.services.ec2.model.DeleteVolumeRequest;
 import com.amazonaws.services.ec2.model.DeleteVpcRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
@@ -33,6 +36,7 @@ import com.amazonaws.services.ec2.model.DescribeRouteTablesResult;
 import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
 import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
 import com.amazonaws.services.ec2.model.DetachInternetGatewayRequest;
+import com.amazonaws.services.ec2.model.DetachVolumeRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateName;
 import com.amazonaws.services.ec2.model.IpPermission;
@@ -280,11 +284,31 @@ public class EC2Agent {
 	}
 	
 	
-	public void terminateInstances(ArrayList<String> instances){
-		TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(instances);
+	public boolean terminateInstances(ArrayList<EC2VM> ec2VMs){
+		ArrayList<String> instanceIds = new ArrayList<String>();
+		
+		////detach all the volumes and delete them
+		for(int vmi = 0 ; vmi < ec2VMs.size() ; vmi++){
+			EC2VM curVM = ec2VMs.get(vmi);
+			instanceIds.add(curVM.instanceId);
+			if(curVM.volumeId != null){
+				DetachVolumeRequest detachVolumeRequest = 
+						new DetachVolumeRequest().withInstanceId(curVM.instanceId)
+						.withVolumeId(curVM.volumeId).withForce(true);
+				ec2Client.detachVolume(detachVolumeRequest);
+				DeleteVolumeRequest deleteVolumeRequest = 
+						new DeleteVolumeRequest().withVolumeId(curVM.volumeId);
+				ec2Client.deleteVolume(deleteVolumeRequest);
+			}
+		}
+		TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(instanceIds);
 		ec2Client.terminateInstances(tir);
-		while(true){
-			DescribeInstancesRequest dis = new DescribeInstancesRequest().withInstanceIds(instances);
+		int loopCount = 0;
+		int instanceNum = instanceIds.size();
+		if(instanceIds.size() == 0)
+			return true;
+		while(loopCount < (200*instanceNum)){
+			DescribeInstancesRequest dis = new DescribeInstancesRequest().withInstanceIds(instanceIds);
 			DescribeInstancesResult disr = ec2Client.describeInstances(dis);
 			List<Reservation> reservations = disr.getReservations();
 			boolean allTerminated = true;
@@ -296,29 +320,40 @@ public class EC2Agent {
 						allTerminated = false;
 				}
 			}
-			if(allTerminated && instanceCount == instances.size())
-				break;
+			if(allTerminated && instanceCount == instanceIds.size())
+				return true;
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return false;
 			}
+			loopCount++;
 		}
+		return false;
 	}
 	
-	public void deleteVpc(String vpcId, String subnetId, 
-			String securityGroupId, String internetGatewayId){
-		DeleteSubnetRequest dsreq = new DeleteSubnetRequest().withSubnetId(subnetId);
-		ec2Client.deleteSubnet(dsreq);
-		DetachInternetGatewayRequest digreq = new DetachInternetGatewayRequest()
-				.withInternetGatewayId(internetGatewayId)
-				.withVpcId(vpcId);
-		ec2Client.detachInternetGateway(digreq);
-		DeleteInternetGatewayRequest deleteInternetGatewayRequest = new DeleteInternetGatewayRequest().withInternetGatewayId(internetGatewayId);
-		ec2Client.deleteInternetGateway(deleteInternetGatewayRequest);
-		DeleteSecurityGroupRequest dsgreq = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
-		ec2Client.deleteSecurityGroup(dsgreq);
+	public void deleteVpc(String vpcId, ArrayList<String> subnetIds, 
+			 ArrayList<String> securityGroupIds,  ArrayList<String> internetGatewayIds){
+		for(int i = 0 ; i < subnetIds.size() ; i++){
+			String subnetId = subnetIds.get(i);
+			DeleteSubnetRequest dsreq = new DeleteSubnetRequest().withSubnetId(subnetId);
+			ec2Client.deleteSubnet(dsreq);
+		}
+		for(int i = 0 ; i < internetGatewayIds.size() ; i++){
+			String internetGatewayId = internetGatewayIds.get(i);
+			DetachInternetGatewayRequest digreq = new DetachInternetGatewayRequest()
+					.withInternetGatewayId(internetGatewayId)
+					.withVpcId(vpcId);
+			ec2Client.detachInternetGateway(digreq);
+			DeleteInternetGatewayRequest deleteInternetGatewayRequest = new DeleteInternetGatewayRequest().withInternetGatewayId(internetGatewayId);
+			ec2Client.deleteInternetGateway(deleteInternetGatewayRequest);
+		}
+		for(int i = 0 ; i < securityGroupIds.size() ; i++){
+			String securityGroupId = securityGroupIds.get(i);
+			DeleteSecurityGroupRequest dsgreq = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
+			ec2Client.deleteSecurityGroup(dsgreq);
+		}
 		DeleteVpcRequest dvreq = new DeleteVpcRequest().withVpcId(vpcId);
 		ec2Client.deleteVpc(dvreq);
 	}

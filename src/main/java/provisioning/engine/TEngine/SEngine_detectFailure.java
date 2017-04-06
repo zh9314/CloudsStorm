@@ -8,6 +8,8 @@ import provisioning.engine.SEngine.SEngine;
 import provisioning.engine.SEngine.SEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 
+////This class is used to detach this running sub-topology with the failed 
+////stopped or deleted sub-topologies.
 public class SEngine_detectFailure implements Runnable {
 	
 	private static final Logger logger = Logger.getLogger(SEngine_detectFailure.class);
@@ -43,7 +45,7 @@ public class SEngine_detectFailure implements Runnable {
 				
 				return ;
 			}else
-				logger.info("Running sub-topology '"+subTopologyInfo.topology+"' has disconnected with the 'failed' or 'stopped' sub-topology!");
+				logger.info("Running sub-topology '"+subTopologyInfo.topology+"' has disconnected with the 'failed', 'stopped' or 'deleted' sub-topology!");
 		} catch (InstantiationException | IllegalAccessException
 				| ClassNotFoundException e) {
 			e.printStackTrace();

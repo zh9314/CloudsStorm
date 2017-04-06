@@ -1,4 +1,4 @@
-package provisioning;
+package provisioning.request;
 
 ///This class can be either scaling-up or scaling-down request.
 public class ScalingRequest {

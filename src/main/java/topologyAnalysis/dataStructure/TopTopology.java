@@ -334,6 +334,7 @@ public class TopTopology implements TopTopologyMethod{
 		
 		
 		////Checking the scaled sub-topology, to see how many addresses have been occupied.
+		////However, this addresses used in 'scaled' 'deleted' sub-topology are not counted in the scalingAddressPool.
 		for(int i = 0 ; i<topologies.size() ; i++){
 			if(topologies.get(i).tag.trim().toLowerCase().equals("scaled")){
 				if(topologies.get(i).connectors != null){
@@ -346,8 +347,11 @@ public class TopTopology implements TopTopologyMethod{
 						//Here curTcp.fatherTopology must not be null due to the checking before.
 						if(topologies.get(i).fatherTopology.scalingAddressPool != null){
 							if(topologies.get(i).fatherTopology.scalingAddressPool.containsKey(curTcp.address)){
-								logger.debug("In sub-topology"+topologies.get(i).topology+" ,the address ("+curTcp.address+") of the connector occupied the scaling pool!");
-								topologies.get(i).fatherTopology.scalingAddressPool.put(curTcp.address, false);
+								if(!topologies.get(i).status.trim().toLowerCase().equals("deleted")){
+									logger.debug("In sub-topology"+topologies.get(i).topology+" ,the address ("+curTcp.address+") of the connector occupied the scaling pool!");
+									topologies.get(i).fatherTopology.scalingAddressPool.put(curTcp.address, false);
+								}else
+									logger.debug("Ignore the address '"+curTcp.address+"', because it is in the 'scaled' 'deleted' sub-topology '"+topologies.get(i).topology+"'");
 							}else{
 								logger.error("The address ("+curTcp.address+") in sub-topology "+topologies.get(i).topology+" is out of the scope of scaling pool!");
 								return false;

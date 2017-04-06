@@ -68,6 +68,13 @@ public interface SEngineCoreMethod {
 	 */
 	public boolean start(SubTopologyInfo subTopologyInfo, 
 			Credential credential, Database database);
+	
+	/**
+	 * This is a method to delete the sub-topology. 
+	 * @return 
+	 */
+	public boolean delete(SubTopologyInfo subTopologyInfo, 
+			Credential credential, Database database);
 
 	/**
 	 * generate a scaled sub-topology in some domain.

@@ -10,7 +10,7 @@ import topologyAnalysis.dataStructure.SubTopologyInfo;
 
 public class SEngine_stop implements Runnable {
 	
-	private static final Logger logger = Logger.getLogger(SEngine_provision.class);
+	private static final Logger logger = Logger.getLogger(SEngine_stop.class);
 
 	private SubTopologyInfo subTopologyInfo;
 	private Credential credential;
@@ -21,6 +21,19 @@ public class SEngine_stop implements Runnable {
 		this.subTopologyInfo = subTopologyInfo;
 		this.credential = credential;
 		this.database = database;
+	}
+	
+	public boolean ableToBeStopped(){
+		Object sEngine;
+		try {
+			sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
+		} catch (InstantiationException | IllegalAccessException
+				| ClassNotFoundException e) {
+			e.printStackTrace();
+			logger.error("The S-Engine for sub-topology '"+subTopologyInfo.topology+"' cannot be found!");
+			return false;
+		}
+		return ((SEngineCoreMethod)sEngine).supportStop();
 	}
 
 	@Override

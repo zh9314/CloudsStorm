@@ -277,8 +277,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 	
 	@Override
 	public boolean provision(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
-		if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")){
-			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not in the status of 'fresh'!");
+		if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")
+				&& !subTopologyInfo.status.trim().toLowerCase().equals("deleted")){
+			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not in the status of 'fresh' or 'deleted'!");
 			return false;
 		}
 		if(createSubTopology(subTopologyInfo, credential, database))
@@ -839,6 +840,89 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		logger.info("The control information of "+ec2SubTopology.topologyName+" has been written back!");
 		return true;
 	}
+
+	@Override
+	public boolean delete(SubTopologyInfo subTopologyInfo,
+			Credential credential, Database database) {
+		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
+		boolean returnResult = true;
+		class VpcElement{
+			public String vpcId;
+			public ArrayList<String> subnetIds = new ArrayList<String>();
+			public ArrayList<String> securityGroupIds = new ArrayList<String>();
+			public ArrayList<String> internetGatewayIds = new ArrayList<String>();
+		} 
+		ArrayList<VpcElement> vpcEles = new ArrayList<VpcElement>();
+		ArrayList<EC2VM> ec2VMs = new ArrayList<EC2VM>();
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			if(curVM.instanceId == null){
+				logger.error("The instanceId of "+curVM.name+" is unknown!");
+				returnResult = false;
+			}else{
+				ec2VMs.add(curVM);
+				boolean findVpc = false;
+				for(int vpci = 0 ; vpci < vpcEles.size() ; vpci++){
+					VpcElement curVpcEle = vpcEles.get(vpci);
+					if(curVpcEle.vpcId.equals(curVM.vpcId)){
+						findVpc = true;
+						curVpcEle.subnetIds.add(curVM.subnetId);
+						curVpcEle.securityGroupIds.add(curVM.securityGroupId);
+						curVpcEle.internetGatewayIds.add(curVM.internetGatewayId);
+						break;
+					}
+				}
+				if(!findVpc){
+					VpcElement newVpcEle = new VpcElement();
+					newVpcEle.vpcId = curVM.vpcId;
+					newVpcEle.subnetIds.add(curVM.subnetId);
+					newVpcEle.securityGroupIds.add(curVM.securityGroupId);
+					newVpcEle.internetGatewayIds.add(curVM.internetGatewayId);
+					vpcEles.add(newVpcEle);
+				}
+				
+			}
+		}
+		if(ec2VMs.size() == 0){
+			logger.error("These is no valid instanceId to be deleted!");
+			returnResult = false;
+		}else{
+			if(ec2Agent == null){
+				EC2Credential ec2Credential = (EC2Credential)credential;
+				if(!setEC2Agent(ec2Credential))
+					return false;
+			}
+			ec2Agent.setEndpoint(subTopologyInfo.endpoint);
+			logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
+			
+			if(!ec2Agent.terminateInstances(ec2VMs)){
+				logger.error("Some instances cannot be deleted!");
+				return false;
+			}
+		}
+		for(int vpci = 0 ; vpci < vpcEles.size() ; vpci++){
+			VpcElement curVpcEle = vpcEles.get(vpci);
+			ec2Agent.deleteVpc(curVpcEle.vpcId, curVpcEle.subnetIds, 
+					curVpcEle.securityGroupIds, curVpcEle.internetGatewayIds);
+		}
+		
+		////clear all the information
+		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.components.get(vi);
+			curVM.publicAddress = null;
+			curVM.volumeId = null;
+			curVM.instanceId = null;
+			curVM.securityGroupId = null;
+			curVM.internetGatewayId = null;
+			curVM.vpcId = null;
+			curVM.routeTableId = null;
+			curVM.subnetId = null;
+			curVM.actualPrivateAddress = null;
+		}
+		return returnResult;
+	}
+	
+	
 
 
 
