@@ -676,7 +676,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 	}
 
 	@Override
-	public boolean autoScal(SubTopologyInfo subTopologyInfo, Credential credential,
+	public boolean scaleUp(SubTopologyInfo subTopologyInfo, Credential credential,
 			Database database) {
 		if(!subTopologyInfo.status.equals("fresh") && !subTopologyInfo.tag.equals("scaled")){
 			logger.warn("The sub-topology '"+subTopologyInfo.topology+"' is not a 'scaled' part!");
@@ -784,7 +784,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			subTopologyInfo.statusInfo = "starting overhead: "+overhead;
 		}
 		
-		////Configure all the inner connections
+		////Just configure all the inner connections
 		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
 		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
 			EC2VM curVM = ec2SubTopology.components.get(vi);
@@ -797,7 +797,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			}
 			try {
 				Object sEngine = Class.forName(vEngineNameOS).newInstance();
-				((EC2VEngine)sEngine).cmd = "all";
+				((EC2VEngine)sEngine).cmd = "connection";
 				((EC2VEngine)sEngine).curVM = curVM;
 				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
 				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;

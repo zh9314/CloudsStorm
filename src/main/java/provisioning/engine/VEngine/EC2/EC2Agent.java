@@ -35,6 +35,10 @@ import com.amazonaws.services.ec2.model.DescribeRouteTablesRequest;
 import com.amazonaws.services.ec2.model.DescribeRouteTablesResult;
 import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
 import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
+import com.amazonaws.services.ec2.model.DescribeVolumeStatusRequest;
+import com.amazonaws.services.ec2.model.DescribeVolumeStatusResult;
+import com.amazonaws.services.ec2.model.DescribeVolumesRequest;
+import com.amazonaws.services.ec2.model.DescribeVolumesResult;
 import com.amazonaws.services.ec2.model.DetachInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.DetachVolumeRequest;
 import com.amazonaws.services.ec2.model.Instance;
@@ -51,6 +55,9 @@ import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.ec2.model.Volume;
+import com.amazonaws.services.ec2.model.VolumeState;
+import com.amazonaws.services.ec2.model.VolumeStatusItem;
 import com.amazonaws.services.ec2.model.VolumeType;
 
 public class EC2Agent {
@@ -296,6 +303,31 @@ public class EC2Agent {
 						new DetachVolumeRequest().withInstanceId(curVM.instanceId)
 						.withVolumeId(curVM.volumeId).withForce(true);
 				ec2Client.detachVolume(detachVolumeRequest);
+				ArrayList<String> volumeIds = new ArrayList<String>();
+				volumeIds.add(curVM.volumeId);
+				DescribeVolumesRequest describeVolumesRequest  = 
+						new DescribeVolumesRequest().withVolumeIds(volumeIds);
+				boolean voDetached = false;
+				int loopCount = 0;
+				while(loopCount < 10){
+					DescribeVolumesResult describeVolumesResult = ec2Client.describeVolumes(describeVolumesRequest);
+					List<Volume> vs = describeVolumesResult.getVolumes();
+					if(vs.size() != 0){
+						if(vs.get(0).getState().toString().equals(VolumeState.Available.toString())){
+							voDetached = true;
+							break;
+						}
+					}
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						return false;
+					}
+					loopCount++;
+				}
+				if(!voDetached)
+					return false;
 				DeleteVolumeRequest deleteVolumeRequest = 
 						new DeleteVolumeRequest().withVolumeId(curVM.volumeId);
 				ec2Client.deleteVolume(deleteVolumeRequest);

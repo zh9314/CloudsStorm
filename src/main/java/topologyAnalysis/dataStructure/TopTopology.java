@@ -502,10 +502,10 @@ public class TopTopology implements TopTopologyMethod{
 				logger.error("The field 'tag' of "+this.topologies.get(i).topology+" is not valid!");
 				return false;
 			}
-			if(status.equals("fresh") && tag.equals("scaled")){
+			/*if(status.equals("fresh") && tag.equals("scaled")){
 				logger.error("The 'fresh' subTopology "+this.topologies.get(i).topology+" cannot be 'scaled'!");
 				return false;
-			}
+			}*/
 		}
 		
 		if(!scalingPoolChecking())

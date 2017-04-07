@@ -1162,7 +1162,6 @@ public class TEngine {
 		}else{
 			scalDown(topTopology, userCredential, userDatabase, 
 					scalSTI, scalDCs);
-			return ;
 		}
 		
 		long scalingEnd = System.currentTimeMillis();
@@ -1183,15 +1182,17 @@ public class TEngine {
 		
 		//record the 'stopped' ones which in the scalDC requests.
 		ArrayList<SubTopologyInfo> needToBeStarted = new ArrayList<SubTopologyInfo>();
+		ArrayList<SubTopologyInfo> freshSTIs = new ArrayList<SubTopologyInfo>();
+
 		for(int si = 0 ; si < topTopology.topologies.size() ; si++){
 			////If the status of the sub-topology is 'stopped', then this cloud provider must support stop feature.
 			if(topTopology.topologies.get(si).status.trim().toLowerCase().equals("stopped")
 				&& topTopology.topologies.get(si).tag.trim().toLowerCase().equals("scaled")
 				&& topTopology.topologies.get(si).fatherTopology.topology.equals(scalSTI.topology)){
 				for(int ri = 0 ; ri < scalDCs.size() ; ri++){
-					if(topTopology.topologies.get(si).cloudProvider.trim().toLowerCase().equals(scalDCs.get(ri).cloudProvider.trim().toLowerCase())
-						&& topTopology.topologies.get(si).domain.trim().toLowerCase().equals(scalDCs.get(ri).domain.trim().toLowerCase())
-						){
+					if(!scalDCs.get(ri).satisfied
+						&& topTopology.topologies.get(si).cloudProvider.trim().toLowerCase().equals(scalDCs.get(ri).cloudProvider.trim().toLowerCase())
+						&& topTopology.topologies.get(si).domain.trim().toLowerCase().equals(scalDCs.get(ri).domain.trim().toLowerCase())){
 						////collect the 'stopped' sub-topologies.
 						needToBeStarted.add(topTopology.topologies.get(si));
 						scalDCs.get(ri).satisfied = true;
@@ -1199,10 +1200,27 @@ public class TEngine {
 					}
 				}
 			}
+			
+			////find the 'fresh' 'scaled' sub-topology.
+			if(topTopology.topologies.get(si).status.trim().toLowerCase().equals("fresh")
+				&& topTopology.topologies.get(si).tag.trim().toLowerCase().equals("scaled")
+				&& topTopology.topologies.get(si).fatherTopology.topology.equals(scalSTI.topology)){
+				for(int ri = 0 ; ri < scalDCs.size() ; ri++){
+					if(topTopology.topologies.get(si).cloudProvider.trim().toLowerCase().equals(scalDCs.get(ri).cloudProvider.trim().toLowerCase())
+						&& topTopology.topologies.get(si).domain.trim().toLowerCase().equals(scalDCs.get(ri).domain.trim().toLowerCase())
+						){
+						////collect the 'fresh' sub-topologies.
+						freshSTIs.add(topTopology.topologies.get(si));
+						scalDCs.get(ri).satisfied = true;
+						actualScalingSize++;
+					}
+				}
+			}
 		}
 		
-		////generate the 'fresh' sub-topology to be the scaled one.
+		
 		ArrayList<SubTopologyInfo> copySTIs = new ArrayList<SubTopologyInfo>();
+		////generate the 'fresh' sub-topology to be the scaled one.
 		for(int ri = 0 ; ri < scalDCs.size() ; ri++){
 			if(!scalDCs.get(ri).satisfied){
 				String domain = scalDCs.get(ri).domain;
@@ -1220,6 +1238,7 @@ public class TEngine {
 					continue;
 				copySTIs.add(copySTI);
 				topTopology.topologies.add(copySTI);
+				scalDCs.get(ri).satisfied = true;
 				actualScalingSize++;
 			}
 		}
@@ -1278,6 +1297,10 @@ public class TEngine {
 				return;
 		}
 		
+		///add all the fresh sub-topologies into the copySTIs
+		for(int sti = 0 ; sti < freshSTIs.size() ; sti++)
+			copySTIs.add(freshSTIs.get(sti));
+				
 		///do the auto-scaling, including provisioning the new generated 'fresh' ones and 
 		///starting the 'stopped' ones.
 		int threadPoolSize = copySTIs.size() + needToBeStarted.size();
@@ -1377,6 +1400,7 @@ public class TEngine {
 							curSTI.status = "deleted";
 							logger.info("Sub-topology '"+curSTI.topology+"' will be scaled down (deleted)!");
 						}
+						curScalReq.satisfied = true;
 						actualScalingSize++;
 					}
 				}

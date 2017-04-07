@@ -55,7 +55,7 @@ public class SEngine_autoScaling implements Runnable{
 				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before provisioning!");
 				return ;
 			}
-			if(!((SEngineCoreMethod)sEngine).autoScal(subTopologyInfo, credential, database)){
+			if(!((SEngineCoreMethod)sEngine).scaleUp(subTopologyInfo, credential, database)){
 				logger.error("Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");
 				subTopologyInfo.status = "failed";
 				long curTime = System.currentTimeMillis();

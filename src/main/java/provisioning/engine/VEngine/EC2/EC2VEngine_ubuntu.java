@@ -373,17 +373,18 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		///Identify this tunnel is deleted in the control file.
 		curTCP.ethName = null;
 
+		String rmConnectionName = UUID.randomUUID().toString()+".sh";
 		Thread.sleep(2000);
 		Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
 		File file = new File(confFilePath);
 		new Shell.Safe(shell).exec(
-		  "cat > rmConnection.sh && sudo bash rmConnection.sh ",
+		  "cat > "+rmConnectionName+" && sudo bash "+rmConnectionName ,
 		  new FileInputStream(file),
 		  new NullOutputStream(), new NullOutputStream()
 		);
 		FileUtils.deleteQuietly(file);
 		new Shell.Safe(shell).exec(
-				  "rm rmConnection.sh",
+				  "rm "+rmConnectionName,
 				  null,
 				  new NullOutputStream(), new NullOutputStream()
 		);

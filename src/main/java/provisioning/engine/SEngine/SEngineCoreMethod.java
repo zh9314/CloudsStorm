@@ -89,6 +89,6 @@ public interface SEngineCoreMethod {
 	 * is provisioned from the datacenter. 
 	 * @return 
 	 */
-	public boolean autoScal(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
+	public boolean scaleUp(SubTopologyInfo subTopologyInfo, Credential credential, Database database);
 
 }
