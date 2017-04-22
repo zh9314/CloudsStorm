@@ -73,6 +73,7 @@ public class EC2VEngine_createVM extends EC2VEngine implements Runnable{
 				}
 				return ;
 			}
+			sshEndTime = System.currentTimeMillis();
 		}
 		
 		curVM.publicAddress = null;

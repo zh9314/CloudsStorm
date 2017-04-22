@@ -49,6 +49,8 @@ public class TopologyAnalysisMain{
 				className = packagePrefix+".EC2.EC2SubTopology";
 			else if(cp.equals("exogeni"))
 				className = packagePrefix+".ExoGENI.ExoGENISubTopology";
+			else if(cp.equals("egi"))
+				className = packagePrefix+".EGI.EGISubTopology";
 			else{
 				logger.error("Cloud provider of "+cp+" has not been supported yet!");
 				return false;

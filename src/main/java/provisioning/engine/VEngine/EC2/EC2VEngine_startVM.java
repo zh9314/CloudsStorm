@@ -9,7 +9,7 @@ import com.jcabi.ssh.Shell;
 
 public class EC2VEngine_startVM extends EC2VEngine implements Runnable{
 	
-	private static final Logger logger = Logger.getLogger(EC2VEngine_createVM.class);
+	private static final Logger logger = Logger.getLogger(EC2VEngine_startVM.class);
 	
 	
 	public EC2VEngine_startVM(EC2Agent ec2agent, EC2VM curVM, 

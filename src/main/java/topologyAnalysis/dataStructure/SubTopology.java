@@ -205,79 +205,81 @@ public abstract class SubTopology implements SubTopologyMethod {
 			}
 			
 			//check the eths in the VM
-			Map<String, String> ethNameCheck = new HashMap<String, String>();
-			for(int j = 0 ; j<curVM.ethernetPort.size() ; j++){
-				Eth curEth = curVM.ethernetPort.get(j);
-				String en = curEth.name;
-				if(en == null){
-					logger.error("The eth name of VM '"+curVM.name+"' must be specified and cannot be set as 'null'!");
-					return false;
-				}
-				//check the eth names of one VM are different
-				if(ethNameCheck.containsKey(en)){
-					logger.error("There are two same eth name '"+en+"' of VM '"+curVM.name+"' in this description.");
-					return false;
-				}else
-					ethNameCheck.put(en, "");
-				
-				
-				if(curEth.connectionName != null && (curEth.subnetName != null || curEth.address != null)){
-					logger.error("The eth '"+en+"' of VM '"+curVM.name+"' can not be both connection or subnet!");
-					return false;
-				}
-				
-				if(curEth.subnetName != null && curEth.address == null){
-					logger.error("The eth '"+en+"' belongs to a subnet must be specified an address!");
-					return false;
-				}
-				
-				if(curEth.subnetName == null && curEth.connectionName == null){
-					logger.error("The eth '"+en+"' of VM '"+curVM.name+"' must belong to a connection or subnet!");
-					return false;
-				}
-				
-				//Validate the name of subnet or connection. 
-				//Also update the information of the corresponding connection.
-				if(curEth.subnetName != null){
-					Subnet findSubnet = null;
-					for(int si = 0 ; si < subnets.size() ; si++){
-						if(subnets.get(si).name.equals(curEth.subnetName)){
-							findSubnet = subnets.get(si);
-							break;
+			if(curVM.ethernetPort != null){
+				Map<String, String> ethNameCheck = new HashMap<String, String>();
+				for(int j = 0 ; j<curVM.ethernetPort.size() ; j++){
+					Eth curEth = curVM.ethernetPort.get(j);
+					String en = curEth.name;
+					if(en == null){
+						logger.error("The eth name of VM '"+curVM.name+"' must be specified and cannot be set as 'null'!");
+						return false;
+					}
+					//check the eth names of one VM are different
+					if(ethNameCheck.containsKey(en)){
+						logger.error("There are two same eth name '"+en+"' of VM '"+curVM.name+"' in this description.");
+						return false;
+					}else
+						ethNameCheck.put(en, "");
+					
+					
+					if(curEth.connectionName != null && (curEth.subnetName != null || curEth.address != null)){
+						logger.error("The eth '"+en+"' of VM '"+curVM.name+"' can not be both connection or subnet!");
+						return false;
+					}
+					
+					if(curEth.subnetName != null && curEth.address == null){
+						logger.error("The eth '"+en+"' belongs to a subnet must be specified an address!");
+						return false;
+					}
+					
+					if(curEth.subnetName == null && curEth.connectionName == null){
+						logger.error("The eth '"+en+"' of VM '"+curVM.name+"' must belong to a connection or subnet!");
+						return false;
+					}
+					
+					//Validate the name of subnet or connection. 
+					//Also update the information of the corresponding connection.
+					if(curEth.subnetName != null){
+						Subnet findSubnet = null;
+						for(int si = 0 ; si < subnets.size() ; si++){
+							if(subnets.get(si).name.equals(curEth.subnetName)){
+								findSubnet = subnets.get(si);
+								break;
+							}
 						}
-					}
-					if(findSubnet == null){
-						logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
-						return false;
-					}
-					curEth.subnet = findSubnet;
-				}
-				if(curEth.connectionName != null){
-					SubConnectionPoint findScp = null;
-					if(!curEth.connectionName.contains(".")){
-						logger.error("Field 'connectionName' of '"+curVM.name+"' is not valid!");
-						return false;
-					}
-					String [] con_st = curEth.connectionName.split("\\.");
-					String conName = con_st[0]; String st = con_st[1];
-					if(!st.equals("source") && !st.equals("target")){
-						logger.equals("The connection name of '"+curEth.connectionName+"' must contains 'source' or 'target'!");
-						return false;
-					}
-					for(int ci = 0 ; ci<this.connections.size() ; ci++){
-						if(connections.get(ci).name.equals(conName)){
-							if(st.equals("source"))
-								findScp = connections.get(ci).source;
-							else
-								findScp = connections.get(ci).target;
-							break;
+						if(findSubnet == null){
+							logger.error("The subnet '"+curEth.subnetName+"' of eth '"+curEth.name+"' cannnot be found!");
+							return false;
 						}
+						curEth.subnet = findSubnet;
 					}
-					if(findScp == null){
-						logger.error("The connection '"+curEth.connectionName+"' of eth '"+curEth.name+"' cannot be found in 'connections'");
-						return false;
+					if(curEth.connectionName != null){
+						SubConnectionPoint findScp = null;
+						if(!curEth.connectionName.contains(".")){
+							logger.error("Field 'connectionName' of '"+curVM.name+"' is not valid!");
+							return false;
+						}
+						String [] con_st = curEth.connectionName.split("\\.");
+						String conName = con_st[0]; String st = con_st[1];
+						if(!st.equals("source") && !st.equals("target")){
+							logger.equals("The connection name of '"+curEth.connectionName+"' must contains 'source' or 'target'!");
+							return false;
+						}
+						for(int ci = 0 ; ci<this.connections.size() ; ci++){
+							if(connections.get(ci).name.equals(conName)){
+								if(st.equals("source"))
+									findScp = connections.get(ci).source;
+								else
+									findScp = connections.get(ci).target;
+								break;
+							}
+						}
+						if(findScp == null){
+							logger.error("The connection '"+curEth.connectionName+"' of eth '"+curEth.name+"' cannot be found in 'connections'");
+							return false;
+						}
+						curEth.scp = findScp;
 					}
-					curEth.scp = findScp;
 				}
 			}
 			

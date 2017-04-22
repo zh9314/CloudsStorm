@@ -1,4 +1,4 @@
-package provisioning.engine.VEngine.EC2;
+package provisioning.engine.VEngine.EGI;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,42 +13,16 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
-
 import commonTool.CommonTool;
+
 import provisioning.engine.VEngine.VEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubConnection;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
 
-/**
- * This is a specific EC2 VM engine which is responsible for connection and run 
- * some predefined scripts. This class is specially designed for the VM of ubuntu 
- *
- */
-public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, Runnable{
+public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, Runnable{
 	
-	private static final Logger logger = Logger.getLogger(EC2VEngine_ubuntu.class);
-	
-	
-	
-	public EC2VEngine_ubuntu(){
-		
-	}
-	
-	/*public void setParameters(EC2Agent ec2agent, 
-			EC2VM curVM, ArrayList<SubConnection> subConnections, 
-			ArrayList<TopConnection>topConnections, 
-			String privateKeyString, String cmd,
-			String userName, String publicKeyString){
-		this.ec2agent = ec2agent;
-		this.curVM = curVM;
-		this.cmd = cmd;
-		this.subConnections = subConnections;
-		this.topConnections = topConnections;
-		this.privateKeyString = privateKeyString;
-		this.userName = userName;
-		this.publicKeyString = publicKeyString;
-	}*/
-	
+	private static final Logger logger = Logger.getLogger(EGIVEngine_ubuntu.class);
+
 	/**
 	 * Configuration on the connection to configure the VM to be connected  
 	 */
@@ -229,7 +203,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 	public void sshConf() {
 		if(userName == null || publicKeyString == null){
 			logger.warn("The username is not specified! Unified ssh account will not be configured!");
-			return;
+			return ;
 		}
 		String runFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "runSSH_" + curVM.name + System.nanoTime() + ".sh";
@@ -399,5 +373,6 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			logger.error(curVM.name +": "+ e.getMessage());
 		}
 	}
+	
 
 }

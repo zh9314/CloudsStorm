@@ -35,8 +35,6 @@ import com.amazonaws.services.ec2.model.DescribeRouteTablesRequest;
 import com.amazonaws.services.ec2.model.DescribeRouteTablesResult;
 import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
 import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
-import com.amazonaws.services.ec2.model.DescribeVolumeStatusRequest;
-import com.amazonaws.services.ec2.model.DescribeVolumeStatusResult;
 import com.amazonaws.services.ec2.model.DescribeVolumesRequest;
 import com.amazonaws.services.ec2.model.DescribeVolumesResult;
 import com.amazonaws.services.ec2.model.DetachInternetGatewayRequest;
@@ -57,7 +55,6 @@ import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.Volume;
 import com.amazonaws.services.ec2.model.VolumeState;
-import com.amazonaws.services.ec2.model.VolumeStatusItem;
 import com.amazonaws.services.ec2.model.VolumeType;
 
 public class EC2Agent {

@@ -123,6 +123,12 @@
 	 	<artifactId>slf4j-log4j12</artifactId> 
 	 	<version>1.6.1</version> 
 	 </dependency>
+	 
+	 <dependency>
+	    <groupId>cz.cesnet.cloud</groupId>
+	    <artifactId>jocci-api</artifactId>
+	    <version>0.2.6</version>
+	</dependency>
      
     </dependencies>
     

@@ -9,6 +9,8 @@ public class VEngine {
 
 	public ArrayList<SubConnection> subConnections;
 	public ArrayList<TopConnectionPoint> topConnectors;
+	
+	////This is used for ssh access to the VM. It is not the pair with the following publicKeyString.
 	public String privateKeyString;
 	////Used for generating the log file of executing the script on that VM
 	public String currentDir;

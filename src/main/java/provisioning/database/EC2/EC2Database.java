@@ -55,12 +55,18 @@ public class EC2Database extends Database {
 			String line = null;
 			while((line = in.readLine()) != null){
 				String[] infos = line.split("&&");
+				if(infos.length != 2){
+					logger.error("Some information is wrong in the file "+filePath);
+					in.close();
+					return false;
+				}
 				domain_endpoint.put(infos[0].trim().toLowerCase(), infos[1]);
 			}
 			in.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			logger.error("The domain infomation of EC2 cannot be loaded from "+filePath);
+			return false;
 		}
 		
 		return true;
@@ -80,6 +86,11 @@ public class EC2Database extends Database {
 			String line = null;
 			while((line = in.readLine()) != null){
 				String[] infos = line.split("&&");
+				if(infos.length != 3){
+					logger.error("Some information is wrong in the file "+filePath);
+					in.close();
+					return false;
+				}
 				AmiInfo ami = new AmiInfo();
 				ami.OS = infos[0].trim().toLowerCase();
 				ami.domain = infos[1].trim().toLowerCase();
@@ -90,6 +101,8 @@ public class EC2Database extends Database {
 		} catch (IOException e) {
 			e.printStackTrace();
 			logger.error("The AMI infomation of EC2 cannot be loaded from "+filePath);
+			return false;
+		
 		}
 		
 		return true;

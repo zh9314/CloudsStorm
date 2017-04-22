@@ -230,18 +230,18 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				continue;
 			}
 			try {
-				Object sEngine = Class.forName(vEngineNameOS).newInstance();
-				((EC2VEngine)sEngine).cmd = "all";
-				((EC2VEngine)sEngine).curVM = curVM;
-				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
-				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
-				((EC2VEngine)sEngine).publicKeyString = subTopologyInfo.publicKeyString;
-				((EC2VEngine)sEngine).userName = subTopologyInfo.userName;
-				((EC2VEngine)sEngine).subConnections = ec2SubTopology.connections;
-				((EC2VEngine)sEngine).currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
+				Object vEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)vEngine).cmd = "all";
+				((EC2VEngine)vEngine).curVM = curVM;
+				((EC2VEngine)vEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)vEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)vEngine).publicKeyString = subTopologyInfo.publicKeyString;
+				((EC2VEngine)vEngine).userName = subTopologyInfo.userName;
+				((EC2VEngine)vEngine).subConnections = ec2SubTopology.connections;
+				((EC2VEngine)vEngine).currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
 				//((EC2VEngine)sEngine).topConnectors = subTopologyInfo.connectors;
 				//logger.debug("wtf?");
-				executor4conf.execute(((Runnable)sEngine));
+				executor4conf.execute(((Runnable)vEngine));
 			} catch (InstantiationException | IllegalAccessException
 					| ClassNotFoundException e) {
 				e.printStackTrace();
@@ -553,7 +553,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			EC2VM curVM = (EC2VM)tempSubTopology.components.get(vi);
 			EC2VM newVM = new EC2VM();
 			newVM.diskSize = curVM.diskSize;
-			newVM.dockers = curVM.diskSize;
+			newVM.dockers = curVM.dockers;
 			newVM.IOPS = curVM.IOPS;
 			newVM.name = curVM.name;
 			newVM.nodeType = curVM.nodeType;
@@ -621,6 +621,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			logger.error("The address pool for scaling sub-topology cannot be null");
 			return null;
 		}
+		if(scalingTemplate.connectors == null)
+			return generatedSTI;
+		
 		generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
 		Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;
 		for(int tci = 0 ; tci < scalingTemplate.connectors.size() ; tci++){
@@ -744,10 +747,10 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				logger.error("The instanceId of '"+curVM.name+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be achieved!");
 				return false;
 			}
-			EC2VEngine_startVM ec2createVM = new EC2VEngine_startVM(
+			EC2VEngine_startVM ec2startVM = new EC2VEngine_startVM(
 					ec2Agent, curVM, 
 					ec2SubTopology.accessKeyPair.privateKeyString);
-			executor4vm.execute(ec2createVM);
+			executor4vm.execute(ec2startVM);
 		}
 		
 		executor4vm.shutdown();
