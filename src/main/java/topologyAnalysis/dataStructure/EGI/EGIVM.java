@@ -17,10 +17,7 @@ public class EGIVM extends VM {
 	
 	@JsonIgnore
 	public String Res_occi_ID;
-	
-	@JsonIgnore
-	public String defaultSSHAccount;
-	
+		
 	
 
 }
