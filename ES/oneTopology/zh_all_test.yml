@@ -1,0 +1,10 @@
+---
+publicKeyPath: "test"
+userName: "zh9314"
+topologies:
+- topology: "ec2_zh_a"
+  cloudProvider: "EC2"
+  domain: "Virginia"
+  status: "fresh"
+  tag: "fixed"
+  statusInfo: ""

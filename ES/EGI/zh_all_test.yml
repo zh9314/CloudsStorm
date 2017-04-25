@@ -1,0 +1,13 @@
+---
+publicKeyPath: "name@test.pub"
+userName: "zh9314"
+topologies:
+- topology: "egi_zh_a"
+  cloudProvider: "EGI"
+  domain: "CESNET"
+  status: "deleted"
+  tag: "fixed"
+  statusInfo: "deleted: 1492864232538"
+  copyOf: null
+  sshKeyPairId: "98b95037-b766-4766-9b04-9324ef665e68"
+connections: null

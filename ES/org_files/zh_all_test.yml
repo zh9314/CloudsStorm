@@ -1,0 +1,37 @@
+---
+publicKeyPath: "name@test.pub"
+userName: "zh9314"
+ec2Credential: null
+topologies:
+- topology: "ec2_zh_a"
+  cloudProvider: "EC2"
+  domain: "Virginia"
+  status: "fresh"
+  tag: "fixed"
+  copyOf: null
+  sshKeyPairId: "f7652dc3-e713-477b-bcea-2675836cfd29"
+- topology: "ec2_zh_b"
+  cloudProvider: "EC2"
+  domain: "California"
+  status: "fresh"
+  tag: "fixed"
+  copyOf: null
+  sshKeyPairId: "a48dfd7c-1589-4ccf-9b78-6931d50af70f"
+connections:
+- name: "linkX"
+  source:
+    componentName: "ec2_zh_a.nodeA"
+    portName: "p1"
+    netmask: "24"
+    address: "192.168.3.11"
+    ethName: null
+    scalingPool: null
+  target:
+    componentName: "ec2_zh_b.nodeB"
+    portName: "p2"
+    netmask: "24"
+    address: "192.168.3.12"
+    ethName: null
+    scalingPool: null
+  bandwidth: "10000000"
+  latency: "200"

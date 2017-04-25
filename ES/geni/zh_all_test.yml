@@ -1,0 +1,34 @@
+---
+publicKeyPath: null
+userName: "zh9314"
+topologies:
+- topology: "ec2_zh_a"
+  cloudProvider: "EC2"
+  domain: "Virginia"
+  status: "fresh"
+  tag: "fixed"
+  statusInfo: ""
+  copyOf: null
+- topology: "geni_zh_b"
+  cloudProvider: "geni"
+  domain: "California"
+  status: "fresh"
+  tag: "scaling"
+  statusInfo: ""
+  copyOf: null
+connections:
+- name: "linkX"
+  source:
+    componentName: "ec2_zh_a.nodeA"
+    portName: "p1"
+    netmask: "255.255.255.0"
+    address: "192.168.3.11"
+    scalingPool: null
+  target:
+    componentName: "geni_zh_b.nodeB"
+    portName: "p2"
+    netmask: "255.255.255.0"
+    address: "192.168.3.12"
+    scalingPool: "192.168.3.12-192.168.3.20"
+  bandwidth: "10000000"
+  latency: "200"

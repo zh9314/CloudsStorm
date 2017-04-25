@@ -1,0 +1,14 @@
+---
+publicKeyPath: "name@test.pub"
+userName: "zh9314"
+ec2Credential: null
+topologies:
+- topology: "ec2_zh_a"
+  cloudProvider: "EC2"
+  domain: "Virginia"
+  status: "running"
+  tag: "fixed"
+  statusInfo: "provisioning overhead: 60970; configuration overhead: 16441"
+  copyOf: null
+  sshKeyPairId: "70bed536-961e-4452-bbd8-41984c2a9ed2"
+connections: null
