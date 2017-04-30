@@ -18,6 +18,27 @@ private static final Logger logger = Logger.getLogger(EGIVEngine_startVM.class);
 		this.curVM = curVM;
 		this.privateKeyString = privateKeyString;
 	}
+	
+	/** 
+	 * Test if a host is alive
+	 * @param host ip and private key content
+	 * @return true if it's alive
+	 */
+	private boolean isAlive(String host, String privateKeyString, String defaultSSHAccount){
+	  boolean alive=false;
+	  try {
+		    String cmd="echo " + host;
+		    Shell shell=new SSH(host, 22, defaultSSHAccount, privateKeyString);
+		    new Shell.Plain(shell).exec(cmd);
+		    alive=true;
+	  }
+	  
+	 catch ( Exception e) {
+	  }
+	  
+	  
+	  return alive;
+	}
 		
 	@Override
 	public void run() {
@@ -50,22 +71,6 @@ private static final Logger logger = Logger.getLogger(EGIVEngine_startVM.class);
 		
 	}
 	
-	/** 
-	 * Test if a host is alive
-	 * @param host ip and private key content
-	 * @return true if it's alive
-	 */
-	private boolean isAlive(String host, String privateKeyString, String defaultSSHAccount){
-	  boolean alive=false;
-	  try {
-		    String cmd="echo " + host;
-		    Shell shell=new SSH(host, 22, defaultSSHAccount, privateKeyString);
-		    new Shell.Plain(shell).exec(cmd);
-		    alive=true;
-	  }
-	 catch ( Exception e) {
-	  }
-	  return alive;
-	}
+	
 	
 }

@@ -14,14 +14,16 @@ import provisioning.database.Database;
 public class EGIDatabase extends Database {
 	private static final Logger logger = Logger.getLogger(EGIDatabase.class);
 	
-	public EGIDatabase(){
-		this.toolInfo.put("sengine", "provisioning.engine.SEngine.EGISEngine");
-	}
-	
 	//all the fields are stored in lower case. 
 	//The key here is the domain name, not the endpoint name. E.g. domain name can be 'CESNET', its endpoint name is 'https://carach5.ics.muni.cz:11443'
 	public Map<String, DomainInfo> domainInfos = new HashMap<String, DomainInfo>();
 
+		
+	public EGIDatabase(){
+		this.toolInfo.put("sengine", "provisioning.engine.SEngine.EGISEngine");
+	}
+	
+	
 	/**
 	 * Load the domain information from file. The content is split with "&&".<br/>
 	 * Example: <br/>
