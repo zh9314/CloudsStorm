@@ -368,6 +368,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				logger.error("The EC2 AMI of 'OStype' '"+curVM.OStype+"' in domain '"+domain+"' is not known!");
 				return false;
 			}
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				curVM.defaultSSHAccount = "ubuntu";
 		}
 		
 		return true;

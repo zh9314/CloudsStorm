@@ -1,0 +1,41 @@
+---
+subnets: null
+connections:
+- name: "c1"
+  source:
+    componentName: "nodeA"
+    portName: "p1"
+    netmask: "24"
+    address: "192.168.3.11"
+  target:
+    componentName: "nodeB"
+    portName: "p1"
+    netmask: "24"
+    address: "192.168.3.10"
+  bandwidth: "10000000"
+  latency: "200"
+components:
+- name: "nodeA"
+  type: "switch/compute"
+  nodeType: "medium"
+  OStype: "Ubuntu 14.04"
+  script: null
+  role: null
+  dockers: null
+  publicAddress: null
+  ethernetPort:
+  - name: "p1"
+    connectionName: "c1.source"
+  VMResourceID: "https://carach5.ics.muni.cz:11443/compute/90147"
+- name: "nodeB"
+  type: "switch/compute"
+  nodeType: "medium"
+  OStype: "Ubuntu 14.04"
+  script: null
+  role: null
+  dockers: null
+  publicAddress: null
+  ethernetPort:
+  - name: "p1"
+    connectionName: "c1.target"
+  VMResourceID: "https://carach5.ics.muni.cz:11443/compute/90146"

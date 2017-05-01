@@ -98,7 +98,6 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable{
 			}
 			sshEndTime = System.currentTimeMillis();
 		}
-		
 		logger.info(curVM.name+" ("+publicAddress+") is not activated!");
 		
 	}
@@ -109,11 +108,11 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable{
 	 * @param host ip and private key content
 	 * @return true if it's alive
 	 */
-	private boolean isAlive(String host, String privateKeyString, String defaultSSHAccount){
+	private boolean isAlive(String host, String privateKeyString, String SSHAccount){
 	  boolean alive=false;
 	  try {
 		    String cmd="echo " + host;
-		    Shell shell=new SSH(host, 22, defaultSSHAccount, privateKeyString);
+		    Shell shell=new SSH(host, 22, SSHAccount, privateKeyString);
 		    new Shell.Plain(shell).exec(cmd);
 		    alive=true;
 	  }

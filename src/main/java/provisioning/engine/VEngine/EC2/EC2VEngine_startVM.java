@@ -18,6 +18,26 @@ public class EC2VEngine_startVM extends EC2VEngine implements Runnable{
 		this.curVM = curVM;
 		this.privateKeyString = privateKeyString;
 	}
+	
+	/** 
+	 * Test if a host is alive
+	 * @param host ip and private key content
+	 * @return true if it's alive
+	 */
+	private boolean isAlive(String host, String privateKeyString){
+	  boolean alive=false;
+	  try {
+		    String cmd="echo " + host;
+		    Shell shell=new SSH(host, 22, "root", privateKeyString);
+		    new Shell.Plain(shell).exec(cmd);
+		    alive=true;
+	  }
+	 catch ( Exception e) {
+		 
+	  }
+	  
+	  return alive;
+	}
 		
 	@Override
 	public void run() {
@@ -47,22 +67,6 @@ public class EC2VEngine_startVM extends EC2VEngine implements Runnable{
 		
 	}
 	
-	/** 
-	 * Test if a host is alive
-	 * @param host ip and private key content
-	 * @return true if it's alive
-	 */
-	private boolean isAlive(String host, String privateKeyString){
-	  boolean alive=false;
-	  try {
-		    String cmd="echo " + host;
-		    Shell shell=new SSH(host, 22, "root", privateKeyString);
-		    new Shell.Plain(shell).exec(cmd);
-		    alive=true;
-	  }
-	 catch ( Exception e) {
-	  }
-	  return alive;
-	}
+	
 
 }
