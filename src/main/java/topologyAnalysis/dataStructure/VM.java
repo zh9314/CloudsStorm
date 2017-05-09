@@ -42,6 +42,10 @@ public abstract class VM {
 
     //The name of the docker in repository, which can be "null". 
     public String dockers;
+    
+    	////Identify the type of the docker cluster used.
+    public String clusterType;
+
 
     //Do not need to be the same with the node name any more.
     //The initial value should be "null", which means the public is not determined. 
