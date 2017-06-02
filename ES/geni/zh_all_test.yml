@@ -5,17 +5,17 @@ topologies:
 - topology: "geni_zh_a"
   cloudProvider: "ExoGENI"
   domain: "UvA (Amsterdam, The Netherlands) XO Rack"
-  status: "running"
+  status: "deleted"
   tag: "fixed"
-  statusInfo: "provisioning overhead: 120843"
+  statusInfo: "deleted: 1496401372551"
   copyOf: null
   sshKeyPairId: "bddb757b-5c0e-4717-9689-22bca2cde0a8"
 - topology: "geni_zh_b"
   cloudProvider: "ExoGENI"
   domain: "RENCI (Chapel Hill, NC USA) XO Rack"
-  status: "running"
+  status: "deleted"
   tag: "scaling"
-  statusInfo: "provisioning overhead: 93343"
+  statusInfo: "deleted: 1496401370694"
   copyOf: null
   sshKeyPairId: "75e5bf85-a2f7-4103-971f-b3a90a1dc217"
 connections:
@@ -25,14 +25,14 @@ connections:
     portName: "p1"
     netmask: "24"
     address: "192.168.3.11"
-    ethName: "top_0"
+    ethName: null
     scalingPool: null
   target:
     componentName: "geni_zh_b.nodeC"
     portName: "p2"
     netmask: "24"
     address: "192.168.3.12"
-    ethName: "top_0"
+    ethName: null
     scalingPool: "192.168.3.12-192.168.3.20"
   bandwidth: "10000000"
   latency: "200"

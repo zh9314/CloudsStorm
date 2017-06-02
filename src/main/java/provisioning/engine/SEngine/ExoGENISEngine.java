@@ -85,7 +85,9 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 			curVM.defaultSSHAccount = "root";
 		}
 		
-		exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"_"+UUID.randomUUID().toString();
+		////only when there is no slice name, we need to generate one.
+		if(exoGENISubTopology.sliceName == null)	
+			exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"_"+UUID.randomUUID().toString();
 		
 		//create a key pair for this sub-topology, if there is none.
 		if(exoGENISubTopology.accessKeyPair == null){
@@ -345,6 +347,7 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 				curVM.publicAddress = null;
 			}
 		}
+		exoGENISubTopology.sliceName = null;
 		
 		return result;
 	}

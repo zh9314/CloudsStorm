@@ -1,8 +1,8 @@
 ---
 subnets: null
 connections: null
-sliceName: "geni_zh_b_f46ffd87-4bbb-417f-8e07-a75c53d5cb59"
-duration: "1"
+sliceName: "geni_zh_b_2889cae2-2c94-494e-b125-b978b4156216"
+duration: "3"
 components:
 - name: "nodeC"
   type: "switch/compute"
@@ -12,7 +12,7 @@ components:
   role: null
   dockers: null
   clusterType: null
-  publicAddress: "152.54.14.49"
+  publicAddress: null
   ethernetPort: null
   OSurl: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
   OSguid: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
