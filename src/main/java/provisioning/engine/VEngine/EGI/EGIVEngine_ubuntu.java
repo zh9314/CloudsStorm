@@ -32,7 +32,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 			return ;
 		}
 		String confFilePath = System.getProperty("java.io.tmpdir") + File.separator 
-				+ "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
+				+ "egi_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
 		logger.debug("confFilePath: "+confFilePath);
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
@@ -127,7 +127,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 		
 
 		Thread.sleep(2000);
-		Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+		Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 		File file = new File(confFilePath);
 		new Shell.Safe(shell).exec(
 		  "cat > connection.sh && sudo bash connection.sh ",
@@ -152,7 +152,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 				File file = new File(confFilePath);
 				if(file.exists()){
 					try {
-						Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+						Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 						new Shell.Safe(shell).exec(
 								  "cat > connection.sh && sudo bash connection.sh ",
 								  new FileInputStream(file),
@@ -164,7 +164,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 					}
 				}
 				try {
-					Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+					Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 					new Shell.Safe(shell).exec(
 							  "rm connection.sh",
 							  null,
@@ -231,7 +231,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 		    fw.write("chown -R "+userName+":"+userName+" /home/"+userName+"/.ssh/\n");
 		    fw.close();
 		    
-		    Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+		    Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 			File pubFile = new File(pubFilePath);
 			new Shell.Safe(shell).exec(
 					  "cat > user.pub",
@@ -286,7 +286,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 			FileWriter fw = new FileWriter(scriptPath, false);
 			fw.write(curVM.v_scriptString);
 			fw.close();
-			Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+			Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 			File scriptFile = new File(scriptPath);
 			new Shell.Safe(shell).exec(
 					  "cat > script.sh",
@@ -354,7 +354,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 
 		String rmConnectionName = UUID.randomUUID().toString()+".sh";
 		Thread.sleep(2000);
-		Shell shell = new SSH(curVM.publicAddress, 22, "ubuntu", this.privateKeyString);
+		Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 		File file = new File(confFilePath);
 		new Shell.Safe(shell).exec(
 		  "cat > "+rmConnectionName+" && sudo bash "+rmConnectionName ,

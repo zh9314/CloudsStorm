@@ -2,7 +2,6 @@ package provisioning.credential;
 
 
 
-
 /**
  * This is a class to store the ssh keys.
  *

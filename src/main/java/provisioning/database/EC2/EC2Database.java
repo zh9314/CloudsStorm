@@ -48,7 +48,7 @@ public class EC2Database extends Database {
 	 * Ohio&&ec2.us-east-2.amazonaws.com<br/>
 	 * California&&ec2.us-west-1.amazonaws.com<br/>
 	 */
-	public boolean loadDomainFromFile(String filePath){
+	public boolean loadDomainInfoFromFile(String filePath){
 		File conf = new File(filePath);
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(conf));

@@ -60,7 +60,7 @@ public class testAutoScaling {
 		///Initial Database
 		UserDatabase userDatabase = new UserDatabase();
 		EC2Database ec2Database = new EC2Database();
-		ec2Database.loadDomainFromFile(currentDir+"domains");
+		ec2Database.loadDomainInfoFromFile(currentDir+"domains");
 		ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
 		if(userDatabase.databases == null)
 			userDatabase.databases = new HashMap<String, Database>();

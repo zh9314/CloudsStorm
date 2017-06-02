@@ -1,4 +1,4 @@
-package provisioning.engine.VEngine.EC2;
+package provisioning.engine.VEngine.ExoGENI;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,42 +13,15 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
-
 import commonTool.CommonTool;
+
 import provisioning.engine.VEngine.VEngineCoreMethod;
-import topologyAnalysis.dataStructure.SubConnection;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
 
-/**
- * This is a specific EC2 VM engine which is responsible for connection and run 
- * some predefined scripts. This class is specially designed for the VM of ubuntu 
- *
- */
-public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, Runnable{
+public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCoreMethod, Runnable{
 	
-	private static final Logger logger = Logger.getLogger(EC2VEngine_ubuntu.class);
-	
-	
-	
-	public EC2VEngine_ubuntu(){
-		
-	}
-	
-	/*public void setParameters(EC2Agent ec2agent, 
-			EC2VM curVM, ArrayList<SubConnection> subConnections, 
-			ArrayList<TopConnection>topConnections, 
-			String privateKeyString, String cmd,
-			String userName, String publicKeyString){
-		this.ec2agent = ec2agent;
-		this.curVM = curVM;
-		this.cmd = cmd;
-		this.subConnections = subConnections;
-		this.topConnections = topConnections;
-		this.privateKeyString = privateKeyString;
-		this.userName = userName;
-		this.publicKeyString = publicKeyString;
-	}*/
-	
+	private static final Logger logger = Logger.getLogger(ExoGENIVEngine_ubuntu.class);
+
 	/**
 	 * Configuration on the connection to configure the VM to be connected  
 	 */
@@ -58,46 +31,10 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			return ;
 		}
 		String confFilePath = System.getProperty("java.io.tmpdir") + File.separator 
-				+ "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
+				+ "geni_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
 		logger.debug("confFilePath: "+confFilePath);
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
-		
-		////Configure for subconnections
-		if(this.subConnections != null){
-			for(int sci = 0 ; sci<this.subConnections.size() ; sci++){
-				SubConnection curSubCon = this.subConnections.get(sci);
-				String linkName = curSubCon.name+".sub";
-				String remotePubAddress = "", remotePrivateAddress = "", 
-						netmask = "", subnet = "", localPrivateAddress = "";
-				boolean findVM = false;
-				if(curSubCon.source.belongingVM.name.equals(curVM.name)){
-					remotePubAddress = curSubCon.target.belongingVM.publicAddress;
-					remotePrivateAddress = curSubCon.target.address;
-					localPrivateAddress = curSubCon.source.address;
-					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curSubCon.source.netmask));
-					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curSubCon.source.netmask));
-					findVM = true;
-				}
-				
-				if(curSubCon.target.belongingVM.name.equals(curVM.name)){
-					remotePubAddress = curSubCon.source.belongingVM.publicAddress;
-					remotePrivateAddress = curSubCon.source.address;
-					localPrivateAddress = curSubCon.target.address;
-					netmask = CommonTool.netmaskIntToString(Integer.valueOf(curSubCon.target.netmask));
-					subnet = CommonTool.getSubnet(localPrivateAddress, Integer.valueOf(curSubCon.target.netmask));
-					findVM = true;
-				}
-				if(!findVM)
-					continue;
-				fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
-				fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
-				fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
-				fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
-				fw.write("route add -host "+remotePrivateAddress+" dev "+linkName+"\n");
-				fw.flush();
-			}
-		}
 		
 		////Configure for topconnections
 		if(this.topConnectors != null){
@@ -229,7 +166,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 	public void sshConf() {
 		if(userName == null || publicKeyString == null){
 			logger.warn("The username is not specified! Unified ssh account will not be configured!");
-			return;
+			return ;
 		}
 		String runFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "runSSH_" + curVM.name + System.nanoTime() + ".sh";
@@ -399,5 +336,6 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			logger.error(curVM.name +": "+ e.getMessage());
 		}
 	}
+	
 
 }

@@ -1,15 +1,18 @@
 ---
+subnets: null
+connections: null
+sliceName: "geni_zh_b_f46ffd87-4bbb-417f-8e07-a75c53d5cb59"
+duration: "1"
 components:
-- name: "nodeB"
+- name: "nodeC"
   type: "switch/compute"
-  nodeType: "t2.medium"
+  nodeType: "XOMedium"
   OStype: "Ubuntu 14.04"
   script: null
   role: null
   dockers: null
-  publicAddress: null
-  ethernetPort:
-  - name: "p1"
-    subnetName: "s1"
-    address: "192.168.10.10"
-duration: 12
+  clusterType: null
+  publicAddress: "152.54.14.49"
+  ethernetPort: null
+  OSurl: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+  OSguid: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"

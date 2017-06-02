@@ -63,7 +63,7 @@ public class EC2VEngine_createVM extends EC2VEngine implements Runnable{
 		long sshStartTime = System.currentTimeMillis();
 		long sshEndTime = System.currentTimeMillis();
 		while((sshEndTime - sshStartTime) < 300000){
-			if(isAlive(publicAddress, privateKeyString)){
+			if(isAlive(publicAddress, privateKeyString, curVM.defaultSSHAccount)){
 				curVM.publicAddress = publicAddress;
 				logger.info(curVM.name+" ("+publicAddress+") is activated!");
 				
@@ -85,11 +85,11 @@ public class EC2VEngine_createVM extends EC2VEngine implements Runnable{
 	 * @param host ip and private key content
 	 * @return true if it's alive
 	 */
-	private boolean isAlive(String host, String privateKeyString){
+	private boolean isAlive(String host, String privateKeyString, String sshAccount){
 	  boolean alive=false;
 	  try {
 		    String cmd="echo " + host;
-		    Shell shell=new SSH(host, 22, "root", privateKeyString);
+		    Shell shell=new SSH(host, 22, sshAccount, privateKeyString);
 		    new Shell.Plain(shell).exec(cmd);
 		    alive=true;
 	  }

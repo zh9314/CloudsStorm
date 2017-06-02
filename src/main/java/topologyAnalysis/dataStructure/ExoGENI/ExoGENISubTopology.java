@@ -25,7 +25,7 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
 	
 	// A positive integer to indicate the life duration for the SubTopology. 
 	// This is only valid for ExoGENI VMs. 
-	// Currently, the unit is day and duration is between 1 and 19.
+	// Currently, the unit is day and duration is between 1 and 13.
 	public String duration;
 	
 	//Indicate different VMs.
