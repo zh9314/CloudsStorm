@@ -5,6 +5,9 @@ topologies:
 - topology: "ec2_zh_a"
   cloudProvider: "EC2"
   domain: "Virginia"
-  status: "fresh"
+  status: "deleted"
   tag: "fixed"
-  statusInfo: ""
+  statusInfo: "deleted: 1496940616066"
+  copyOf: null
+  sshKeyPairId: "36c8186a-3431-45f5-9079-fe2f3ccd1528"
+connections: null

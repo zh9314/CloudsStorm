@@ -28,7 +28,7 @@ public class testProvisioning {
 		Log4JUtils.setErrorLogFile("error.log");
 		Log4JUtils.setInfoLogFile("info.log");
 		
-		String topTopologyLoadingPath = "ES/EGI/zh_all_test.yml";
+		String topTopologyLoadingPath = "ES/oneTopology/zh_all_test.yml";
 		String currentDir = CommonTool.getPathDir(topTopologyLoadingPath);
 	      
 		TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
@@ -40,15 +40,15 @@ public class testProvisioning {
 		
 		////Initial credentials and ssh key pairs
 		UserCredential userCredential = new UserCredential();
-		/*EC2Credential ec2Credential = new EC2Credential();
-		ec2Credential.accessKey = "23332323wer";
-		ec2Credential.secretKey = "fdfsdffdfsdf";*/
+		EC2Credential ec2Credential = new EC2Credential();
+		ec2Credential.accessKey = "ddssd";
+		ec2Credential.secretKey = "sdsdfgsd";
 		EGICredential egiCredential = new EGICredential();
 		egiCredential.proxyFilePath = "/tmp/x509up_u0";
 		egiCredential.trustedCertPath = "/etc/grid-security/certificates";
 		if(userCredential.cloudAccess == null)
 			userCredential.cloudAccess = new HashMap<String, Credential>();
-		//userCredential.cloudAccess.put("ec2", ec2Credential);
+		userCredential.cloudAccess.put("ec2", ec2Credential);
 		userCredential.cloudAccess.put("egi", egiCredential);
 		ArrayList<SSHKeyPair> sshKeyPairs = userCredential.loadSSHKeyPairFromFile(currentDir);
 		if(sshKeyPairs == null){
@@ -68,12 +68,12 @@ public class testProvisioning {
 		UserDatabase userDatabase = new UserDatabase();
 		EGIDatabase egiDatabase = new EGIDatabase();
 		egiDatabase.loadDomainInfoFromFile(currentDir+"EGI_Domain_Info");
-		/*EC2Database ec2Database = new EC2Database();
-		ec2Database.loadDomainFromFile(currentDir+"domains");
-		ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");*/
+		EC2Database ec2Database = new EC2Database();
+		ec2Database.loadDomainInfoFromFile(currentDir+"domains");
+		ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
 		if(userDatabase.databases == null)
 			userDatabase.databases = new HashMap<String, Database>();
-		//userDatabase.databases.put("ec2", ec2Database);
+		userDatabase.databases.put("ec2", ec2Database);
 		userDatabase.databases.put("egi", egiDatabase);
 		
 		/*ProvisionRequest pq = new ProvisionRequest();
@@ -83,7 +83,7 @@ public class testProvisioning {
 
 		TEngine tEngine = new TEngine();
 		//tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
-		tEngine.provisionAll(tam.wholeTopology, userCredential, userDatabase);
+		tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
 		
 	}
 

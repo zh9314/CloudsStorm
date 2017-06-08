@@ -12,6 +12,7 @@ components:
   script: null
   role: null
   dockers: null
+  clusterType: null
   publicAddress: null
   ethernetPort:
   - name: "p1"

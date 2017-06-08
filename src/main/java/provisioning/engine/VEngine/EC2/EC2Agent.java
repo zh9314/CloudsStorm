@@ -1,7 +1,9 @@
 package provisioning.engine.VEngine.EC2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import topologyAnalysis.dataStructure.EC2.EC2VM;
 
@@ -364,24 +366,35 @@ public class EC2Agent {
 	
 	public void deleteVpc(String vpcId, ArrayList<String> subnetIds, 
 			 ArrayList<String> securityGroupIds,  ArrayList<String> internetGatewayIds){
+		Map<String, Boolean> deletedObjects = new HashMap<String, Boolean>();
 		for(int i = 0 ; i < subnetIds.size() ; i++){
 			String subnetId = subnetIds.get(i);
 			DeleteSubnetRequest dsreq = new DeleteSubnetRequest().withSubnetId(subnetId);
-			ec2Client.deleteSubnet(dsreq);
+			if(!deletedObjects.containsKey(subnetId)){
+				ec2Client.deleteSubnet(dsreq);
+				deletedObjects.put(subnetId, false);
+			}
 		}
 		for(int i = 0 ; i < internetGatewayIds.size() ; i++){
 			String internetGatewayId = internetGatewayIds.get(i);
-			DetachInternetGatewayRequest digreq = new DetachInternetGatewayRequest()
+			if(!deletedObjects.containsKey(internetGatewayId)){
+				DetachInternetGatewayRequest digreq = new DetachInternetGatewayRequest()
 					.withInternetGatewayId(internetGatewayId)
 					.withVpcId(vpcId);
-			ec2Client.detachInternetGateway(digreq);
-			DeleteInternetGatewayRequest deleteInternetGatewayRequest = new DeleteInternetGatewayRequest().withInternetGatewayId(internetGatewayId);
-			ec2Client.deleteInternetGateway(deleteInternetGatewayRequest);
+				ec2Client.detachInternetGateway(digreq);
+				DeleteInternetGatewayRequest deleteInternetGatewayRequest = new DeleteInternetGatewayRequest().withInternetGatewayId(internetGatewayId);
+				ec2Client.deleteInternetGateway(deleteInternetGatewayRequest);
+				deletedObjects.put(internetGatewayId, false);
+			}
+			
 		}
 		for(int i = 0 ; i < securityGroupIds.size() ; i++){
 			String securityGroupId = securityGroupIds.get(i);
 			DeleteSecurityGroupRequest dsgreq = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
-			ec2Client.deleteSecurityGroup(dsgreq);
+			if(!deletedObjects.containsKey(securityGroupId)){
+				ec2Client.deleteSecurityGroup(dsgreq);
+				deletedObjects.put(securityGroupId, false);
+			}
 		}
 		DeleteVpcRequest dvreq = new DeleteVpcRequest().withVpcId(vpcId);
 		ec2Client.deleteVpc(dvreq);

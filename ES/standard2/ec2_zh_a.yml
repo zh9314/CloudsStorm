@@ -25,6 +25,7 @@ components:
   script: "name@test2.sh"
   role: null
   dockers: null
+  clusterType: null
   publicAddress: null
   ethernetPort:
   - name: "p1"
@@ -46,6 +47,7 @@ components:
   script: null
   role: null
   dockers: null
+  clusterType: null
   publicAddress: null
   ethernetPort:
   - name: "p1"

@@ -7,7 +7,7 @@ topologies:
   domain: "Virginia"
   status: "deleted"
   tag: "fixed"
-  statusInfo: "deleted: 1491570883976"
+  statusInfo: "deleted: 1496936058507"
   copyOf: null
   sshKeyPairId: "f7652dc3-e713-477b-bcea-2675836cfd29"
 - topology: "ec2_zh_b"
@@ -15,7 +15,7 @@ topologies:
   domain: "California"
   status: "deleted"
   tag: "fixed"
-  statusInfo: "deleted: 1491570869889"
+  statusInfo: "deleted: 1496936047968"
   copyOf: null
   sshKeyPairId: "a48dfd7c-1589-4ccf-9b78-6931d50af70f"
 connections:
