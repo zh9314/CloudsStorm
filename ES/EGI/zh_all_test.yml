@@ -5,9 +5,9 @@ topologies:
 - topology: "egi_zh_a"
   cloudProvider: "EGI"
   domain: "CESNET"
-  status: "deleted"
+  status: "fresh"
   tag: "fixed"
-  statusInfo: "deleted: 1492864232538"
+  statusInfo: null
   copyOf: null
-  sshKeyPairId: "98b95037-b766-4766-9b04-9324ef665e68"
+  sshKeyPairId: null
 connections: null

@@ -26,7 +26,7 @@ components:
   ethernetPort:
   - name: "p1"
     connectionName: "c1.source"
-  VMResourceID: "https://carach5.ics.muni.cz:11443/compute/90147"
+  VMResourceID: null
 - name: "nodeB"
   type: "switch/compute"
   nodeType: "medium"
@@ -38,4 +38,4 @@ components:
   ethernetPort:
   - name: "p1"
     connectionName: "c1.target"
-  VMResourceID: "https://carach5.ics.muni.cz:11443/compute/90146"
+  VMResourceID: null
