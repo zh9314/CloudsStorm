@@ -17,7 +17,7 @@ public abstract class VM {
     public String nodeType;
     public String OStype;
 
-    @JsonIgnore
+    //@JsonIgnore
     public String defaultSSHAccount;
 
     //Currently, the SIDE subsystem uses this field for GUI.
