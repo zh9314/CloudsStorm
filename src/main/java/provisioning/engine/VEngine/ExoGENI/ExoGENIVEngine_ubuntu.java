@@ -103,6 +103,11 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 				  null,
 				  new NullOutputStream(), new NullOutputStream()
 		);
+		new Shell.Safe(shell).exec(
+				  "exit",
+				  null,
+				  new NullOutputStream(), new NullOutputStream()
+		);
 		
 		}catch (IOException | InterruptedException e) {
 			e.printStackTrace();
@@ -122,6 +127,11 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 								  new NullOutputStream(), new NullOutputStream()
 								);
 						FileUtils.deleteQuietly(file);
+						new Shell.Safe(shell).exec(
+								  "exit",
+								  null,
+								  new NullOutputStream(), new NullOutputStream()
+						);
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -130,6 +140,11 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 					new Shell.Safe(shell).exec(
 							  "rm connection.sh",
+							  null,
+							  new NullOutputStream(), new NullOutputStream()
+					);
+					new Shell.Safe(shell).exec(
+							  "exit",
 							  null,
 							  new NullOutputStream(), new NullOutputStream()
 					);
@@ -238,6 +253,11 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					  null,
 					  new NullOutputStream(), new NullOutputStream()
 			);
+			new Shell.Safe(shell).exec(
+					  "exit",
+					  null,
+					  new NullOutputStream(), new NullOutputStream()
+			);
 			
 			FileUtils.deleteQuietly(sshFile);
 		} catch (IOException | InterruptedException e) {
@@ -292,6 +312,11 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 						  logOutput
 				);
 			}
+			new Shell.Safe(shell).exec(
+					  "exit",
+					  null,
+					  new NullOutputStream(), new NullOutputStream()
+			);
 			logOutput.close();
 			FileUtils.deleteQuietly(scriptFile);
 			logger.info("Script for '"+curVM.name+"' is executed!");
@@ -341,9 +366,16 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 				  new NullOutputStream(), new NullOutputStream()
 		);
 		
+		new Shell.Safe(shell).exec(
+				  "exit",
+				  null,
+				  new NullOutputStream(), new NullOutputStream()
+		);
+		
 		}catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 			logger.error(curVM.name +": "+ e.getMessage());
+			
 		}
 	}
 	
