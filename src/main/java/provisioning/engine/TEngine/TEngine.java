@@ -1420,7 +1420,7 @@ public class TEngine {
 			return ;
 		}
 		
-		ExecutorService executor4ss = Executors.newFixedThreadPool(topTopology.topologies.size());
+		ExecutorService executor4ss = Executors.newFixedThreadPool(scalDownSTIs.size());
 		for(int sti = 0 ; sti < scalDownSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = scalDownSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
@@ -1447,7 +1447,24 @@ public class TEngine {
 				executor4ss.execute(s_delete);
 			}
 		}
+		executor4ss.shutdown();
+		try {
+			int count = 0;
+			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 500*topTopology.topologies.size()){
+					logger.error("Unknown error! Some sub-topology cannot be shut down!");
+					return ;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return ;
+		}
+		
 		////detach all the running sub-topologies with the stopped or deleted sub-topologies
+		ExecutorService executor4ds = Executors.newFixedThreadPool(runningSTIs.size());
 		for(int sti = 0 ; sti < runningSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = runningSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
@@ -1461,16 +1478,15 @@ public class TEngine {
 				continue;
 			}
 			SEngine_detectFailure sd = new SEngine_detectFailure(subTopologyInfo, curCredential, database);
-			executor4ss.execute(sd);
+			executor4ds.execute(sd);
 		}
-		
-		executor4ss.shutdown();
+		executor4ds.shutdown();
 		try {
 			int count = 0;
-			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
+			while (!executor4ds.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*topTopology.topologies.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
+					logger.error("Unknown error! Some sub-topology cannot be detached!");
 					return ;
 				}
 			}
@@ -1479,6 +1495,7 @@ public class TEngine {
 			logger.error("Unexpected error!");
 			return ;
 		}
+
 		
 		
 	}

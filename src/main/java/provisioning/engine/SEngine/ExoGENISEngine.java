@@ -303,6 +303,45 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		ExoGENISubTopology exoGENISubTopology = (ExoGENISubTopology)subTopologyInfo.subTopology;
 		if(subTopologyInfo.connectors == null || subTopologyInfo.connectors.size() == 0)
 			return true;
+		
+		ExecutorService executor4conf = Executors.newFixedThreadPool(exoGENISubTopology.components.size());
+		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+			String vEngineNameOS = "provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+exoGENISubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object vEngine = Class.forName(vEngineNameOS).newInstance();
+				((ExoGENIVEngine)vEngine).cmd = "remove";
+				((ExoGENIVEngine)vEngine).curVM = curVM;
+				((ExoGENIVEngine)vEngine).privateKeyString = exoGENISubTopology.accessKeyPair.privateKeyString;
+				((ExoGENIVEngine)vEngine).topConnectors = subTopologyInfo.connectors;
+				
+				executor4conf.execute(((Runnable)vEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		executor4conf.shutdown();
+		try {
+			int count = 0;
+			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*exoGENISubTopology.components.size()){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
 		ExecutorService executor4del = Executors.newFixedThreadPool(subTopologyInfo.connectors.size());
 		for(int vi = 0 ; vi < subTopologyInfo.connectors.size() ; vi++){
 			TopConnectionPoint curTCP = subTopologyInfo.connectors.get(vi);

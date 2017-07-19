@@ -103,11 +103,6 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 				  null,
 				  new NullOutputStream(), new NullOutputStream()
 		);
-		new Shell.Safe(shell).exec(
-				  "exit",
-				  null,
-				  new NullOutputStream(), new NullOutputStream()
-		);
 		
 		}catch (IOException | InterruptedException e) {
 			e.printStackTrace();
@@ -127,11 +122,6 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 								  new NullOutputStream(), new NullOutputStream()
 								);
 						FileUtils.deleteQuietly(file);
-						new Shell.Safe(shell).exec(
-								  "exit",
-								  null,
-								  new NullOutputStream(), new NullOutputStream()
-						);
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
@@ -143,11 +133,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 							  null,
 							  new NullOutputStream(), new NullOutputStream()
 					);
-					new Shell.Safe(shell).exec(
-							  "exit",
-							  null,
-							  new NullOutputStream(), new NullOutputStream()
-					);
+					
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -253,11 +239,6 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					  null,
 					  new NullOutputStream(), new NullOutputStream()
 			);
-			new Shell.Safe(shell).exec(
-					  "exit",
-					  null,
-					  new NullOutputStream(), new NullOutputStream()
-			);
 			
 			FileUtils.deleteQuietly(sshFile);
 		} catch (IOException | InterruptedException e) {
@@ -312,11 +293,6 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 						  logOutput
 				);
 			}
-			new Shell.Safe(shell).exec(
-					  "exit",
-					  null,
-					  new NullOutputStream(), new NullOutputStream()
-			);
 			logOutput.close();
 			FileUtils.deleteQuietly(scriptFile);
 			logger.info("Script for '"+curVM.name+"' is executed!");
@@ -328,49 +304,57 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 	@Override
 	public void removeEth() {
 		try{
-		
-		///always one element in this topConnnectors
-		TopConnectionPoint curTCP = this.topConnectors.get(0);
-		String tunnelName = curTCP.ethName;
-		String remotePrivateAddress = curTCP.peerTCP.address; 
-		if(tunnelName == null){
-			logger.warn("TunnelName of '"+curVM.name+"' has been deleted for unknown reason!");
-			return ;
-		}
+			
+		////Delete all the related for topconnections
+		boolean deletedNeeded = false;   ////identify whether there exists that kind of connection.
 		String confFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh"; 
 		logger.debug("rmEthFilePath: "+confFilePath);
 		FileWriter fw = new FileWriter(confFilePath, false);
 		
-		fw.write("route del -host "+remotePrivateAddress+" dev "+tunnelName+"\n");
-		fw.write("ip tunnel del "+tunnelName+"\n");
-		fw.flush();
+		if(this.topConnectors != null){
+			for(int tci = 0 ; tci<this.topConnectors.size() ; tci++){
+				TopConnectionPoint curTCP = this.topConnectors.get(tci);
+				if(curTCP.peerTCP.ethName != null)   ////This means the peer sub-topology is not failed
+					continue;
+				if(curTCP.belongingVM.name.equals(curVM.name)){    ////This means this connection is related with this VM.
+					deletedNeeded = true;
+					String tunnelName = curTCP.ethName;
+					String remotePrivateAddress = curTCP.peerTCP.address; 
+					if(tunnelName == null){
+						logger.warn("TunnelName of '"+curVM.name+"' has been deleted for unknown reason!");
+						continue ;
+					}
+					fw.write("route del -host "+remotePrivateAddress+" dev "+tunnelName+"\n");
+					fw.write("ip tunnel del "+tunnelName+"\n");
+					fw.flush();
+					
+					///Identify this tunnel is deleted in the control file.
+					curTCP.ethName = null;
+				}
+			}
+		}
 		fw.close();
 		
-		///Identify this tunnel is deleted in the control file.
-		curTCP.ethName = null;
-
-		String rmConnectionName = UUID.randomUUID().toString()+".sh";
-		Thread.sleep(2000);
-		Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
-		File file = new File(confFilePath);
-		new Shell.Safe(shell).exec(
-		  "cat > "+rmConnectionName+" && sudo bash "+rmConnectionName ,
-		  new FileInputStream(file),
-		  new NullOutputStream(), new NullOutputStream()
-		);
-		FileUtils.deleteQuietly(file);
-		new Shell.Safe(shell).exec(
-				  "rm "+rmConnectionName,
-				  null,
-				  new NullOutputStream(), new NullOutputStream()
-		);
+		if(deletedNeeded){
+			String rmConnectionName = UUID.randomUUID().toString()+".sh";
+			Thread.sleep(2000);
+			Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
+			File file = new File(confFilePath);
+			new Shell.Safe(shell).exec(
+			  "cat > "+rmConnectionName+" && sudo bash "+rmConnectionName ,
+			  new FileInputStream(file),
+			  new NullOutputStream(), new NullOutputStream()
+			);
+			FileUtils.deleteQuietly(file);
+			new Shell.Safe(shell).exec(
+					  "rm "+rmConnectionName,
+					  null,
+					  new NullOutputStream(), new NullOutputStream()
+			);
+			
+		}
 		
-		new Shell.Safe(shell).exec(
-				  "exit",
-				  null,
-				  new NullOutputStream(), new NullOutputStream()
-		);
 		
 		}catch (IOException | InterruptedException e) {
 			e.printStackTrace();
