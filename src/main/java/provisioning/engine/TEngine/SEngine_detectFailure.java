@@ -37,7 +37,11 @@ public class SEngine_detectFailure implements Runnable {
 		try {
 			Object sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
 			if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
-				logger.error("Some information is missing for provisioning sub-topology '"+subTopologyInfo.topology+"'!");
+				logger.error("Some information is missing for detaching sub-topology '"+subTopologyInfo.topology+"'!");
+				return ;
+			}
+			if(!((SEngineCoreMethod)sEngine).runtimeCheckandUpdate(subTopologyInfo, database)){
+				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before detaching!");
 				return ;
 			}
 			if(!((SEngineCoreMethod)sEngine).markFailure(subTopologyInfo, credential, database)){

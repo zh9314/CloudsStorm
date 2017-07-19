@@ -31,11 +31,11 @@ public class SEngine_start implements Runnable  {
 				return ;
 			}
 			if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
-				logger.error("Some information is missing for provisioning sub-topology '"+subTopologyInfo.topology+"'!");
+				logger.error("Some information is missing for starting sub-topology '"+subTopologyInfo.topology+"'!");
 				return ;
 			}
 			if(!((SEngineCoreMethod)sEngine).runtimeCheckandUpdate(subTopologyInfo, database)){
-				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before provisioning!");
+				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before starting!");
 				return ;
 			}
 			if(!((SEngineCoreMethod)sEngine).start(subTopologyInfo, credential, database)){

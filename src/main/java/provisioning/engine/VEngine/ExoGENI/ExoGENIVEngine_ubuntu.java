@@ -143,7 +143,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 	@Override
 	public void run() {
 		if(cmd.equals("all")){
-			connectionConf();
+			//connectionConf();
 			sshConf();
 			runScript();
 		}else if(cmd.equals("connection")){
@@ -164,10 +164,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 
 	@Override
 	public void sshConf() {
-		if(userName == null || publicKeyString == null){
-			logger.warn("The username is not specified! Unified ssh account will not be configured!");
-			return ;
-		}
+		
 		String runFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "runSSH_" + curVM.name + System.nanoTime() + ".sh";
 		String pubFilePath = System.getProperty("java.io.tmpdir") + File.separator 
@@ -176,45 +173,58 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		logger.debug("pubFilePath: "+pubFilePath);
 		FileWriter fw;
 		try {
-			fw = new FileWriter(pubFilePath, false);
-			fw.write(this.publicKeyString);
-			fw.close();
 			
 			fw = new FileWriter(runFilePath, false);
-			fw.write("useradd -d \"/home/"+userName+"\" -m -s \"/bin/bash\" "+userName+"\n");
-			fw.write("mkdir /home/"+userName+"/.ssh \n");
-			fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
-			fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
-			fw.write("chmod 400 id_rsa\n");
-			fw.write("mv id_rsa /home/"+userName+"/.ssh/id_rsa\n");
-			fw.write("rm id_rsa.pub\n");
-		    fw.write("chmod 740 /etc/sudoers \n");
-		    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
-		    fw.write("chmod 440 /etc/sudoers \n");
-		    fw.write("chown -R "+userName+":"+userName+" /home/"+userName+"/.ssh/\n");
+			if(userName != null && publicKeyString != null){
+				fw.write("useradd -d \"/home/"+userName+"\" -m -s \"/bin/bash\" "+userName+"\n");
+				fw.write("mkdir /home/"+userName+"/.ssh \n");
+				fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
+				fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
+				fw.write("chmod 400 id_rsa\n");
+				fw.write("mv id_rsa /home/"+userName+"/.ssh/id_rsa\n");
+				fw.write("rm id_rsa.pub\n");
+			    fw.write("chmod 740 /etc/sudoers \n");
+			    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
+			    fw.write("chmod 440 /etc/sudoers \n");
+			    fw.write("chown -R "+userName+":"+userName+" /home/"+userName+"/.ssh/\n");
+			}else{
+				logger.warn("The username is not specified! Unified ssh account will not be configured!");
+				
+			}
+		    
+		    ////used for reconfigure the ssh max connections.
+		    fw.write("echo \"MaxStartups 5000\" >> /etc/ssh/sshd_config\n");
+		    fw.write("/etc/init.d/ssh restart\n");
 		    fw.close();
 		    
 		    Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
-			File pubFile = new File(pubFilePath);
-			new Shell.Safe(shell).exec(
-					  "cat > user.pub",
-					  new FileInputStream(pubFile),
-					  new NullOutputStream(), new NullOutputStream()
-					);
-			String clusterPubKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa.pub";
-			File clusterPubKey = new File(clusterPubKeyPath);
-			new Shell.Safe(shell).exec(
-					  "cat > id_rsa.pub",
-					  new FileInputStream(clusterPubKey),
-					  new NullOutputStream(), new NullOutputStream()
-					);
-			String clusterPriKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa";
-			File clusterPriKey = new File(clusterPriKeyPath);
-			new Shell.Safe(shell).exec(
-					  "cat > id_rsa",
-					  new FileInputStream(clusterPriKey),
-					  new NullOutputStream(), new NullOutputStream()
-					);
+		    
+		    if(userName != null && publicKeyString != null){
+		   		fw = new FileWriter(pubFilePath, false);
+				fw.write(this.publicKeyString);
+				fw.close();
+		    		File pubFile = new File(pubFilePath);
+				new Shell.Safe(shell).exec(
+						  "cat > user.pub",
+						  new FileInputStream(pubFile),
+						  new NullOutputStream(), new NullOutputStream()
+						);
+				String clusterPubKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa.pub";
+				File clusterPubKey = new File(clusterPubKeyPath);
+				new Shell.Safe(shell).exec(
+						  "cat > id_rsa.pub",
+						  new FileInputStream(clusterPubKey),
+						  new NullOutputStream(), new NullOutputStream()
+						);
+				String clusterPriKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa";
+				File clusterPriKey = new File(clusterPriKeyPath);
+				new Shell.Safe(shell).exec(
+						  "cat > id_rsa",
+						  new FileInputStream(clusterPriKey),
+						  new NullOutputStream(), new NullOutputStream()
+						);
+				FileUtils.deleteQuietly(pubFile);
+		    }
 			
 		    File sshFile = new File(runFilePath);
 			new Shell.Safe(shell).exec(
@@ -228,7 +238,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					  null,
 					  new NullOutputStream(), new NullOutputStream()
 			);
-			FileUtils.deleteQuietly(pubFile);
+			
 			FileUtils.deleteQuietly(sshFile);
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();

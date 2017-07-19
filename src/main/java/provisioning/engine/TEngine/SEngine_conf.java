@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.Credential;
 import provisioning.database.Database;
+import provisioning.engine.SEngine.SEngine;
 import provisioning.engine.SEngine.SEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubTopologyInfo;
 
@@ -26,6 +27,15 @@ public class SEngine_conf implements Runnable{
 	public void run() {
 		try {
 			Object sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
+			
+			if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
+				logger.error("Some information is missing for configuring sub-topology '"+subTopologyInfo.topology+"'!");
+				return ;
+			}
+			if(!((SEngineCoreMethod)sEngine).runtimeCheckandUpdate(subTopologyInfo, database)){
+				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before configuring!");
+				return ;
+			}
 			
 			if(!((SEngineCoreMethod)sEngine).confTopConnection(subTopologyInfo, credential, database)){
 				logger.error("Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");

@@ -140,9 +140,58 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		long provisioningStart = System.currentTimeMillis();
 		boolean result = exoGENIAgent.createSlice(exoGENISubTopology);
 		long provisioningEnd = System.currentTimeMillis();
+		
+		////Configure for ssh account and set ssh max client
+		int vmPoolSize = exoGENISubTopology.components.size();
+		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
+		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+			String vEngineNameOS = "provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine_";
+			if(curVM.OStype.toLowerCase().contains("ubuntu"))
+				vEngineNameOS += "ubuntu";
+			else{
+				logger.warn("The OS type of "+curVM.name+" in sub-topology "+exoGENISubTopology.topologyName+" is not supported yet!");
+				continue;
+			}
+			try {
+				Object vEngine = Class.forName(vEngineNameOS).newInstance();
+				((ExoGENIVEngine)vEngine).cmd = "all";
+				((ExoGENIVEngine)vEngine).curVM = curVM;
+				((ExoGENIVEngine)vEngine).privateKeyString = exoGENISubTopology.accessKeyPair.privateKeyString;
+				((ExoGENIVEngine)vEngine).publicKeyString = subTopologyInfo.publicKeyString;
+				((ExoGENIVEngine)vEngine).userName = subTopologyInfo.userName;
+				((ExoGENIVEngine)vEngine).subConnections = exoGENISubTopology.connections;
+				((ExoGENIVEngine)vEngine).currentDir = CommonTool.getPathDir(exoGENISubTopology.loadingPath);
+				
+				executor4conf.execute(((Runnable)vEngine));
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		executor4conf.shutdown();
+		try {
+			int count = 0;
+			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+				count++;
+				if(count > 200*vmPoolSize){
+					logger.error("Unknown error! Some VM cannot be configured!");
+					return false;
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			logger.error("Unexpected error!");
+			return false;
+		}
+			
+		long configureEnd = System.currentTimeMillis();
+		long configureOverhead = configureEnd - provisioningEnd;
+		
 		if(result){
 			subTopologyInfo.status = "running";
 			subTopologyInfo.statusInfo = "provisioning overhead: "+(provisioningEnd-provisioningStart);
+			subTopologyInfo.statusInfo += "; configuration overhead: " + configureOverhead;
 			if(!exoGENISubTopology.overwirteControlOutput()){
 				logger.error("Control information of '"+exoGENISubTopology.topologyName+"' has not been overwritten to the origin file!");
 				return false;
@@ -199,13 +248,13 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 				continue;
 			}
 			try {
-				Object sEngine = Class.forName(vEngineNameOS).newInstance();
-				((ExoGENIVEngine)sEngine).cmd = "connection";
-				((ExoGENIVEngine)sEngine).curVM = curVM;
-				((ExoGENIVEngine)sEngine).privateKeyString = exoGENISubTopology.accessKeyPair.privateKeyString;
-				((ExoGENIVEngine)sEngine).topConnectors = subTopologyInfo.connectors;
+				Object vEngine = Class.forName(vEngineNameOS).newInstance();
+				((ExoGENIVEngine)vEngine).cmd = "connection";
+				((ExoGENIVEngine)vEngine).curVM = curVM;
+				((ExoGENIVEngine)vEngine).privateKeyString = exoGENISubTopology.accessKeyPair.privateKeyString;
+				((ExoGENIVEngine)vEngine).topConnectors = subTopologyInfo.connectors;
 				
-				executor4conf.execute(((Runnable)sEngine));
+				executor4conf.execute(((Runnable)vEngine));
 			} catch (InstantiationException | IllegalAccessException
 					| ClassNotFoundException e) {
 				e.printStackTrace();
@@ -381,6 +430,7 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		exoGENIsubTopology.loadingPath = currentDir + generatedSTI.topology + ".yml";
 		exoGENIsubTopology.topologyName = generatedSTI.topology;
 		exoGENIsubTopology.topologyType = "ExoGENI";
+		exoGENIsubTopology.duration = ((ExoGENISubTopology)scalingTemplate.subTopology).duration;
 		exoGENIsubTopology.components = new ArrayList<ExoGENIVM>();
 		for(int vi = 0 ; vi < tempSubTopology.components.size() ; vi++){
 			ExoGENIVM curVM = (ExoGENIVM)tempSubTopology.components.get(vi);
@@ -394,14 +444,15 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 			newVM.type = curVM.type;
 			newVM.v_scriptString = curVM.v_scriptString;
 			newVM.ethernetPort = new ArrayList<Eth>();
-			for(int ei = 0 ; ei < curVM.ethernetPort.size() ; ei++){
-				Eth newEth = new Eth();
-				newEth.address = curVM.ethernetPort.get(ei).address;
-				newEth.connectionName = curVM.ethernetPort.get(ei).connectionName;
-				newEth.name = curVM.ethernetPort.get(ei).name;
-				newEth.subnetName = curVM.ethernetPort.get(ei).subnetName;
-				newVM.ethernetPort.add(newEth);
-				
+			if(curVM.ethernetPort != null){
+				for(int ei = 0 ; ei < curVM.ethernetPort.size() ; ei++){
+					Eth newEth = new Eth();
+					newEth.address = curVM.ethernetPort.get(ei).address;
+					newEth.connectionName = curVM.ethernetPort.get(ei).connectionName;
+					newEth.name = curVM.ethernetPort.get(ei).name;
+					newEth.subnetName = curVM.ethernetPort.get(ei).subnetName;
+					newVM.ethernetPort.add(newEth);
+				}
 			}
 			
 			exoGENIsubTopology.components.add(newVM);

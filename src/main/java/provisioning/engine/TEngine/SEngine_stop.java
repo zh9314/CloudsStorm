@@ -44,11 +44,11 @@ public class SEngine_stop implements Runnable {
                 return;
             }
             if (!((SEngine) sEngine).commonRuntimeCheck(subTopologyInfo)) {
-                logger.error("Some information is missing for provisioning sub-topology '" + subTopologyInfo.topology + "'!");
+                logger.error("Some information is missing for stopping sub-topology '" + subTopologyInfo.topology + "'!");
                 return;
             }
             if (!((SEngineCoreMethod) sEngine).runtimeCheckandUpdate(subTopologyInfo, database)) {
-                logger.error("Sub-topology '" + subTopologyInfo.topology + "' cannot pass the runtime check before provisioning!");
+                logger.error("Sub-topology '" + subTopologyInfo.topology + "' cannot pass the runtime check before stopping!");
                 return;
             }
             if (!((SEngineCoreMethod) sEngine).stop(subTopologyInfo, credential, database)) {

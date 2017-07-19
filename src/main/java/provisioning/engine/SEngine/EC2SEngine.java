@@ -406,14 +406,14 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				continue;
 			}
 			try {
-				Object sEngine = Class.forName(vEngineNameOS).newInstance();
-				((EC2VEngine)sEngine).cmd = "connection";
-				((EC2VEngine)sEngine).curVM = curVM;
-				((EC2VEngine)sEngine).ec2agent = this.ec2Agent;
-				((EC2VEngine)sEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
-				((EC2VEngine)sEngine).topConnectors = subTopologyInfo.connectors;
+				Object vEngine = Class.forName(vEngineNameOS).newInstance();
+				((EC2VEngine)vEngine).cmd = "connection";
+				((EC2VEngine)vEngine).curVM = curVM;
+				((EC2VEngine)vEngine).ec2agent = this.ec2Agent;
+				((EC2VEngine)vEngine).privateKeyString = ec2SubTopology.accessKeyPair.privateKeyString;
+				((EC2VEngine)vEngine).topConnectors = subTopologyInfo.connectors;
 				
-				executor4conf.execute(((Runnable)sEngine));
+				executor4conf.execute(((Runnable)vEngine));
 			} catch (InstantiationException | IllegalAccessException
 					| ClassNotFoundException e) {
 				e.printStackTrace();

@@ -73,7 +73,8 @@ public class ExoGENIAgent {
 						}
 					}
 					
-					return addresses;
+					if(addresses)
+						return addresses;
 				}
 				if(statusNow == -1)
 				{

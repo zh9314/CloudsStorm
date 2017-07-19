@@ -5,7 +5,7 @@ topologies:
 - topology: "geni_zh_a"
   cloudProvider: "ExoGENI"
   domain: "UvA (Amsterdam, The Netherlands) XO Rack"
-  status: "deleted"
+  status: "fresh"
   tag: "fixed"
   statusInfo: "deleted: 1496401372551"
   copyOf: null
@@ -13,7 +13,7 @@ topologies:
 - topology: "geni_zh_b"
   cloudProvider: "ExoGENI"
   domain: "RENCI (Chapel Hill, NC USA) XO Rack"
-  status: "deleted"
+  status: "fresh"
   tag: "scaling"
   statusInfo: "deleted: 1496401370694"
   copyOf: null
@@ -21,14 +21,14 @@ topologies:
 connections:
 - name: "linkX"
   source:
-    componentName: "geni_zh_a.nodeA"
+    componentName: "geni_zh_a.node0"
     portName: "p1"
     netmask: "24"
     address: "192.168.3.11"
     ethName: null
     scalingPool: null
   target:
-    componentName: "geni_zh_b.nodeC"
+    componentName: "geni_zh_b.node0"
     portName: "p2"
     netmask: "24"
     address: "192.168.3.12"

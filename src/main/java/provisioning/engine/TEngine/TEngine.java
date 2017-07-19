@@ -1307,7 +1307,7 @@ public class TEngine {
 		ExecutorService executor4as = Executors.newFixedThreadPool(threadPoolSize);
 		for(int csti = 0 ; csti < copySTIs.size() ; csti++){
 			SubTopologyInfo subTopologyInfo = copySTIs.get(csti);
-			logger.info("Recovering sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
+			logger.info("Scaling up sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");

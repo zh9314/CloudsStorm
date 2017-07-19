@@ -1,10 +1,9 @@
 ---
 subnets: null
 connections: null
-sliceName: "geni_zh_b_2889cae2-2c94-494e-b125-b978b4156216"
 duration: "3"
 components:
-- name: "nodeC"
+- name: "node0"
   type: "switch/compute"
   nodeType: "XOMedium"
   OStype: "Ubuntu 14.04"
