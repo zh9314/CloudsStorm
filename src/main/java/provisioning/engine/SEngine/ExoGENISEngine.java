@@ -86,9 +86,10 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		}
 		
 		////only when there is no slice name, we need to generate one.
-		if(exoGENISubTopology.sliceName == null)	
-			exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"_"+UUID.randomUUID().toString();
-		
+		////or when it is failed, we also need to generate one.
+		if(exoGENISubTopology.sliceName == null || subTopologyInfo.status.equals("failed"))	
+			exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"_"+UUID.randomUUID().toString();	
+			
 		//create a key pair for this sub-topology, if there is none.
 		if(exoGENISubTopology.accessKeyPair == null){
 			String keyPairId = UUID.randomUUID().toString();
@@ -536,14 +537,15 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		}
 		generatedSTI.subTopology = exoGENIsubTopology;
 		
+		if(scalingTemplate.connectors == null)
+			return generatedSTI;
+		
 		////Calculate the private IP addresses for the connectors.
 		////And update the connectors.
 		if(scalingTemplate.scalingAddressPool == null){
 			logger.error("The address pool for scaling sub-topology cannot be null");
 			return null;
 		}
-		if(scalingTemplate.connectors == null)
-			return generatedSTI;
 		
 		generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
 		Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;

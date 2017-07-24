@@ -325,7 +325,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			logger.debug("The log file of executing script on '"+curVM.name+"' is redirected to "+logPath);
 			File logFile = new File(logPath);
 			FileOutputStream logOutput = new FileOutputStream(logFile, false);
-			if(userName != null){
+			if(userName != null && publicKeyString != null){
 				new Shell.Safe(shell).exec(
 						  "sudo mv script.sh /home/"+userName+"/",
 						  null,

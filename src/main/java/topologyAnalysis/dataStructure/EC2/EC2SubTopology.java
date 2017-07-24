@@ -271,14 +271,16 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 			
 			//checking the subnet
 			int subnetCount = 0;
-			for(int ei = 0 ; ei<curVM.ethernetPort.size() ; ei++){
-				Eth curEth = curVM.ethernetPort.get(ei);
-				if(curEth.subnet != null)
-					subnetCount++;
-			}
-			if(subnetCount > 1){
-				logger.error("One VM cannot be put into two subnets on EC2!");
-				return false;
+			if(curVM.ethernetPort != null){
+				for(int ei = 0 ; ei<curVM.ethernetPort.size() ; ei++){
+					Eth curEth = curVM.ethernetPort.get(ei);
+					if(curEth.subnet != null)
+						subnetCount++;
+				}
+				if(subnetCount > 1){
+					logger.error("One VM cannot be put into two subnets on EC2!");
+					return false;
+				}
 			}
 			
 			

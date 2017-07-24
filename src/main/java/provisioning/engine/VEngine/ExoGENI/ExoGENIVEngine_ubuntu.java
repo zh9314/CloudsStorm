@@ -144,7 +144,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 	@Override
 	public void run() {
 		if(cmd.equals("all")){
-			//connectionConf();
+			connectionConf();
 			sshConf();
 			runScript();
 		}else if(cmd.equals("connection")){

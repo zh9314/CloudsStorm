@@ -63,7 +63,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
 		logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
 		
-		long provisioningStart = System.currentTimeMillis();
+		//long provisioningStart = System.currentTimeMillis();
 		
 		///Define Subnet for these VMs.
 		ArrayList<EC2Subnet> actualSubnets = new ArrayList<EC2Subnet>();
@@ -96,24 +96,26 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				actualSubnets.add(curEC2Subnet);
 			}
 		}
-		for(int si = 0 ; si<ec2SubTopology.subnets.size() ; si++){
-			Subnet curSubnet = ec2SubTopology.subnets.get(si);
-			EC2Subnet curEC2Subnet = new EC2Subnet();
-			curEC2Subnet.org_subnet = curSubnet;
-			int VMinSubnet = 0;
-			for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-				EC2VM curVM = ec2SubTopology.components.get(vi);
-				Subnet belongingSubnet = null;
-				if((belongingSubnet = getSubnet(curVM)) != null){
-					if(belongingSubnet.name.equals(curSubnet.name)){
-						VMinSubnet++;
-						curVM.actualPrivateAddress = getPrivateAddress(curVM);
-						curVM.subnetAllInfo = curEC2Subnet;
+		if(ec2SubTopology.subnets != null){
+			for(int si = 0 ; si<ec2SubTopology.subnets.size() ; si++){
+				Subnet curSubnet = ec2SubTopology.subnets.get(si);
+				EC2Subnet curEC2Subnet = new EC2Subnet();
+				curEC2Subnet.org_subnet = curSubnet;
+				int VMinSubnet = 0;
+				for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
+					EC2VM curVM = ec2SubTopology.components.get(vi);
+					Subnet belongingSubnet = null;
+					if((belongingSubnet = getSubnet(curVM)) != null){
+						if(belongingSubnet.name.equals(curSubnet.name)){
+							VMinSubnet++;
+							curVM.actualPrivateAddress = getPrivateAddress(curVM);
+							curVM.subnetAllInfo = curEC2Subnet;
+						}
 					}
 				}
+				if(VMinSubnet != 0)
+					actualSubnets.add(curEC2Subnet);
 			}
-			if(VMinSubnet != 0)
-				actualSubnets.add(curEC2Subnet);
 		}
 		
 		////Create all the subnets using multi threads
@@ -139,6 +141,13 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			logger.error("Unexpected error!");
 			return false;
 		}
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
 		
 		logger.debug("All the subnets have been created!");
 		
@@ -158,6 +167,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			ec2SubTopology.accessKeyPair.privateKeyString = privateKeyString;
 			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
 		}
+		
+		long provisioningStart = System.currentTimeMillis();
+		
 		int vmPoolSize = ec2SubTopology.components.size();
 		ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
 		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
@@ -292,9 +304,11 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 	//To test whether the VM belongs to a subnet.
 	//If not, then return null.
 	private Subnet getSubnet(EC2VM curVM){
-		for(int ei = 0 ; ei<curVM.ethernetPort.size() ; ei++){
-			if(curVM.ethernetPort.get(ei).subnet != null)
-				return curVM.ethernetPort.get(ei).subnet;
+		if(curVM.ethernetPort != null){
+			for(int ei = 0 ; ei<curVM.ethernetPort.size() ; ei++){
+				if(curVM.ethernetPort.get(ei).subnet != null)
+					return curVM.ethernetPort.get(ei).subnet;
+			}
 		}
 		return null;
 	}
@@ -617,14 +631,15 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 		generatedSTI.subTopology = ec2subTopology;
 		
+		if(scalingTemplate.connectors == null)
+			return generatedSTI;
+		
 		////Calculate the private IP addresses for the connectors.
 		////And update the connectors.
 		if(scalingTemplate.scalingAddressPool == null){
 			logger.error("The address pool for scaling sub-topology cannot be null");
 			return null;
 		}
-		if(scalingTemplate.connectors == null)
-			return generatedSTI;
 		
 		generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
 		Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;

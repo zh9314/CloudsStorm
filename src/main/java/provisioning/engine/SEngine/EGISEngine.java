@@ -702,15 +702,17 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         }
         generatedSTI.subTopology = egiSubTopology;
 
+        if (scalingTemplate.connectors == null) {
+            return generatedSTI;
+        }
+        
         ////Calculate the private IP addresses for the connectors.
         ////And update the connectors.
         if (scalingTemplate.scalingAddressPool == null) {
             logger.error("The address pool for scaling sub-topology cannot be null");
             return null;
         }
-        if (scalingTemplate.connectors == null) {
-            return generatedSTI;
-        }
+        
 
         generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
         Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;
