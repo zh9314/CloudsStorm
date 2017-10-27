@@ -43,7 +43,7 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable{
 		while((stateEndTime - stateStartTime) < 300000){
 			String vmStatus = egiAgent.getVMStatus(curVM.VMResourceID);
 			if(vmStatus.equals("active")){
-				System.out.println("VM 'test' is active!");
+                                logger.info("VM "+curVM.VMResourceID+" is active!");
 				break;
 			}
 			stateEndTime = System.currentTimeMillis();
