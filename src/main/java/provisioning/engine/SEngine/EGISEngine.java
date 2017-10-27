@@ -137,7 +137,7 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         executor4vm.shutdown();
         try {
             int count = 0;
-            while (!executor4vm.awaitTermination(2, TimeUnit.SECONDS)) {
+            while (!executor4vm.awaitTermination(2, TimeUnit.MINUTES)) {
                 count++;
                 if (count > 100 * vmPoolSize) {
                     logger.error("Unknown error! Some subnet cannot be set up!");
@@ -705,14 +705,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         if (scalingTemplate.connectors == null) {
             return generatedSTI;
         }
-        
+
         ////Calculate the private IP addresses for the connectors.
         ////And update the connectors.
         if (scalingTemplate.scalingAddressPool == null) {
             logger.error("The address pool for scaling sub-topology cannot be null");
             return null;
         }
-        
 
         generatedSTI.connectors = new ArrayList<TopConnectionPoint>();
         Map<String, Boolean> scalingAddressPool = scalingTemplate.scalingAddressPool;
