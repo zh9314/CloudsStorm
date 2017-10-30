@@ -97,7 +97,7 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable {
         long sshStartTime = System.currentTimeMillis();
         long sshEndTime = System.currentTimeMillis();
         count = 0;
-        while (count < 50) {
+        while (count < 40) {
             count++;
             try {
                 if (isAlive(publicAddress, privateKeyString, curVM.defaultSSHAccount)) {

@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
 import commonTool.CommonTool;
+import java.util.logging.Level;
 
 import provisioning.engine.VEngine.VEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubConnection;
@@ -118,11 +119,15 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     ///record the ethName
                     curTCP.ethName = linkName;
 
-                    fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
-                    fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
-                    fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
-                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
-                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
+                    String conf = "lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n" + "ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n" + "ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n" + "route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n" + "route add -host " + remotePrivateAddress + " dev " + linkName + "\n";
+
+                    fw.write(conf);
+                    //                    fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+                    //                    fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
+                    //                    fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
+                    //                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
+                    //                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
+                    java.util.logging.Logger.getLogger(EGIVEngine_ubuntu.class.getName()).log(Level.INFO, "Connection config file:" + conf);
                     fw.flush();
                 }
             }
