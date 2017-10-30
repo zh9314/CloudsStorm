@@ -66,7 +66,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     if (!findVM) {
                         continue;
                     }
-                    fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+                    fw.write("lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
                     fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
                     fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
                     fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
@@ -119,15 +119,16 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     ///record the ethName
                     curTCP.ethName = linkName;
 
-                    String conf = "lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n" + "ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n" + "ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n" + "route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n" + "route add -host " + remotePrivateAddress + " dev " + linkName + "\n";
+                    String conf = "lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n" + "ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n" + "ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n" + "route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n" + "route add -host " + remotePrivateAddress + " dev " + linkName + "\n";
 
                     fw.write(conf);
-                    //                    fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+                    //                    fw.write("lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
                     //                    fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
                     //                    fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
                     //                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
                     //                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
                     java.util.logging.Logger.getLogger(EGIVEngine_ubuntu.class.getName()).log(Level.INFO, "Connection config file:" + conf);
+                    System.err.println("Connection config file:" + conf);
                     fw.flush();
                 }
             }
@@ -142,11 +143,11 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     new NullOutputStream(), new NullOutputStream()
             );
             FileUtils.deleteQuietly(file);
-            new Shell.Safe(shell).exec(
-                    "rm connection.sh",
-                    null,
-                    new NullOutputStream(), new NullOutputStream()
-            );
+//            new Shell.Safe(shell).exec(
+//                    "rm connection.sh",
+//                    null,
+//                    new NullOutputStream(), new NullOutputStream()
+//            );
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -172,11 +173,11 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                 }
                 try {
                     Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
-                    new Shell.Safe(shell).exec(
-                            "rm connection.sh",
-                            null,
-                            new NullOutputStream(), new NullOutputStream()
-                    );
+//                    new Shell.Safe(shell).exec(
+//                            "rm connection.sh",
+//                            null,
+//                            new NullOutputStream(), new NullOutputStream()
+//                    );
                 } catch (IOException e1) {
                     throw new RuntimeException(e1);
                 }
