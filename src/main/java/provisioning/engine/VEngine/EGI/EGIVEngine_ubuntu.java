@@ -128,7 +128,6 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     //                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
                     //                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
                     java.util.logging.Logger.getLogger(EGIVEngine_ubuntu.class.getName()).log(Level.INFO, "Connection config file:" + conf);
-                    System.err.println("Connection config file:" + conf);
                     fw.flush();
                 }
             }
