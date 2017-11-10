@@ -28,7 +28,9 @@ public class testProvisioning {
 		Log4JUtils.setErrorLogFile("error.log");
 		Log4JUtils.setInfoLogFile("info.log");
 		
-		String topTopologyLoadingPath = "ES/infocomExp/autoProvision/ProvisionOverhead/zh_all_test.yml";
+		//String topTopologyLoadingPath = "ES/infocomExp/autoProvision/ProvisionOverhead/zh_all_test.yml";
+		String topTopologyLoadingPath = "ES/EGI/zh_all_test.yml";
+		
 		String currentDir = CommonTool.getPathDir(topTopologyLoadingPath);
 	      
 		TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
@@ -44,7 +46,7 @@ public class testProvisioning {
 		ec2Credential.accessKey = "AKIAITY3KHZUQ6M7YBSQ";
 		ec2Credential.secretKey = "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";
 		EGICredential egiCredential = new EGICredential();
-		egiCredential.proxyFilePath = "/tmp/x509up_u501";
+		egiCredential.proxyFilePath = "/tmp/x509up_u0";
 		egiCredential.trustedCertPath = "/etc/grid-security/certificates";
 		if(userCredential.cloudAccess == null)
 			userCredential.cloudAccess = new HashMap<String, Credential>();
@@ -76,18 +78,18 @@ public class testProvisioning {
 		userDatabase.databases.put("ec2", ec2Database);
 		userDatabase.databases.put("egi", egiDatabase);
 		
-		/*ProvisionRequest pq = new ProvisionRequest();
-		pq.topologyName = "ec2_zh_b";
+		ProvisionRequest pq = new ProvisionRequest();
+		pq.topologyName = "egi_zh_a";
 		ArrayList<ProvisionRequest> provisionReqs = new ArrayList<ProvisionRequest>();
-		provisionReqs.add(pq);*/
+		provisionReqs.add(pq);
 
 		TEngine tEngine = new TEngine();
 		long startTime = System.currentTimeMillis();
 		//tEngine.provisionAll(tam.wholeTopology, userCredential, userDatabase);
 		//tEngine.stopAll(tam.wholeTopology, userCredential, userDatabase);
 		//tEngine.startAll(tam.wholeTopology, userCredential, userDatabase);
-		//tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
-		tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
+		tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
+		//tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
 		long endTime = System.currentTimeMillis();
 		System.out.println("Total overhead: "+(endTime-startTime));
 	}

@@ -78,7 +78,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
         }
 
-        egiAgent.initClient(subTopologyInfo.endpoint);
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         long provisioningStart = System.currentTimeMillis();
@@ -255,7 +261,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
         }
 
-        egiAgent.initClient(subTopologyInfo.endpoint);
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         ////Configure all the inter connections
@@ -400,7 +412,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         if (egiAgent == null) {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
         }
-        egiAgent.initClient(subTopologyInfo.endpoint);
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
@@ -408,9 +426,21 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             if (curVM.VMResourceID == null) {
                 logger.error("The resource location of " + curVM.name + " is unknown!");
                 returnResult = false;
-            } else if (!egiAgent.stopVM(curVM.VMResourceID)) {
-                logger.error("VM '" + curVM.name + "' cannot be stopped!");
-                returnResult = false;
+            } else{
+	            	rtnum = 0;
+	        		boolean success = false;
+	            while(!success){
+	            		success = egiAgent.stopVM(curVM.VMResourceID);
+	            		logger.info("Stop a VM!");
+	            		if(rtnum > egiAgent.retryTimes)
+	            			break;
+	            		rtnum++;
+	            }
+	        		if(!success){
+	        			logger.error("VM '" + curVM.name + "' cannot be stopped!");
+	        			returnResult = false;
+	        		}
+	            returnResult = true;
             }
         }
         return returnResult;
@@ -423,7 +453,15 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         if (egiAgent == null) {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
         }
-        egiAgent.initClient(subTopologyInfo.endpoint);
+        
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
+        
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         long startingUpStart = System.currentTimeMillis();
@@ -593,7 +631,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         if (egiAgent == null) {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
         }
-        egiAgent.initClient(subTopologyInfo.endpoint);
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
@@ -601,9 +645,21 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             if (curVM.VMResourceID == null) {
                 logger.error("The resource location of " + curVM.name + " is unknown!");
                 returnResult = false;
-            } else if (!egiAgent.deleteVM(curVM.VMResourceID)) {
-                logger.error("VM '" + curVM.name + "' cannot be deleted");
-                returnResult = false;
+            } else {
+                rtnum = 0;
+	        		boolean success = false;
+                while(!success){
+                		success = egiAgent.deleteVM(curVM.VMResourceID);
+                		logger.info("Delete a VM!");
+                		if(rtnum > egiAgent.retryTimes)
+                			break;
+                		rtnum++;
+                }
+	        		if(!success){
+	        			logger.error("VM '" + curVM.name + "' cannot be deleted");
+	        			returnResult = false;
+	        		}
+                returnResult = true;
             }
         }
 

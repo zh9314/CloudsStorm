@@ -50,7 +50,16 @@ private static final Logger logger = Logger.getLogger(EGIVEngine_startVM.class);
 			logger.error("There is no public address for "+curVM.name);
 			return;
 		}
-		if(!egiAgent.startVM(curVM.VMResourceID)){
+		int rtnum = 0;
+		boolean success = false;
+        while(!success){
+        		success = egiAgent.startVM(curVM.VMResourceID);
+        		logger.info("Start the VM!");
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		rtnum++;
+        }
+		if(!success){
 			logger.error("VM '"+curVM.name+"' cannot be started!");
 			return ;
 		}

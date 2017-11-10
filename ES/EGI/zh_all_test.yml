@@ -7,7 +7,7 @@ topologies:
   domain: "CESNET"
   status: "fresh"
   tag: "fixed"
-  statusInfo: null
+  statusInfo: "not provisioned: 1509180573840"
   copyOf: null
-  sshKeyPairId: null
+  sshKeyPairId: "0baffbe2-0866-4025-9082-f3b537dae174"
 connections: null

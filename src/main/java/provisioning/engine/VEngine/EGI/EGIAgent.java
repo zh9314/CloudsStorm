@@ -35,13 +35,15 @@ public class EGIAgent {
 	private HTTPAuthentication authentication;
 	private EntityBuilder eb;
 	
+	public int retryTimes = 2;   ////Used for retrying when sometimes failed
+	
 	public EGIAgent(String ProxyPath, String TrustedCertPath){
 		authentication = new VOMSAuthentication(ProxyPath);
 		authentication.setCAPath(TrustedCertPath);
 	}
 	
 	////Set the endpoint of the EGI client and make the client connected
-	public void initClient(String OcciEndPoint){
+	public boolean initClient(String OcciEndPoint){
 		try {
 			client = new HTTPClient(URI.create(OcciEndPoint),
 			        authentication, MediaType.TEXT_PLAIN, false);
@@ -50,7 +52,9 @@ public class EGIAgent {
 			eb = new EntityBuilder(model);
 		} catch (CommunicationException e) {
 			e.printStackTrace();
+			return false;
 		}
+		return true;
 	}
 	
 	public URI createComputeVM(String vmName, String pubKeyString, String pubKeyId, 
