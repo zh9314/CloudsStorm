@@ -1,6 +1,7 @@
 package topologyAnalysis.dataStructure;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -53,6 +54,17 @@ public abstract class VM {
     public String publicAddress;
 
     public ArrayList<Eth> ethernetPort;
+    
+    /**
+     *  This records all the connections to this VM. It is useful,
+     *  because there is some time that no connection is setup. For example, 
+     *  the tunnel is not set. Then the VM's private IP address of this connection 
+     *  should still can be connected! This is especially for the top connections. 
+     *  The keys are all the private IPs of this VM. Boolean tells whether the self 
+     *  eth tunnel port has been setup.
+     */
+    @JsonIgnore
+    public Map<String, Boolean> selfEthAddresses;
 
     /**
      * Load script content from 'script' of current VM.

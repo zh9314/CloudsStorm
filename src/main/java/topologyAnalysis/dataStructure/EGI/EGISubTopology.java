@@ -25,7 +25,7 @@ public class EGISubTopology extends SubTopology implements SubTopologyMethod{
 private static final Logger logger = Logger.getLogger(EGISubTopology.class);
 	
 	//Indicate different VMs.
-	public ArrayList<EGIVM> components;
+	public ArrayList<EGIVM> VMs;
 	
 	public EGISubTopology(){
 		
@@ -43,7 +43,7 @@ private static final Logger logger = Logger.getLogger(EGISubTopology.class);
         	this.loadingPath = topologyPath;
         	this.subnets = egiSubTopology.subnets;
         	this.connections = egiSubTopology.connections;
-        	this.components = egiSubTopology.components;
+        	this.VMs = egiSubTopology.VMs;
         	logger.info("Sub-topology of EGI from "+topologyPath+" is loaded without validation successfully!");
         } catch (Exception e) {
             logger.error(e.toString());
@@ -61,11 +61,11 @@ private static final Logger logger = Logger.getLogger(EGISubTopology.class);
 
 	@Override
 	public VM getVMinSubClassbyName(String vmName) {
-		if(this.components == null)
+		if(this.VMs == null)
 			return null;
-		for(int i = 0 ; i<components.size() ; i++){
-			if(components.get(i).name.equals(vmName)){
-				return components.get(i);
+		for(int i = 0 ; i<VMs.size() ; i++){
+			if(VMs.get(i).name.equals(vmName)){
+				return VMs.get(i);
 			}
 		}
 		return null;
@@ -73,11 +73,11 @@ private static final Logger logger = Logger.getLogger(EGISubTopology.class);
 
 	@Override
 	public ArrayList<VM> getVMsinSubClass() {
-		if(this.components == null || components.size() == 0)
+		if(this.VMs == null || VMs.size() == 0)
 			return null;
 		ArrayList<VM> vms = new ArrayList<VM>();
-		for(int i = 0 ; i<components.size() ; i++)
-			vms.add(components.get(i));
+		for(int i = 0 ; i<VMs.size() ; i++)
+			vms.add(VMs.get(i));
 		return vms;
 	}
 
@@ -204,8 +204,8 @@ private static final Logger logger = Logger.getLogger(EGISubTopology.class);
 		if(!super.commonFormatChecking(topologyStatus))
 			return false;
 		
-		for(int vmi = 0 ; vmi < this.components.size() ; vmi++){
-			EGIVM curVM = components.get(vmi);
+		for(int vmi = 0 ; vmi < this.VMs.size() ; vmi++){
+			EGIVM curVM = VMs.get(vmi);
 			if(topologyStatus.equals("fresh")){
 				if(curVM.VMResourceID != null){
 					logger.error("Some information in VM '"+curVM.name+"' cannot be defined in a 'fresh' sub-topology!");

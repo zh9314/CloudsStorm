@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -62,6 +63,29 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 		logger.debug("confFilePath: "+confFilePath);
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
+		////Configure for all top self connections
+		if(this.curVM.selfEthAddresses != null){
+			int count = 0;
+			for(Map.Entry<String, Boolean> entry : curVM.selfEthAddresses.entrySet()){
+				if(!entry.getValue()){
+					String linkName = "self_"+count;
+					String remotePubAddress = curVM.publicAddress;
+					String [] addrNm = entry.getKey().split("/");
+					String localPrivateAddress = addrNm[0];
+					String netmask = addrNm[1];
+					int netmaskNum = CommonTool.netmaskStringToInt(netmask);
+					String subnet = CommonTool.getSubnet(localPrivateAddress, netmaskNum);
+					
+					fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+					fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
+					fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
+					fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
+					fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
+					fw.flush();
+					entry.setValue(true);
+				}
+			}
+		}
 		
 		////Configure for subconnections
 		if(this.subConnections != null){
@@ -248,9 +272,11 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 			fw.write("mkdir /home/"+userName+"/.ssh \n");
 			fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
 			fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
+			fw.write("cat id_rsa.pub >> /root/.ssh/authorized_keys \n");
 			fw.write("chmod 400 id_rsa\n");
-			fw.write("mv id_rsa /home/"+userName+"/.ssh/id_rsa\n");
-			fw.write("rm id_rsa.pub\n");
+			fw.write("cp id_rsa /home/"+userName+"/.ssh/id_rsa\n");
+			fw.write("cp id_rsa /root/.ssh/id_rsa\n");
+			fw.write("rm id_rsa.pub id_rsa\n");
 		    fw.write("chmod 740 /etc/sudoers \n");
 		    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
 		    fw.write("chmod 440 /etc/sudoers \n");
@@ -321,7 +347,7 @@ public class EC2VEngine_ubuntu extends EC2VEngine implements VEngineCoreMethod, 
 					);
 			
 			////Logging files to log the output of executing the script
-			String logPath = this.currentDir+curVM.name+"_script.log";
+			String logPath = this.currentDir + curVM.name + "_" + System.nanoTime() + "_script.log";
 			logger.debug("The log file of executing script on '"+curVM.name+"' is redirected to "+logPath);
 			File logFile = new File(logPath);
 			FileOutputStream logOutput = new FileOutputStream(logFile, false);

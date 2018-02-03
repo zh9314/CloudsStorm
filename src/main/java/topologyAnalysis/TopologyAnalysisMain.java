@@ -124,15 +124,15 @@ public class TopologyAnalysisMain{
 				TopConnectionPoint targetTcp = wholeTopology.connections.get(i).target;
 				
 				//Operating on the source connection point.
-				if(!sourceTcp.componentName.contains(".")){
-					logger.error("The source name of connection "+sourceTcp.componentName+" is not valid!");
+				if(!sourceTcp.vmName.contains(".")){
+					logger.error("The source name of connection "+sourceTcp.vmName+" is not valid!");
 					return false;
 				}
-				String [] t_VM = sourceTcp.componentName.split("\\.");
+				String [] t_VM = sourceTcp.vmName.split("\\.");
 				String VMName = t_VM[1]; String sourceTopologyName = t_VM[0];
 				SubTopologyInfo sti = getSubTopologyInfo(sourceTopologyName);
 				if(sti == null){
-					logger.error("The sub-topology of connection point "+sourceTcp.componentName+" doesn't exist!");
+					logger.error("The sub-topology of connection point "+sourceTcp.vmName+" doesn't exist!");
 					return false;
 				}
 				String sourceSubTopologyTag = sti.tag.trim().toLowerCase();
@@ -142,7 +142,19 @@ public class TopologyAnalysisMain{
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+sourceTopologyName);
 					return false;
+				}if(vmInfo.selfEthAddresses == null)
+					vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
+				if(sourceTcp.netmask == null){
+					logger.error("Field 'netmask' of source connection "+sourceTcp.address+" must be specified!");
+					return false;
+				}String nm = sourceTcp.netmask;
+				if(!sourceTcp.netmask.contains(".")){
+					if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(sourceTcp.netmask))) == null){
+						logger.error("Field 'netmask' of source connection "+sourceTcp.address+" is not valid!");
+						return false;
+					}
 				}
+				vmInfo.selfEthAddresses.put(sourceTcp.address+"/"+nm, false);
 				sourceTcp.belongingVM = vmInfo;
 				sourceTcp.peerTCP = targetTcp;
 				if(sti.connectors == null)
@@ -150,15 +162,15 @@ public class TopologyAnalysisMain{
 				sti.connectors.add(sourceTcp);
 				
 				//Operating on the target connection point.
-				if(!targetTcp.componentName.contains(".")){
-					logger.error("The target name of connection "+targetTcp.componentName+" is not valid!");
+				if(!targetTcp.vmName.contains(".")){
+					logger.error("The target name of connection "+targetTcp.vmName+" is not valid!");
 					return false;
 				}
-				t_VM = targetTcp.componentName.split("\\.");
+				t_VM = targetTcp.vmName.split("\\.");
 				VMName = t_VM[1]; String targetTopologyName = t_VM[0];
 				sti = getSubTopologyInfo(targetTopologyName);
 				if(sti == null){
-					logger.error("The sub-topology of connection point "+targetTcp.componentName+" doesn't exist!");
+					logger.error("The sub-topology of connection point "+targetTcp.vmName+" doesn't exist!");
 					return false;
 				}
 				String targetSubTopologyTag = sti.tag.trim().toLowerCase();
@@ -168,17 +180,29 @@ public class TopologyAnalysisMain{
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+targetTopologyName);
 					return false;
+				}if(vmInfo.selfEthAddresses == null)
+					vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
+				if(targetTcp.netmask == null){
+					logger.error("Field 'netmask' of target connection "+targetTcp.address+" must be specified!");
+					return false;
+				} nm = targetTcp.netmask;
+				if(!targetTcp.netmask.contains(".")){
+					if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(targetTcp.netmask))) == null){
+						logger.error("Field 'netmask' of target connection "+targetTcp.address+" is not valid!");
+						return false;
+					}
 				}
+				vmInfo.selfEthAddresses.put(targetTcp.address+"/"+nm, false);
 				targetTcp.belongingVM = vmInfo;
 				targetTcp.peerTCP = sourceTcp;
 				if(sti.connectors == null)
 					sti.connectors = new ArrayList<TopConnectionPoint>();
 				sti.connectors.add(targetTcp);
 				
-				if(targetTopologyName.equals(sourceTopologyName)){
+				/*if(targetTopologyName.equals(sourceTopologyName)){
 					logger.error("The two connection points of '"+wholeTopology.connections.get(i).name+"' must come from two different topologies!");
 					return false;
-				}
+				}*/
 				
 				///The two connected sub-topologies at least one tag of 'fixed'
 				if(!sourceSubTopologyTag.equals("fixed")

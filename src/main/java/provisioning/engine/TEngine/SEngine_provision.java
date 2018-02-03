@@ -1,7 +1,8 @@
 package provisioning.engine.TEngine;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.log4j.Logger;
+
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngine;
@@ -14,7 +15,7 @@ import topologyAnalysis.dataStructure.SubTopologyInfo;
  */
 public class SEngine_provision implements Runnable {
 	
-	private static final Logger logger = java.util.logging.Logger.getLogger(SEngine_provision.class.getName());
+	private static final Logger logger = Logger.getLogger(SEngine_provision.class);
 
 	private SubTopologyInfo subTopologyInfo;
 	private Credential credential;
@@ -32,20 +33,20 @@ public class SEngine_provision implements Runnable {
 		try {
 			Object sEngine = Class.forName(database.toolInfo.get("sengine")).newInstance();
 			if(!((SEngine)sEngine).commonRuntimeCheck(subTopologyInfo)){
-				logger.log(Level.SEVERE,"Some information is missing for provisioning sub-topology '"+subTopologyInfo.topology+"'!");
+				logger.error("Some information is missing for provisioning sub-topology '"+subTopologyInfo.topology+"'!");
 				return ;
 			}
 			if(!((SEngineCoreMethod)sEngine).runtimeCheckandUpdate(subTopologyInfo, database)){
-				logger.log(Level.SEVERE,"Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before provisioning!");
+				logger.error("Sub-topology '"+subTopologyInfo.topology+"' cannot pass the runtime check before provisioning!");
 				return ;
 			}
 			if(!((SEngineCoreMethod)sEngine).provision(subTopologyInfo, credential, database)){
-				logger.log(Level.SEVERE,"Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");
+				logger.error("Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");
 				subTopologyInfo.status = "failed";
 				long curTime = System.currentTimeMillis();
 				subTopologyInfo.statusInfo = "not provisioned: "+curTime;
 				if(!subTopologyInfo.subTopology.overwirteControlOutput()){
-					logger.log(Level.SEVERE,"Control information of '"+subTopologyInfo.topology+"' cannot be overwritten to the origin file!");
+					logger.error("Control information of '"+subTopologyInfo.topology+"' cannot be overwritten to the origin file!");
 				}
 				return ;
 			}else
@@ -53,7 +54,7 @@ public class SEngine_provision implements Runnable {
 		} catch (InstantiationException | IllegalAccessException
 				| ClassNotFoundException e) {
 			e.printStackTrace();
-			logger.log(Level.SEVERE,"The S-Engine for sub-topology '"+subTopologyInfo.topology+"' cannot be found!");
+			logger.error("The S-Engine for sub-topology '"+subTopologyInfo.topology+"' cannot be found!");
 		}
 	}
 

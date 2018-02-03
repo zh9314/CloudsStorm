@@ -16,6 +16,7 @@ import provisioning.credential.SSHKeyPair;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.EC2.EC2Database;
+import provisioning.database.EC2.EC2VMMetaInfo;
 import provisioning.engine.VEngine.EC2.EC2Agent;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createSubnet;
 import provisioning.engine.VEngine.EC2.EC2VEngine_createVM;
@@ -63,6 +64,12 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
 		logger.debug("Set endpoint for '"+subTopologyInfo.topology+"' "+subTopologyInfo.endpoint);
 		
+		if(ec2SubTopology.accessKeyPair != null
+			&& ec2SubTopology.accessKeyPair.publicKeyId == null){
+			logger.error("Sub-topology "+ subTopologyInfo.topology + "cannot be provisioned! Because of missing the SSH public key ID for accessing!");
+            return false;
+		}
+		
 		//long provisioningStart = System.currentTimeMillis();
 		
 		///Define Subnet for these VMs.
@@ -70,8 +77,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		int subnetIndex = -1;
 		boolean first = true;
 		String vpcId4all = null;
-		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			//if the vm does not belong to a subnet
 			if(getSubnet(curVM) == null){
 				//If there exists a VM without a subnet.
@@ -102,8 +109,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				EC2Subnet curEC2Subnet = new EC2Subnet();
 				curEC2Subnet.org_subnet = curSubnet;
 				int VMinSubnet = 0;
-				for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-					EC2VM curVM = ec2SubTopology.components.get(vi);
+				for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+					EC2VM curVM = ec2SubTopology.VMs.get(vi);
 					Subnet belongingSubnet = null;
 					if((belongingSubnet = getSubnet(curVM)) != null){
 						if(belongingSubnet.name.equals(curSubnet.name)){
@@ -170,10 +177,10 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		
 		long provisioningStart = System.currentTimeMillis();
 		
-		int vmPoolSize = ec2SubTopology.components.size();
+		int vmPoolSize = ec2SubTopology.VMs.size();
 		ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
-		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			logger.debug(curVM.name+" "+curVM.actualPrivateAddress
 					+" "+curVM.subnetAllInfo.subnetId);
 			if(curVM.subnetAllInfo.vpcId == null){
@@ -214,8 +221,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		long provisioningEnd = System.currentTimeMillis();
 		
 		boolean allSuccess = true;
-		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			if(curVM.instanceId == null || curVM.publicAddress == null){
 				allSuccess = false;
 				logger.error(curVM.name+" of sub-topology '"+ec2SubTopology.topologyName+"' is not provisioned!");
@@ -232,8 +239,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		
 		////Configure all the inner connections
 		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -330,8 +337,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
 		boolean returnResult = true;
 		ArrayList<String> instances = new ArrayList<String>();
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			if(curVM.instanceId == null){
 				logger.error("The instanceId of "+curVM.name+" is unknown!");
 				returnResult = false;
@@ -371,19 +378,28 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		EC2Database ec2Database = (EC2Database)database;
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
 		String domain = subTopologyInfo.domain.trim().toLowerCase();
-		if((subTopologyInfo.endpoint = ec2Database.domain_endpoint.get(domain)) == null){
+		if((subTopologyInfo.endpoint = ec2Database.getEndpoint(domain)) == null){
 			logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some EC2 endpoint!");
 			return false;
 		}
 		
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
-			if((curVM.AMI = ec2Database.getAMI(curVM.OStype, domain)) == null){
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
+			String vmType = curVM.nodeType.toLowerCase().trim();
+            String OS = curVM.OStype.toLowerCase().trim();
+            EC2VMMetaInfo ec2VMMetaInfo = null;
+            if((ec2VMMetaInfo = ((EC2VMMetaInfo)ec2Database.getVMMetaInfo(domain, OS, vmType))) == null){
+            	 	logger.error("The EC2 VM meta information for 'OStype' '" + curVM.OStype + "' and 'nodeType' '" + curVM.nodeType + "' in domain '" + domain + "' is not known!");
+                 return false;
+            }
+            curVM.AMI = ec2VMMetaInfo.AMI;
+            curVM.defaultSSHAccount = ec2VMMetaInfo.DefaultSSHAccount;
+			/*if((curVM.AMI = ec2Database.getAMI(curVM.OStype, domain)) == null){
 				logger.error("The EC2 AMI of 'OStype' '"+curVM.OStype+"' in domain '"+domain+"' is not known!");
 				return false;
 			}
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
-				curVM.defaultSSHAccount = "ubuntu";
+				curVM.defaultSSHAccount = "ubuntu";*/
 		}
 		
 		return true;
@@ -394,9 +410,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
 		EC2Credential ec2Credential = (EC2Credential)credential;
 		EC2Database ec2Database = (EC2Database)database;
-		String domain = subTopologyInfo.domain.trim().toLowerCase();
+		String domain = subTopologyInfo.domain;
 		if(subTopologyInfo.endpoint == null){
-			if((subTopologyInfo.endpoint = ec2Database.domain_endpoint.get(domain)) == null){
+			if((subTopologyInfo.endpoint = ec2Database.getEndpoint(domain)) == null){
 				logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some EC2 endpoint!");
 				return false;
 			}
@@ -409,9 +425,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		ec2Agent.setEndpoint(subTopologyInfo.endpoint);
 		
 		////Configure all the inter connections
-		ExecutorService executor4conf = Executors.newFixedThreadPool(ec2SubTopology.components.size());
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		ExecutorService executor4conf = Executors.newFixedThreadPool(ec2SubTopology.VMs.size());
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -438,7 +454,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			int count = 0;
 			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
-				if(count > 200*ec2SubTopology.components.size()){
+				if(count > 200*ec2SubTopology.VMs.size()){
 					logger.error("Unknown error! Some VM cannot be configured!");
 					return false;
 				}
@@ -564,9 +580,9 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		ec2subTopology.loadingPath = currentDir + generatedSTI.topology + ".yml";
 		ec2subTopology.topologyName = generatedSTI.topology;
 		ec2subTopology.topologyType = "EC2";
-		ec2subTopology.components = new ArrayList<EC2VM>();
-		for(int vi = 0 ; vi < tempSubTopology.components.size() ; vi++){
-			EC2VM curVM = (EC2VM)tempSubTopology.components.get(vi);
+		ec2subTopology.VMs = new ArrayList<EC2VM>();
+		for(int vi = 0 ; vi < tempSubTopology.VMs.size() ; vi++){
+			EC2VM curVM = (EC2VM)tempSubTopology.VMs.get(vi);
 			EC2VM newVM = new EC2VM();
 			newVM.diskSize = curVM.diskSize;
 			newVM.dockers = curVM.dockers;
@@ -589,7 +605,7 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				
 			}
 			
-			ec2subTopology.components.add(newVM);
+			ec2subTopology.VMs.add(newVM);
 		}
 		
 		
@@ -618,13 +634,13 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				newConnection.source.address = curConnection.source.address;
 				newConnection.source.componentName = curConnection.source.componentName;
 				newConnection.source.netmask = curConnection.source.netmask;
-				newConnection.source.portName = curConnection.source.portName;
+				//newConnection.source.portName = curConnection.source.portName;
 				
 				newConnection.target = new SubConnectionPoint();
 				newConnection.target.address = curConnection.target.address;
 				newConnection.target.componentName = curConnection.target.componentName;
 				newConnection.target.netmask = curConnection.target.netmask;
-				newConnection.target.portName = curConnection.target.portName;
+				//newConnection.target.portName = curConnection.target.portName;
 				
 				ec2subTopology.connections.add(newConnection);
 			}
@@ -664,20 +680,20 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 				return null;
 			}
 			TopConnectionPoint newTCP = new TopConnectionPoint();
-			String [] t_VM = curTCP.componentName.split("\\.");
+			String [] t_VM = curTCP.vmName.split("\\.");
 			String VMName = t_VM[1]; 
-			newTCP.componentName = generatedSTI.topology + "." + VMName;
+			newTCP.vmName = generatedSTI.topology + "." + VMName;
 			newTCP.address = availableIP;
 			newTCP.netmask = curTCP.netmask;
-			newTCP.portName = curTCP.portName;
+			//newTCP.portName = curTCP.portName;
 			
 			//Create a new peer top connection point
 			TopConnectionPoint newPeerTCP = new TopConnectionPoint();
 			newPeerTCP.address = curTCP.peerTCP.address;
 			newPeerTCP.belongingVM = curTCP.peerTCP.belongingVM;
-			newPeerTCP.componentName = curTCP.peerTCP.componentName;
+			newPeerTCP.vmName = curTCP.peerTCP.vmName;
 			newPeerTCP.netmask = curTCP.peerTCP.netmask;
-			newPeerTCP.portName = curTCP.peerTCP.portName;
+			//newPeerTCP.portName = curTCP.peerTCP.portName;
 			newPeerTCP.peerTCP = newTCP;
 			
 			newTCP.peerTCP = newPeerTCP;
@@ -756,10 +772,10 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
 		}
 		
-		int vmPoolSize = ec2SubTopology.components.size();
+		int vmPoolSize = ec2SubTopology.VMs.size();
 		ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
-		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			if(curVM.instanceId == null){
 				logger.error("The instanceId of '"+curVM.name+"' in sub-topology '"+ec2SubTopology.topologyName+"' cannot be achieved!");
 				return false;
@@ -788,8 +804,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		long startingUpEnd = System.currentTimeMillis();
 		
 		boolean allSuccess = true;
-		for(int vi = 0 ; vi<ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi<ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			if(curVM.publicAddress == null){
 				allSuccess = false;
 				logger.error(curVM.name+" of sub-topology '"+ec2SubTopology.topologyName+"' is not fully started!");
@@ -806,8 +822,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		
 		////Just configure all the inner connections
 		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.EC2.EC2VEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -874,8 +890,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		} 
 		ArrayList<VpcElement> vpcEles = new ArrayList<VpcElement>();
 		ArrayList<EC2VM> ec2VMs = new ArrayList<EC2VM>();
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			if(curVM.instanceId == null){
 				logger.error("The instanceId of "+curVM.name+" is unknown!");
 				returnResult = false;
@@ -927,8 +943,8 @@ public class EC2SEngine extends SEngine implements SEngineCoreMethod{
 		}
 		
 		////clear all the information
-		for(int vi = 0 ; vi < ec2SubTopology.components.size() ; vi++){
-			EC2VM curVM = ec2SubTopology.components.get(vi);
+		for(int vi = 0 ; vi < ec2SubTopology.VMs.size() ; vi++){
+			EC2VM curVM = ec2SubTopology.VMs.get(vi);
 			curVM.publicAddress = null;
 			curVM.volumeId = null;
 			curVM.instanceId = null;

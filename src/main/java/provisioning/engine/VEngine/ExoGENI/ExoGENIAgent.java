@@ -1,8 +1,6 @@
 package provisioning.engine.VEngine.ExoGENI;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -10,7 +8,6 @@ import provisioning.credential.ExoGENICredential;
 import provisioning.database.ExoGENI.ExoGENIDatabase;
 import topologyAnalysis.dataStructure.VM;
 import topologyAnalysis.dataStructure.ExoGENI.ExoGENISubTopology;
-import topologyAnalysis.dataStructure.ExoGENI.ExoGENIVM;
 
 public class ExoGENIAgent {
 	
@@ -29,7 +26,7 @@ public class ExoGENIAgent {
 	
 	public boolean createSlice(ExoGENISubTopology exoGENISubTopology){
 		INDLGenerator indlGenerator = new INDLGenerator();
-		String indl_s = indlGenerator.generateINDL(exoGENISubTopology.components, exoGENISubTopology.connections, Integer.valueOf(exoGENISubTopology.duration));
+		String indl_s = indlGenerator.generateINDL(exoGENISubTopology.VMs, exoGENISubTopology.connections, Integer.valueOf(exoGENISubTopology.duration));
 		ExoGENIRPCConnector rpc = new ExoGENIRPCConnector(apiURL, userKeyPath,
 			keyAlias, keyPass);
 		

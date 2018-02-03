@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -13,9 +14,8 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
-import commonTool.CommonTool;
-import java.util.logging.Level;
 
+import commonTool.CommonTool;
 import provisioning.engine.VEngine.VEngineCoreMethod;
 import topologyAnalysis.dataStructure.SubConnection;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
@@ -37,6 +37,30 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
         logger.debug("confFilePath: " + confFilePath);
         try {
             FileWriter fw = new FileWriter(confFilePath, false);
+            
+	        ////Configure for all top self connections
+	    		if(this.curVM.selfEthAddresses != null){
+	    			int count = 0;
+	    			for(Map.Entry<String, Boolean> entry : curVM.selfEthAddresses.entrySet()){
+	    				if(!entry.getValue()){
+	    					String linkName = "self_"+count;
+	    					String remotePubAddress = curVM.publicAddress;
+	    					String [] addrNm = entry.getKey().split("/");
+	    					String localPrivateAddress = addrNm[0];
+	    					String netmask = addrNm[1];
+	    					int netmaskNum = CommonTool.netmaskStringToInt(netmask);
+	    					String subnet = CommonTool.getSubnet(localPrivateAddress, netmaskNum);
+	    					
+	    					fw.write("lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+	    					fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
+	    					fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
+	    					fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
+	    					fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
+	    					fw.flush();
+	    					entry.setValue(true);
+	    				}
+	    			}
+	    		}				
 
             ////Configure for subconnections
             if (this.subConnections != null) {
@@ -119,15 +143,13 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     ///record the ethName
                     curTCP.ethName = linkName;
 
-                    String conf = "lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n" + "ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n" + "ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n" + "route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n" + "route add -host " + remotePrivateAddress + " dev " + linkName + "\n";
+                    fw.write("lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+                    fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
+                    fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
+                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
+                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
+                    
 
-                    fw.write(conf);
-                    //                    fw.write("lp=`ifconfig ens3|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
-                    //                    fw.write("ip tunnel add " + linkName + " mode ipip remote " + remotePubAddress + " local $lp\n");
-                    //                    fw.write("ifconfig " + linkName + " " + localPrivateAddress + " netmask " + netmask + "\n");
-                    //                    fw.write("route del -net " + subnet + " netmask " + netmask + " dev " + linkName + "\n");
-                    //                    fw.write("route add -host " + remotePrivateAddress + " dev " + linkName + "\n");
-                    java.util.logging.Logger.getLogger(EGIVEngine_ubuntu.class.getName()).log(Level.INFO, "Connection config file:" + conf);
                     fw.flush();
                 }
             }
@@ -170,8 +192,8 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                         throw new RuntimeException(e1);
                     }
                 }
-                try {
-                    Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
+/*                try {
+                      Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 //                    new Shell.Safe(shell).exec(
 //                            "rm connection.sh",
 //                            null,
@@ -179,7 +201,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
 //                    );
                 } catch (IOException e1) {
                     throw new RuntimeException(e1);
-                }
+                }*/
             }
         }
     }
@@ -227,9 +249,11 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
             fw.write("mkdir /home/" + userName + "/.ssh \n");
             fw.write("mv user.pub /home/" + userName + "/.ssh/authorized_keys \n");
             fw.write("cat id_rsa.pub >> /home/" + userName + "/.ssh/authorized_keys \n");
+            fw.write("cat id_rsa.pub >> /root/.ssh/authorized_keys \n");
             fw.write("chmod 400 id_rsa\n");
-            fw.write("mv id_rsa /home/" + userName + "/.ssh/id_rsa\n");
-            fw.write("rm id_rsa.pub\n");
+            fw.write("cp id_rsa /home/" + userName + "/.ssh/id_rsa\n");
+            fw.write("cp id_rsa /root/.ssh/id_rsa\n");
+			fw.write("rm id_rsa.pub id_rsa\n");
             fw.write("chmod 740 /etc/sudoers \n");
             fw.write("echo \"" + userName + " ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
             fw.write("chmod 440 /etc/sudoers \n");
@@ -300,7 +324,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
             );
 
             ////Logging files to log the output of executing the script
-            String logPath = this.currentDir + curVM.name + "_script.log";
+            String logPath = this.currentDir + curVM.name + "_" + System.nanoTime() + "_script.log";
             logger.debug("The log file of executing script on '" + curVM.name + "' is redirected to " + logPath);
             File logFile = new File(logPath);
             FileOutputStream logOutput = new FileOutputStream(logFile, false);
@@ -345,7 +369,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                 return;
             }
             String confFilePath = System.getProperty("java.io.tmpdir") + File.separator
-                    + "ec2_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh";
+                    + "egi_conf_" + curVM.name + UUID.randomUUID().toString() + System.nanoTime() + ".sh";
             logger.debug("rmEthFilePath: " + confFilePath);
             FileWriter fw = new FileWriter(confFilePath, false);
 
@@ -358,7 +382,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
             curTCP.ethName = null;
 
             String rmConnectionName = UUID.randomUUID().toString() + ".sh";
-            Thread.sleep(2000);
+            //Thread.sleep(2000);
             Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
             File file = new File(confFilePath);
             new Shell.Safe(shell).exec(
@@ -373,7 +397,7 @@ public class EGIVEngine_ubuntu extends EGIVEngine implements VEngineCoreMethod, 
                     new NullOutputStream(), new NullOutputStream()
             );
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             logger.error(curVM.name + ": " + e.getMessage());
         }

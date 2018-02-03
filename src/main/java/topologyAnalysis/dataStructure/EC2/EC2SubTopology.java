@@ -26,7 +26,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	private static final Logger logger = Logger.getLogger(EC2SubTopology.class);
 	
 	//Indicate different VMs.
-	public ArrayList<EC2VM> components;
+	public ArrayList<EC2VM> VMs;
 	
 	public EC2SubTopology(){
 		
@@ -44,7 +44,7 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
         	this.loadingPath = topologyPath;
         	this.subnets = ec2SubTopology.subnets;
         	this.connections = ec2SubTopology.connections;
-        	this.components = ec2SubTopology.components;
+        	this.VMs = ec2SubTopology.VMs;
         	logger.info("Sub-topology of EC2 from "+topologyPath+" is loaded without validation successfully!");
         } catch (Exception e) {
             logger.error(e.toString());
@@ -208,8 +208,8 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 		if(!super.commonFormatChecking(topologyStatus))
 			return false;
 		
-		for(int vmi = 0 ; vmi < this.components.size() ; vmi++){
-			EC2VM curVM = components.get(vmi);
+		for(int vmi = 0 ; vmi < this.VMs.size() ; vmi++){
+			EC2VM curVM = VMs.get(vmi);
 			if(topologyStatus.equals("fresh")){
 				if(curVM.instanceId != null
 					|| curVM.securityGroupId != null
@@ -291,11 +291,11 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 
 	@Override
 	public VM getVMinSubClassbyName(String vmName) {
-		if(this.components == null)
+		if(this.VMs == null)
 			return null;
-		for(int i = 0 ; i<components.size() ; i++){
-			if(components.get(i).name.equals(vmName)){
-				return components.get(i);
+		for(int i = 0 ; i<VMs.size() ; i++){
+			if(VMs.get(i).name.equals(vmName)){
+				return VMs.get(i);
 			}
 		}
 		return null;
@@ -303,11 +303,11 @@ public class EC2SubTopology extends SubTopology implements SubTopologyMethod{
 	
 	@Override
 	public ArrayList<VM> getVMsinSubClass() {
-		if(this.components == null || components.size() == 0)
+		if(this.VMs == null || VMs.size() == 0)
 			return null;
 		ArrayList<VM> vms = new ArrayList<VM>();
-		for(int i = 0 ; i<components.size() ; i++)
-			vms.add(components.get(i));
+		for(int i = 0 ; i<VMs.size() ; i++)
+			vms.add(VMs.get(i));
 		return vms;
 	}
 

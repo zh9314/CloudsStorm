@@ -2,15 +2,8 @@ import java.util.ArrayList;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
-import com.amazonaws.services.ec2.model.CreateKeyPairResult;
-import com.amazonaws.services.ec2.model.CreateVolumeRequest;
-import com.amazonaws.services.ec2.model.CreateVolumeResult;
-import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
 import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
-import com.amazonaws.services.ec2.model.KeyPair;
-import com.amazonaws.services.ec2.model.VolumeType;
 
 
 public class testEC2 {

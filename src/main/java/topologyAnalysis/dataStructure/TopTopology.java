@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
-import provisioning.credential.EC2Credential;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,9 +60,6 @@ public class TopTopology implements TopTopologyMethod{
 	 * This is corresponding to the ssh key.
 	 */
 	public String userName;
-	
-	@JsonIgnore
-	public EC2Credential ec2Credential;
 	
 	public ArrayList<SubTopologyInfo> topologies;
 	
@@ -150,6 +146,16 @@ public class TopTopology implements TopTopologyMethod{
 		return true;
 	}
 	
+	public SubTopologyInfo getSubtopology(String subTopologyName){
+		if(this.topologies == null)
+			return null;
+		for(int si = 0 ; si < this.topologies.size() ; si++)
+			if(this.topologies.get(si).topology.trim().equals(subTopologyName))
+				return this.topologies.get(si);
+		
+		return null;
+	}
+	
 	/**
 	 * This is a function to check format of all the netmask to a number.
 	 * This function must be invoked in the beginning of function of 'formatChecking'.
@@ -175,7 +181,7 @@ public class TopTopology implements TopTopologyMethod{
 			}else{
 				try {
 					netmaskNum = Integer.parseInt(netmask);
-					if(netmaskNum<=0 || netmaskNum>=32){
+					if(netmaskNum<1 || netmaskNum>32){
 						logger.error("Field 'netmask' of source connection "+this.connections.get(i).name+" should be between 1 and 31 (included)!");
 						return false;
 					}

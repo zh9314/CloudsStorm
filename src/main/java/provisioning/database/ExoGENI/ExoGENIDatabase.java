@@ -1,28 +1,26 @@
 package provisioning.database.ExoGENI;
 
-import java.util.HashMap;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import provisioning.database.Database;
+import provisioning.database.VMMetaInfo;
 
 public class ExoGENIDatabase extends Database{
 
 	private static final Logger logger = Logger.getLogger(ExoGENIDatabase.class);
 	
-	public String apiURL = "https://geni.renci.org:11443/orca/xmlrpc";
+	public String apiURL;
 	
-	public Map<String, String> domainMap = new HashMap<String, String>();
-	public Map<String, OSdata> OSMap = new HashMap<String, OSdata>();
-		
-	public ExoGENIDatabase(){
-		this.toolInfo.put("sengine", "provisioning.engine.SEngine.ExoGENISEngine");
-		initDomainMap();
-		initOS();
-	}
+	public ArrayList<ExoGENIDCMetaInfo> DCMetaInfo;
 	
-	private void initDomainMap(){
+	/*private void initDomainMap(){
 		domainMap.put("RENCI (Chapel Hill, NC USA) XO Rack", "rcivmsite.rdf#rcivmsite");
 		domainMap.put("BBN/GPO (Boston, MA USA) XO Rack", "bbnvmsite.rdf#bbnvmsite");
 		domainMap.put("Duke CS (Durham, NC USA) XO Rack", "dukevmsite.rdf#dukevmsite");
@@ -87,13 +85,61 @@ public class ExoGENIDatabase extends Database{
 				"608a5757ccb2bbe3b3bb5c85e8fa1f2c3e712258"));
 		OSMap.put("perfSonar-v0.3", new OSdata("http://geni-images.renci.org/images/ibaldin/perfSonar/psImage-v0.3/psImage-v0.3.xml", 
 				"e45a2c809729c1eb38cf58c4bff235510da7fde5"));
+	}*/
+
+	@Override
+	public boolean loadDatabase(String dbInfoFile,
+			Map<String, Database> databases) {
+		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+		ExoGENIDatabase exoGENIDatabase = null;
+		try {
+			exoGENIDatabase = mapper.readValue(new File(dbInfoFile), ExoGENIDatabase.class);
+	        	if(exoGENIDatabase == null){
+	        		logger.error("Users's ExoGENI database from "+dbInfoFile+" is invalid!");
+	            	return false;
+	        	}
+		 }catch (Exception e) {
+             logger.error(e.toString());
+             e.printStackTrace();
+             return false;
+         }
+		exoGENIDatabase.toolInfo.put("sengine", "provisioning.engine.SEngine.ExoGENISEngine");
+		databases.put("exogeni", exoGENIDatabase);
+		return true;
 	}
-	
+
+	@Override
+	public String getEndpoint(String domain) {
+		if(domain == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim()))
+				return DCMetaInfo.get(di).endpoint;
+		
+		return null;
+	}
 	
 	@Override
-	public boolean loadDomainInfoFromFile(String filePath) {
-		// TODO Auto-generated method stub
-		return false;
+	public VMMetaInfo getVMMetaInfo(String domain, String OS, String vmType) {
+		if(domain == null || OS == null || vmType == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim())){
+				for(int vi = 0 ; vi < DCMetaInfo.get(di).VMMetaInfo.size() ; vi++){
+					ExoGENIVMMetaInfo curInfo = DCMetaInfo.get(di).VMMetaInfo.get(vi);
+					if(curInfo.OS != null
+				      && curInfo.VMType != null
+				      && OS.trim().equalsIgnoreCase(curInfo.OS.trim())
+				      && vmType.trim().equalsIgnoreCase(curInfo.VMType.trim()))
+						return (VMMetaInfo)curInfo;
+				}
+			}
+				
+		
+		return null;
 	}
+	
 
 }

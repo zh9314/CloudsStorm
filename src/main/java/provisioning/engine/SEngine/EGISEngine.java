@@ -18,8 +18,8 @@ import provisioning.credential.EGICredential;
 import provisioning.credential.SSHKeyPair;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
-import provisioning.database.EGI.DomainInfo;
 import provisioning.database.EGI.EGIDatabase;
+import provisioning.database.EGI.EGIVMMetaInfo;
 import provisioning.engine.VEngine.EGI.EGIAgent;
 import provisioning.engine.VEngine.EGI.EGIVEngine;
 import provisioning.engine.VEngine.EGI.EGIVEngine_createVM;
@@ -46,51 +46,29 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         EGIDatabase egiDatabase = (EGIDatabase) database;
         EGISubTopology egiSubTopology = (EGISubTopology) subTopologyInfo.subTopology;
         String domain = subTopologyInfo.domain.trim().toLowerCase();
-        if (!egiDatabase.domainInfos.containsKey(domain)) {
-            logger.error("Domain '" + domain + "' of sub-topology '" + subTopologyInfo.topology + "' cannot be mapped into some EGI endpoint!");
-            return false;
-        }
-        DomainInfo curDomainInfo = egiDatabase.domainInfos.get(domain);
-        subTopologyInfo.endpoint = curDomainInfo.endpoint;
+        if(subTopologyInfo.endpoint == null){
+			if((subTopologyInfo.endpoint = egiDatabase.getEndpoint(domain)) == null){
+				logger.error("Domain '" + domain + "' of sub-topology '" + subTopologyInfo.topology + "' cannot be mapped into some EGI endpoint!");
+				return false;
+			}
+		}
 
         ////update the information of occi ids (os and resource type).
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
-            String nodeType = curVM.nodeType.toLowerCase().trim();
-            String osType = curVM.OStype.toLowerCase().trim();
-            if (!curDomainInfo.resTpls.containsKey(nodeType + "##" + osType)) {
-                logger.error("The EGI occi ID information of 'OStype' '" + curVM.OStype + "' and 'nodeType' '" + osType + "' in domain '" + domain + "' is not known!");
-                return false;
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
+            String vmType = curVM.nodeType.toLowerCase().trim();
+            String OS = curVM.OStype.toLowerCase().trim();
+            EGIVMMetaInfo egiVMMetaInfo = null;
+            if((egiVMMetaInfo = ((EGIVMMetaInfo)egiDatabase.getVMMetaInfo(domain, OS, vmType))) == null){
+            	 	logger.error("The EGI VM meta information for 'OStype' '" + curVM.OStype + "' and 'nodeType' '" + curVM.nodeType + "' in domain '" + domain + "' is not known!");
+                 return false;
             }
-            curVM.OS_occi_ID = curDomainInfo.resTpls.get(nodeType + "##" + osType).OS_occi_ID;
-            curVM.Res_occi_ID = curDomainInfo.resTpls.get(nodeType + "##" + osType).res_occi_ID;
-            curVM.defaultSSHAccount = curDomainInfo.resTpls.get(nodeType + "##" + osType).defaultSSHAccount;
+            curVM.OS_occi_ID = egiVMMetaInfo.OS_occi_ID;
+            curVM.Res_occi_ID = egiVMMetaInfo.RES_occi_ID;
+            curVM.defaultSSHAccount = egiVMMetaInfo.DefaultSSHAccount;
         }
-
-        return true;
-    }
-
-    private boolean createSubTopology(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
-        EGISubTopology egiSubTopology = (EGISubTopology) subTopologyInfo.subTopology;
-        EGICredential egiCredential = (EGICredential) credential;
-
-        if (egiAgent == null) {
-            egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
-        }
-
-        int rtnum = 0;
-        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
-        		rtnum++;
-        		if(rtnum > egiAgent.retryTimes)
-        			break;
-        		logger.info("Retry to initial EGI client!");
-        }
-        logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
-
-        long provisioningStart = System.currentTimeMillis();
-
-        ////Provisioning VMs based on the occi ids etc.
-        //First, create a key pair for this sub-topology, if there is none.
+        
+        //create a key pair for this sub-topology, if there is none.
         if (egiSubTopology.accessKeyPair == null) {
             String keyPairId = UUID.randomUUID().toString();
             String currentDir = CommonTool.getPathDir(egiSubTopology.loadingPath);
@@ -126,11 +104,40 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             egiSubTopology.accessKeyPair.publicKeyId = keyPairId;
         } else {
             egiSubTopology.accessKeyPair.publicKeyId = egiSubTopology.accessKeyPair.SSHKeyPairId;
+            if(egiSubTopology.accessKeyPair.publicKeyString == null){
+            		logger.error("Sub-topology "+ subTopologyInfo.topology + "cannot be provisioned! Because of missing the SSH public key string for accessing!");
+                return false;
+            }
         }
-        int vmPoolSize = egiSubTopology.components.size();
+
+        return true;
+    }
+
+    private boolean createSubTopology(SubTopologyInfo subTopologyInfo, Credential credential, Database database) {
+        EGISubTopology egiSubTopology = (EGISubTopology) subTopologyInfo.subTopology;
+        EGICredential egiCredential = (EGICredential) credential;
+
+        if (egiAgent == null) {
+            egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
+        }
+
+        int rtnum = 0;
+        while(!egiAgent.initClient(subTopologyInfo.endpoint)){
+        		rtnum++;
+        		if(rtnum > egiAgent.retryTimes)
+        			break;
+        		logger.info("Retry to initial EGI client!");
+        }
+        logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
+
+        long provisioningStart = System.currentTimeMillis();
+
+        ////Provisioning VMs based on the occi ids etc.
+        
+        int vmPoolSize = egiSubTopology.VMs.size();
         ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
 
             EGIVEngine_createVM egiCreateVM = new EGIVEngine_createVM(
                     egiAgent, curVM,
@@ -158,8 +165,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         long provisioningEnd = System.currentTimeMillis();
 
         boolean allSuccess = true;
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             if (curVM.VMResourceID == null || curVM.publicAddress == null) {
                 allSuccess = false;
                 logger.error(curVM.name + " of sub-topology '" + egiSubTopology.topologyName + "' is not provisioned!");
@@ -176,8 +183,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
 
         ////Configure all the inner connections
         ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             String vEngineNameOS = "provisioning.engine.VEngine.EGI.EGIVEngine_";
             if (curVM.OStype.toLowerCase().contains("ubuntu")) {
                 vEngineNameOS += "ubuntu";
@@ -249,13 +256,13 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         EGISubTopology egiSubTopology = (EGISubTopology) subTopologyInfo.subTopology;
         EGICredential egiCredential = (EGICredential) credential;
         EGIDatabase egiDatabase = (EGIDatabase) database;
-        String domain = subTopologyInfo.domain.trim().toLowerCase();
-        if (!egiDatabase.domainInfos.containsKey(domain)) {
-            logger.error("Domain '" + domain + "' of sub-topology '" + subTopologyInfo.topology + "' cannot be mapped into some EGI endpoint!");
-            return false;
-        }
-        DomainInfo curDomainInfo = egiDatabase.domainInfos.get(domain);
-        subTopologyInfo.endpoint = curDomainInfo.endpoint;
+        String domain = subTopologyInfo.domain;
+        if(subTopologyInfo.endpoint == null){
+			if((subTopologyInfo.endpoint = egiDatabase.getEndpoint(domain)) == null){
+				logger.error("Domain '" + domain + "' of sub-topology '" + subTopologyInfo.topology + "' cannot be mapped into some EGI endpoint!");
+				return false;
+			}
+		}
 
         if (egiAgent == null) {
             egiAgent = new EGIAgent(egiCredential.proxyFilePath, egiCredential.trustedCertPath);
@@ -271,9 +278,9 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
         ////Configure all the inter connections
-        ExecutorService executor4conf = Executors.newFixedThreadPool(egiSubTopology.components.size());
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        ExecutorService executor4conf = Executors.newFixedThreadPool(egiSubTopology.VMs.size());
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             String vEngineNameOS = "provisioning.engine.VEngine.EGI.EGIVEngine_";
             if (curVM.OStype.toLowerCase().contains("ubuntu")) {
                 vEngineNameOS += "ubuntu";
@@ -299,7 +306,7 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             int count = 0;
             while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)) {
                 count++;
-                if (count > 200 * egiSubTopology.components.size()) {
+                if (count > 200 * egiSubTopology.VMs.size()) {
                     logger.error("Unknown error! Some VM cannot be configured!");
                     return false;
                 }
@@ -421,8 +428,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             if (curVM.VMResourceID == null) {
                 logger.error("The resource location of " + curVM.name + " is unknown!");
                 returnResult = false;
@@ -505,10 +512,10 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
             egiSubTopology.accessKeyPair.publicKeyId = egiSubTopology.accessKeyPair.SSHKeyPairId;
         }
 
-        int vmPoolSize = egiSubTopology.components.size();
+        int vmPoolSize = egiSubTopology.VMs.size();
         ExecutorService executor4vm = Executors.newFixedThreadPool(vmPoolSize);
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             if (curVM.VMResourceID == null) {
                 logger.error("The resource location of '" + curVM.name + "' in sub-topology '" + egiSubTopology.topologyName + "' cannot be achieved!");
                 return false;
@@ -537,8 +544,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         long startingUpEnd = System.currentTimeMillis();
 
         boolean allSuccess = true;
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             if (curVM.publicAddress == null) {
                 allSuccess = false;
                 logger.error(curVM.name + " of sub-topology '" + egiSubTopology.topologyName + "' is not fully started!");
@@ -555,8 +562,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
 
         ////Just configure all the inner connections
         ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             String vEngineNameOS = "provisioning.engine.VEngine.EGI.EGIVEngine_";
             if (curVM.OStype.toLowerCase().contains("ubuntu")) {
                 vEngineNameOS += "ubuntu";
@@ -640,8 +647,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         }
         logger.debug("Set endpoint for '" + subTopologyInfo.topology + "' as " + subTopologyInfo.endpoint);
 
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             if (curVM.VMResourceID == null) {
                 logger.error("The resource location of " + curVM.name + " is unknown!");
                 returnResult = false;
@@ -664,8 +671,8 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         }
 
         ////clear all the information
-        for (int vi = 0; vi < egiSubTopology.components.size(); vi++) {
-            EGIVM curVM = egiSubTopology.components.get(vi);
+        for (int vi = 0; vi < egiSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = egiSubTopology.VMs.get(vi);
             curVM.publicAddress = null;
             curVM.VMResourceID = null;
         }
@@ -701,9 +708,9 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
         egiSubTopology.loadingPath = currentDir + generatedSTI.topology + ".yml";
         egiSubTopology.topologyName = generatedSTI.topology;
         egiSubTopology.topologyType = "EGI";
-        egiSubTopology.components = new ArrayList<EGIVM>();
-        for (int vi = 0; vi < tempSubTopology.components.size(); vi++) {
-            EGIVM curVM = (EGIVM) tempSubTopology.components.get(vi);
+        egiSubTopology.VMs = new ArrayList<EGIVM>();
+        for (int vi = 0; vi < tempSubTopology.VMs.size(); vi++) {
+            EGIVM curVM = (EGIVM) tempSubTopology.VMs.get(vi);
             EGIVM newVM = new EGIVM();
             newVM.dockers = curVM.dockers;
             newVM.name = curVM.name;
@@ -729,7 +736,7 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
                 }
             }
 
-            egiSubTopology.components.add(newVM);
+            egiSubTopology.VMs.add(newVM);
         }
 
         if (tempSubTopology.connections != null) {
@@ -745,13 +752,11 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
                 newConnection.source.address = curConnection.source.address;
                 newConnection.source.componentName = curConnection.source.componentName;
                 newConnection.source.netmask = curConnection.source.netmask;
-                newConnection.source.portName = curConnection.source.portName;
 
                 newConnection.target = new SubConnectionPoint();
                 newConnection.target.address = curConnection.target.address;
                 newConnection.target.componentName = curConnection.target.componentName;
                 newConnection.target.netmask = curConnection.target.netmask;
-                newConnection.target.portName = curConnection.target.portName;
 
                 egiSubTopology.connections.add(newConnection);
             }
@@ -792,20 +797,18 @@ public class EGISEngine extends SEngine implements SEngineCoreMethod {
                 return null;
             }
             TopConnectionPoint newTCP = new TopConnectionPoint();
-            String[] t_VM = curTCP.componentName.split("\\.");
+            String[] t_VM = curTCP.vmName.split("\\.");
             String VMName = t_VM[1];
-            newTCP.componentName = generatedSTI.topology + "." + VMName;
+            newTCP.vmName = generatedSTI.topology + "." + VMName;
             newTCP.address = availableIP;
             newTCP.netmask = curTCP.netmask;
-            newTCP.portName = curTCP.portName;
 
             //Create a new peer top connection point
             TopConnectionPoint newPeerTCP = new TopConnectionPoint();
             newPeerTCP.address = curTCP.peerTCP.address;
             newPeerTCP.belongingVM = curTCP.peerTCP.belongingVM;
-            newPeerTCP.componentName = curTCP.peerTCP.componentName;
+            newPeerTCP.vmName = curTCP.peerTCP.vmName;
             newPeerTCP.netmask = curTCP.peerTCP.netmask;
-            newPeerTCP.portName = curTCP.peerTCP.portName;
             newPeerTCP.peerTCP = newTCP;
 
             newTCP.peerTCP = newPeerTCP;

@@ -1,82 +1,119 @@
 package provisioning.database.EGI;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import provisioning.database.Database;
+import provisioning.database.VMMetaInfo;
 
 public class EGIDatabase extends Database {
 	private static final Logger logger = Logger.getLogger(EGIDatabase.class);
-	
-	//all the fields are stored in lower case. 
-	//The key here is the domain name, not the endpoint name. E.g. domain name can be 'CESNET', its endpoint name is 'https://carach5.ics.muni.cz:11443'
-	public Map<String, DomainInfo> domainInfos = new HashMap<String, DomainInfo>();
 
-		
-	public EGIDatabase(){
-		this.toolInfo.put("sengine", "provisioning.engine.SEngine.EGISEngine");
-	}
+
+	public ArrayList<EGIDCMetaInfo> DCMetaInfo;
 	
 	
-	/**
-	 * Load the domain information from file. The content is split with "&&".<br/>
-	 * Example: <br/>
-	 * CESNET&&https://carach5.ics.muni.cz:11443&&ubuntu 14.04&&medium&&http://fedcloud.egi.eu/occi/compute/flavour/1.0#medium&&http://occi.carach5.ics.muni.cz/occi/infrastructure/os_tpl#uuid_egi_ubuntu_server_14_04_lts_fedcloud_warg_131&&ubuntu<br/>
-	 * CESNET&&https://carach5.ics.muni.cz:11443&&ubuntu 14.04&&extra_large&&http://schemas.fedcloud.egi.eu/occi/infrastructure/resource_tpl#extra_large&&	http://occi.carach5.ics.muni.cz/occi/infrastructure/os_tpl#uuid_egi_ubuntu_server_14_04_lts_fedcloud_warg_131&&ubuntu<br/>
-	 *
-	 */
-	public boolean loadDomainInfoFromFile(String filePath){
-		File conf = new File(filePath);
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(conf));
-			String line = null;
-			while((line = in.readLine()) != null){
-				String[] infos = line.split("&&");
-				if(infos.length != 7){
-					logger.error("Some information is wrong in the file "+filePath);
-					in.close();
-					return false;
-				}
-				String domainName = infos[0].toLowerCase().trim();
-				String endpoint = infos[1].toLowerCase().trim();
-				String osType = infos[2].toLowerCase().trim();
-				String nodeType = infos[3].toLowerCase().trim();
-				String resTpl = infos[4].toLowerCase().trim();
-				String osTpl = infos[5].toLowerCase().trim();
-				String defaultSSHAccount = infos[6];
-				if(domainInfos.containsKey(domainName)){
-					OS_Res_Tpl curOsRes = new OS_Res_Tpl();
-					curOsRes.OS_occi_ID = osTpl;
-					curOsRes.res_occi_ID = resTpl;
-					curOsRes.defaultSSHAccount = defaultSSHAccount;
-					DomainInfo curDomainInfo = domainInfos.get(domainName);
-					curDomainInfo.resTpls.put(nodeType+"##"+osType, curOsRes);
-				}else{
-					DomainInfo newDomainInfo = new DomainInfo();
-					newDomainInfo.endpoint = endpoint;
-					OS_Res_Tpl curOsRes = new OS_Res_Tpl();
-					curOsRes.OS_occi_ID = osTpl;
-					curOsRes.res_occi_ID = resTpl;
-					curOsRes.defaultSSHAccount = defaultSSHAccount;
-					newDomainInfo.resTpls.put(nodeType+"##"+osType, curOsRes);
-					domainInfos.put(domainName, newDomainInfo);
+	/*public String getOSTPL(String OS, String domain){
+		if(OS == null || domain == null)
+			return null;
+		for(int di = 0 ; di<DCMetaInfo.size() ; di++){
+			EGIDCMetaInfo egiDCMetaInfo = DCMetaInfo.get(di);
+			if(egiDCMetaInfo.domain != null
+				&& domain.trim().equalsIgnoreCase(egiDCMetaInfo.domain.trim())){
+				for(int vi = 0 ; vi<egiDCMetaInfo.VMMetaInfo.size() ; vi++){
+					EGIVMMetaInfo egiVMMetaInfo = egiDCMetaInfo.VMMetaInfo.get(vi);
+					if(egiVMMetaInfo.OS != null
+						&& OS.trim().equalsIgnoreCase(egiVMMetaInfo.OS.trim())){
+						return egiVMMetaInfo.OS_occi_ID;
+					}
 				}
 			}
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			logger.error("The domain infomation of EGI cannot be loaded from "+filePath);
-			return false;
+			
 		}
-		
+		return null;
+	}
+	
+	public String getRESTPL(String vmType, String domain){
+		if(vmType == null || domain == null)
+			return null;
+		for(int di = 0 ; di<DCMetaInfo.size() ; di++){
+			EGIDCMetaInfo egiDCMetaInfo = DCMetaInfo.get(di);
+			if(egiDCMetaInfo.domain != null
+				&& domain.trim().equalsIgnoreCase(egiDCMetaInfo.domain.trim())){
+				for(int vi = 0 ; vi<egiDCMetaInfo.VMMetaInfo.size() ; vi++){
+					EGIVMMetaInfo egiVMMetaInfo = egiDCMetaInfo.VMMetaInfo.get(vi);
+					if(egiVMMetaInfo.VMType != null
+						&& vmType.trim().equalsIgnoreCase(egiVMMetaInfo.VMType.trim())){
+						return egiVMMetaInfo.RES_occi_ID;
+					}
+				}
+			}
+			
+		}
+		return null;
+	}*/
+
+
+	@Override
+	public boolean loadDatabase(String dbInfoFile,
+			Map<String, Database> databases) {
+		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+		EGIDatabase egiDatabase = null;
+		try {
+			egiDatabase = mapper.readValue(new File(dbInfoFile), EGIDatabase.class);
+	        	if(egiDatabase == null){
+	        		logger.error("Users's EGI database from "+dbInfoFile+" is invalid!");
+	            	return false;
+	        	}
+		 }catch (Exception e) {
+             logger.error(e.toString());
+             e.printStackTrace();
+             return false;
+         }
+		egiDatabase.toolInfo.put("sengine", "provisioning.engine.SEngine.EGISEngine");
+		databases.put("egi", egiDatabase);
 		return true;
 	}
 
+
+	@Override
+	public String getEndpoint(String domain) {
+		if(domain == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim()))
+				return DCMetaInfo.get(di).endpoint;
+		
+		return null;
+	}
+
+	
+	@Override
+	public VMMetaInfo getVMMetaInfo(String domain, String OS, String vmType) {
+		if(domain == null || OS == null || vmType == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim())){
+				for(int vi = 0 ; vi < DCMetaInfo.get(di).VMMetaInfo.size() ; vi++){
+					EGIVMMetaInfo curInfo = DCMetaInfo.get(di).VMMetaInfo.get(vi);
+					if(curInfo.OS != null
+				      && curInfo.VMType != null
+				      && OS.trim().equalsIgnoreCase(curInfo.OS.trim())
+				      && vmType.trim().equalsIgnoreCase(curInfo.VMType.trim()))
+						return (VMMetaInfo)curInfo;
+				}
+			}
+				
+		
+		return null;
+	}
 
 }

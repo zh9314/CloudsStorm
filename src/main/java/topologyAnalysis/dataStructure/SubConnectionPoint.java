@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class SubConnectionPoint {
 	
 	public String componentName;
-	public String portName;
+	//public String portName;
 	public String netmask;
 	public String address;
 	

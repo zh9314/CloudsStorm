@@ -1,111 +1,99 @@
 package provisioning.database.EC2;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import provisioning.database.Database;
+import provisioning.database.VMMetaInfo;
 
 public class EC2Database extends Database {
 	
 	private static final Logger logger = Logger.getLogger(EC2Database.class);
 	
-	public EC2Database(){
-		this.toolInfo.put("sengine", "provisioning.engine.SEngine.EC2SEngine");
-	}
+	public ArrayList<EC2DCMetaInfo> DCMetaInfo;
 	
-	//Example, key -> virginia, value -> ec2.us-east-1.amazonaws.com
-	public Map<String, String> domain_endpoint = new HashMap<String, String>();
-	
-	//Example, OS -> ubuntu 16.04, domain -> virginia, AMI -> ami-40d28157
-	//all the fields are stored in lower case.
-	public ArrayList<AmiInfo> amiInfo = new ArrayList<AmiInfo>();
 	
 	/**
 	 * Get the ami string according to the OS and domain.
 	 * Null is returned if there is no such ami.
 	 */
 	public String getAMI(String OS, String domain){
-		for(int ai = 0 ; ai < amiInfo.size() ; ai++){
-			if(amiInfo.get(ai).OS.equals(OS.trim().toLowerCase()) 
-				&& amiInfo.get(ai).domain.equals(domain.trim().toLowerCase())){
-				return amiInfo.get(ai).AMI;
+		if(OS == null || domain == null)
+			return null;
+		for(int di = 0 ; di<DCMetaInfo.size() ; di++){
+			EC2DCMetaInfo ec2DCMetaInfo = DCMetaInfo.get(di);
+			if(ec2DCMetaInfo.domain != null
+				&& domain.trim().equalsIgnoreCase(ec2DCMetaInfo.domain.trim())){
+				for(int vi = 0 ; vi<ec2DCMetaInfo.VMMetaInfo.size() ; vi++){
+					EC2VMMetaInfo ec2VMMetaInfo = ec2DCMetaInfo.VMMetaInfo.get(vi);
+					if(ec2VMMetaInfo.OS != null
+						&& OS.trim().equalsIgnoreCase(ec2VMMetaInfo.OS.trim())){
+						return ec2VMMetaInfo.AMI;
+					}
+				}
 			}
+			
 		}
 		return null;
 	}
-	
-	/**
-	 * Load the domain information from file. The content is split with "&&".<br/>
-	 * Example: <br/>
-	 * Virginia&&ec2.us-east-1.amazonaws.com<br/>
-	 * Ohio&&ec2.us-east-2.amazonaws.com<br/>
-	 * California&&ec2.us-west-1.amazonaws.com<br/>
-	 */
-	public boolean loadDomainInfoFromFile(String filePath){
-		File conf = new File(filePath);
+
+	@Override
+	public boolean loadDatabase(String dbInfoPath, Map<String, Database> databases) {
+		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+		EC2Database ec2Database = null;
 		try {
-			BufferedReader in = new BufferedReader(new FileReader(conf));
-			String line = null;
-			while((line = in.readLine()) != null){
-				String[] infos = line.split("&&");
-				if(infos.length != 2){
-					logger.error("Some information is wrong in the file "+filePath);
-					in.close();
-					return false;
-				}
-				domain_endpoint.put(infos[0].trim().toLowerCase(), infos[1]);
-			}
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			logger.error("The domain infomation of EC2 cannot be loaded from "+filePath);
-			return false;
-		}
-		
+			ec2Database = mapper.readValue(new File(dbInfoPath), EC2Database.class);
+	        	if(ec2Database == null){
+	        		logger.error("Users's EC2 database from "+dbInfoPath+" is invalid!");
+	            	return false;
+	        	}
+		 }catch (Exception e) {
+             logger.error(e.toString());
+             e.printStackTrace();
+             return false;
+         }
+		ec2Database.toolInfo.put("sengine", "provisioning.engine.SEngine.EC2SEngine");
+		databases.put("ec2", ec2Database);
 		return true;
 	}
-	
-	
-	/**
-	 * Load the AMI information from file. The content is split with "&&".<br/>
-	 * Example: <br/>
-	 * Ubuntu 14.04&&Virginia&&ami-2d39803a  <br/>
-	 * Ubuntu 14.04&&California&&ami-48db9d28
-	 */
-	public boolean loadAmiFromFile(String filePath){
-		File conf = new File(filePath);
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(conf));
-			String line = null;
-			while((line = in.readLine()) != null){
-				String[] infos = line.split("&&");
-				if(infos.length != 3){
-					logger.error("Some information is wrong in the file "+filePath);
-					in.close();
-					return false;
+
+	@Override
+	public String getEndpoint(String domain) {
+		if(domain == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim()))
+				return DCMetaInfo.get(di).endpoint;
+		
+		return null;
+	}
+
+	@Override
+	public VMMetaInfo getVMMetaInfo(String domain, String OS, String vmType) {
+		if(domain == null || OS == null || vmType == null)
+			return null;
+		for(int di = 0 ; di < DCMetaInfo.size(); di++)
+			if(DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim())){
+				for(int vi = 0 ; vi < DCMetaInfo.get(di).VMMetaInfo.size() ; vi++){
+					EC2VMMetaInfo curInfo = DCMetaInfo.get(di).VMMetaInfo.get(vi);
+					if(curInfo.OS != null
+				      && curInfo.VMType != null
+				      && OS.trim().equalsIgnoreCase(curInfo.OS.trim())
+				      && vmType.trim().equalsIgnoreCase(curInfo.VMType.trim()))
+						return (VMMetaInfo)curInfo;
 				}
-				AmiInfo ami = new AmiInfo();
-				ami.OS = infos[0].trim().toLowerCase();
-				ami.domain = infos[1].trim().toLowerCase();
-				ami.AMI = infos[2];
-				amiInfo.add(ami);
 			}
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			logger.error("The AMI infomation of EC2 cannot be loaded from "+filePath);
-			return false;
+				
 		
-		}
-		
-		return true;
+		return null;
 	}
 
 }

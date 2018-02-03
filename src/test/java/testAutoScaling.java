@@ -5,7 +5,6 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
-import provisioning.credential.SSHKeyPair;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.UserDatabase;
@@ -43,25 +42,13 @@ public class testAutoScaling {
 		if(userCredential.cloudAccess == null)
 			userCredential.cloudAccess = new HashMap<String, Credential>();
 		userCredential.cloudAccess.put("ec2", ec2Credential);
-		ArrayList<SSHKeyPair> sshKeyPairs = userCredential.loadSSHKeyPairFromFile(currentDir);
-		if(sshKeyPairs == null){
-			logger.error("Error happens during loading ssh key pairs!");
-			return;
-		}
-		if(sshKeyPairs.size() == 0){
-			logger.warn("No ssh key pair is loaded!");
-		}else{
-			if(!userCredential.initial(sshKeyPairs, tam.wholeTopology)){
-				logger.error("Error happens during initializing the ssh keys for accessing the clouds!");
-				return ;
-			}
-		}
+		userCredential.initalSSHKeys(currentDir, tam.wholeTopology);
 		
 		///Initial Database
 		UserDatabase userDatabase = new UserDatabase();
 		EC2Database ec2Database = new EC2Database();
-		ec2Database.loadDomainInfoFromFile(currentDir+"domains");
-		ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
+		//ec2Database.loadDomainInfoFromFile(currentDir+"domains");
+		//ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
 		if(userDatabase.databases == null)
 			userDatabase.databases = new HashMap<String, Database>();
 		userDatabase.databases.put("ec2", ec2Database);

@@ -6,7 +6,6 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
-import java.util.logging.Level;
 
 import topologyAnalysis.dataStructure.EGI.EGIVM;
 
@@ -51,7 +50,7 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable {
                 stateEndTime = System.currentTimeMillis();
                 count++;
             } catch (InterruptedException ex) {
-                java.util.logging.Logger.getLogger(EGIVEngine_createVM.class.getName()).log(Level.SEVERE, null, ex);
+                logger.error("Unexpected! " + ex);
             }
         }
         stateEndTime = System.currentTimeMillis();
@@ -109,7 +108,7 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable {
                 Thread.sleep(100);
                 sshEndTime = System.currentTimeMillis();
             } catch (InterruptedException ex) {
-                java.util.logging.Logger.getLogger(EGIVEngine_createVM.class.getName()).log(Level.SEVERE, null, ex);
+            		logger.error("Unexpected! " + ex);
             }
         }
         logger.info(curVM.name + " (" + publicAddress + ") is not activated!");
@@ -130,7 +129,7 @@ public class EGIVEngine_createVM extends EGIVEngine implements Runnable {
             new Shell.Plain(shell).exec(cmd);
             alive = true;
         } catch (Exception ex) {
-//            java.util.logging.Logger.getLogger(EGIVEngine_createVM.class.getName()).log(Level.INFO, null, ex);
+        		logger.error("Unexpected! " + ex);
         }
         return alive;
     }

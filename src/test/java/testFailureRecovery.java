@@ -1,8 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
+
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -11,7 +7,6 @@ import provisioning.credential.Credential;
 import provisioning.credential.EC2Credential;
 import provisioning.credential.EGICredential;
 import provisioning.credential.ExoGENICredential;
-import provisioning.credential.SSHKeyPair;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.UserDatabase;
@@ -19,7 +14,6 @@ import provisioning.database.EC2.EC2Database;
 import provisioning.database.EGI.EGIDatabase;
 import provisioning.database.ExoGENI.ExoGENIDatabase;
 import provisioning.engine.TEngine.TEngine;
-import provisioning.request.RecoverRequest;
 import topologyAnalysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
@@ -63,27 +57,15 @@ public class testFailureRecovery {
 		userCredential.cloudAccess.put("egi", egiCredential);
 		userCredential.cloudAccess.put("exogeni", exoGENICredential);
 		
-		ArrayList<SSHKeyPair> sshKeyPairs = userCredential.loadSSHKeyPairFromFile(currentDir);
-		if(sshKeyPairs == null){
-			logger.error("Error happens during loading ssh key pairs!");
-			return;
-		}
-		if(sshKeyPairs.size() == 0){
-			logger.warn("No ssh key pair is loaded!");
-		}else{
-			if(!userCredential.initial(sshKeyPairs, tam.wholeTopology)){
-				logger.error("Error happens during initializing the ssh keys for accessing the clouds!");
-				return ;
-			}
-		}
+		userCredential.initalSSHKeys(currentDir, tam.wholeTopology);
 		
 		///Initial Database
 		UserDatabase userDatabase = new UserDatabase();
 		EC2Database ec2Database = new EC2Database();
-		ec2Database.loadDomainInfoFromFile(currentDir+"domains");
-		ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
+		//ec2Database.loadDomainInfoFromFile(currentDir+"domains");
+		//ec2Database.loadAmiFromFile(currentDir+"OS_Domain_AMI");
 		EGIDatabase egiDatabase = new EGIDatabase();
-		egiDatabase.loadDomainInfoFromFile(currentDir+"EGI_Domain_Info");
+		//egiDatabase.loadDomainInfoFromFile(currentDir+"EGI_Domain_Info");
 		ExoGENIDatabase exoGENIDatabase = new ExoGENIDatabase();
 		
 		if(userDatabase.databases == null)

@@ -29,7 +29,7 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
 	public String duration;
 	
 	//Indicate different VMs.
-	public ArrayList<ExoGENIVM> components;
+	public ArrayList<ExoGENIVM> VMs;
 
 	@Override
 	public boolean loadSubTopology(String topologyPath) {
@@ -43,7 +43,7 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
         	this.loadingPath = topologyPath;
         	this.subnets = exoGENISubTopology.subnets;
         	this.connections = exoGENISubTopology.connections;
-        	this.components = exoGENISubTopology.components;
+        	this.VMs = exoGENISubTopology.VMs;
         	this.duration = exoGENISubTopology.duration;
         	this.sliceName = exoGENISubTopology.sliceName;
         	logger.info("Sub-topology of ExoGENI from "+topologyPath+" is loaded without validation successfully!");
@@ -189,9 +189,9 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
 
 	@Override
 	public VM getVMinSubClassbyName(String vmName) {
-		for(int i = 0 ; i<components.size() ; i++){
-			if(components.get(i).name.equals(vmName)){
-				return components.get(i);
+		for(int i = 0 ; i<VMs.size() ; i++){
+			if(VMs.get(i).name.equals(vmName)){
+				return VMs.get(i);
 			}
 		}
 		return null;
@@ -199,11 +199,11 @@ public class ExoGENISubTopology extends SubTopology implements SubTopologyMethod
 
 	@Override
 	public ArrayList<VM> getVMsinSubClass() {
-		if(components.size() == 0)
+		if(VMs.size() == 0)
 			return null;
 		ArrayList<VM> vms = new ArrayList<VM>();
-		for(int i = 0 ; i<components.size() ; i++)
-			vms.add(components.get(i));
+		for(int i = 0 ; i<VMs.size() ; i++)
+			vms.add(VMs.get(i));
 		return vms;
 	}
 

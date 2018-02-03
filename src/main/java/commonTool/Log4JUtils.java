@@ -7,7 +7,6 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.log4j.SimpleLayout;
 
 public class Log4JUtils {
 	
@@ -16,9 +15,31 @@ public class Log4JUtils {
 	public static boolean setErrorLogFile(String outputPath){
 		Logger root = Logger.getRootLogger();
 		try {
-			FileAppender appender = new FileAppender(new SimpleLayout(), outputPath, false);
+			//FileAppender appender = new FileAppender(new SimpleLayout(), outputPath, false);
+			PatternLayout patternLayout = new PatternLayout();
+			patternLayout.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] [%c.%M]	%m%n");
+			FileAppender appender = new FileAppender(patternLayout, outputPath, true);
 			
 			appender.setThreshold(Level.ERROR);
+			
+			root.addAppender(appender);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}    
+		return true;
+	}
+	
+	public static boolean setWarnLogFile(String outputPath){
+		Logger root = Logger.getRootLogger();
+		try {
+			//FileAppender appender = new FileAppender(new SimpleLayout(), outputPath, false);
+			PatternLayout patternLayout = new PatternLayout();
+			patternLayout.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] [%c.%M]	%m%n");
+			FileAppender appender = new FileAppender(patternLayout, outputPath, true);
+			
+			appender.setThreshold(Level.WARN);
 			
 			root.addAppender(appender);
 
@@ -48,14 +69,14 @@ public class Log4JUtils {
 		return true;
 	}
 	
-	public static boolean setSystemOutputLogFile(){
+	public static boolean setSystemOutputLogFile(Level logLevel){
 		Logger root = Logger.getRootLogger();
 		
 		PatternLayout patternLayout = new PatternLayout();
 		patternLayout.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] [%c.%M]	%m%n");
 		ConsoleAppender appender = new ConsoleAppender(patternLayout);
 		
-		appender.setThreshold(Level.DEBUG);
+		appender.setThreshold(logLevel);
 		
 		root.addAppender(appender);
 		

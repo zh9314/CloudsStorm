@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 //This is the connection point definition in the top level description file.
 public class TopConnectionPoint{
-	public String componentName;
-	public String portName;
+	public String vmName;
+	//public String portName;
 	public String netmask;
 	public String address;
 	

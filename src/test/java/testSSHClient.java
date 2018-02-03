@@ -1,13 +1,7 @@
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.output.NullOutputStream;
-import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
@@ -15,7 +9,7 @@ import com.jcabi.ssh.Shell;
 
 public class testSSHClient {
 
-	private static final Logger logger = Logger.getLogger(testSSHClient.class);
+	//private static final Logger logger = Logger.getLogger(testSSHClient.class);
 	
 	public static void main(String[] args) {
 		long start = System.currentTimeMillis();

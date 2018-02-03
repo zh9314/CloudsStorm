@@ -35,6 +35,34 @@ public class CommonTool {
         }
         return outputDir;
     }
+    
+    /**
+     * Get rid of all the '\n' and ' ' in the tail.
+     * @return
+     */
+    public static String formatString(String input){
+    		int endIndex;
+    		for(endIndex = input.length()-1 ; endIndex >= 0 ; endIndex--){
+    			if(input.charAt(endIndex) != '\n'
+    				&& input.charAt(endIndex) != ' ')
+    				break;
+    		}
+    		String output = input.substring(0, endIndex+1);
+    		return output;
+    }
+    
+    public static String getDirName(String dirPath){
+	    	String dirName = dirPath;
+	    	// this dir path ends up with file separator
+	    	if (dirPath.lastIndexOf(File.separator) == dirPath.length() - 1) 
+	    		dirName = dirPath.substring(0, dirPath.length() - 1);
+	    	int index = dirName.lastIndexOf(File.separator);
+	    	if(index != -1)
+	    		return dirName.substring(index+1);
+	    	else
+	    		return dirName;
+    		
+    }
 
     /**
      * The input is a file path. The output is the directory path of the file.
@@ -106,7 +134,7 @@ public class CommonTool {
     }
 
     /**
-     * Convert netmask int to string (255.255.255.0 returned if nm > 32 or nm <
+     * Convert netmask int to string (null returned if nm > 32 or nm <
      * 1)
 	 * @
      *
@@ -115,7 +143,7 @@ public class CommonTool {
      */
     public static String netmaskIntToString(int nm) {
         if ((nm > 32) || (nm < 1)) {
-            return "255.255.255.0";
+            return null;
         } else {
             return netmaskConverter[nm - 1];
         }
@@ -303,15 +331,13 @@ public class CommonTool {
             TopConnectionPoint tcp) {
         TopConnection resultCon = null;
         for (int ti = 0; ti < topConnections.size(); ti++) {
-            if (topConnections.get(ti).source.portName.equals(tcp.portName)
-                    && topConnections.get(ti).source.address.equals(tcp.address)
-                    && topConnections.get(ti).source.componentName.equals(tcp.componentName)) {
+            if (topConnections.get(ti).source.address.equals(tcp.address)
+                    && topConnections.get(ti).source.vmName.equals(tcp.vmName)) {
                 resultCon = topConnections.get(ti);
                 break;
             }
-            if (topConnections.get(ti).target.portName.equals(tcp.portName)
-                    && topConnections.get(ti).target.address.equals(tcp.address)
-                    && topConnections.get(ti).target.componentName.equals(tcp.componentName)) {
+            if (topConnections.get(ti).target.address.equals(tcp.address)
+                    && topConnections.get(ti).target.vmName.equals(tcp.vmName)) {
                 resultCon = topConnections.get(ti);
                 break;
             }

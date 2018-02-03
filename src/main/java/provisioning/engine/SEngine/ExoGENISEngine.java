@@ -19,6 +19,7 @@ import provisioning.credential.SSHKeyPair;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.ExoGENI.ExoGENIDatabase;
+import provisioning.database.ExoGENI.ExoGENIVMMetaInfo;
 import provisioning.engine.VEngine.ExoGENI.ExoGENIAgent;
 import provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine;
 import topologyAnalysis.dataStructure.Eth;
@@ -51,38 +52,26 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		///Update the endpoint information
 		ExoGENIDatabase exoGENIDatabase = (ExoGENIDatabase)database;
 		ExoGENISubTopology exoGENISubTopology = (ExoGENISubTopology)subTopologyInfo.subTopology;
-		String domain = subTopologyInfo.domain;
-		if(exoGENIDatabase.domainMap.containsKey(domain)){
-			if((subTopologyInfo.endpoint = exoGENIDatabase.domainMap.get(domain)) == null){
-				logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some ExoGENI endpoint!");
-				return false;
-			}
-		}else{
-			logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' is not a valid ExoGENI domain!");
+		String domain = subTopologyInfo.domain.trim().toLowerCase();
+		if((subTopologyInfo.endpoint = exoGENIDatabase.getEndpoint(domain)) == null){
+			logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some ExoGENI endpoint!");
 			return false;
 		}
+
 		
-		
-		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
-			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
-			String OS = curVM.OStype;
+		for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.VMs.get(vi);
+			String OS = curVM.OStype.trim().toLowerCase();
+			String vmType = curVM.nodeType.toLowerCase().trim();
 			curVM.endpoint = subTopologyInfo.endpoint;
-			if(exoGENIDatabase.OSMap.containsKey(OS)){
-				if((curVM.OSguid = exoGENIDatabase.OSMap.get(OS).OSguid) == null){
-					logger.error("The ExoGENI 'OSguid' of VM '"+curVM.name+"' is not known!");
-					return false;
-				}
-				if((curVM.OSurl = exoGENIDatabase.OSMap.get(OS).OSurl) == null){
-					logger.error("The ExoGENI 'OSurl' of VM '"+curVM.name+"' is not known!");
-					return false;
-				}
-			}else{
-				logger.error("The ExoGENI 'OStype' '"+OS+"' in domain '"+domain+"' is not known!");
-				return false;
-			}
-			
-			////for exogeni, the default account for all the VMs are 'root'
-			curVM.defaultSSHAccount = "root";
+			ExoGENIVMMetaInfo exoGENIVMMetaInfo = null;
+            if((exoGENIVMMetaInfo = ((ExoGENIVMMetaInfo)exoGENIDatabase.getVMMetaInfo(domain, OS, vmType))) == null){
+            	 	logger.error("The ExoGENI VM meta information for 'OStype' '" + curVM.OStype + "' and 'nodeType' '" + curVM.nodeType + "' in domain '" + domain + "' is not known!");
+                 return false;
+            }
+            curVM.OSguid = exoGENIVMMetaInfo.OSguid;
+            curVM.OSurl = exoGENIVMMetaInfo.OSurl;
+            curVM.defaultSSHAccount = exoGENIVMMetaInfo.DefaultSSHAccount;
 		}
 		
 		////only when there is no slice name, we need to generate one.
@@ -140,13 +129,17 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		
 		long provisioningStart = System.currentTimeMillis();
 		boolean result = exoGENIAgent.createSlice(exoGENISubTopology);
+		if(!result){
+			logger.error("Error happens during provisioning for "+subTopologyInfo.topology+"!");
+			return false;
+		}
 		long provisioningEnd = System.currentTimeMillis();
 		
 		////Configure for ssh account and set ssh max client
-		int vmPoolSize = exoGENISubTopology.components.size();
+		int vmPoolSize = exoGENISubTopology.VMs.size();
 		ExecutorService executor4conf = Executors.newFixedThreadPool(vmPoolSize);
-		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
-			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+		for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -224,9 +217,9 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		ExoGENISubTopology exoGENISubTopology = (ExoGENISubTopology)subTopologyInfo.subTopology;
 		ExoGENICredential exoGENICredential = (ExoGENICredential)credential;
 		ExoGENIDatabase exoGENIDatabase = (ExoGENIDatabase)database;
-		String domain = subTopologyInfo.domain.trim().toLowerCase();
+		String domain = subTopologyInfo.domain;
 		if(subTopologyInfo.endpoint == null){
-			if((subTopologyInfo.endpoint = exoGENIDatabase.domainMap.get(domain)) == null){
+			if((subTopologyInfo.endpoint = exoGENIDatabase.getEndpoint(domain)) == null){
 				logger.error("Domain '"+domain+"' of sub-topology '"+subTopologyInfo.topology+"' cannot be mapped into some ExoGENI endpoint!");
 				return false;
 			}
@@ -238,9 +231,9 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		logger.debug("Endpoint for '"+subTopologyInfo.topology+"' is "+subTopologyInfo.endpoint);
 		
 		////Configure all the inter connections
-		ExecutorService executor4conf = Executors.newFixedThreadPool(exoGENISubTopology.components.size());
-		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
-			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+		ExecutorService executor4conf = Executors.newFixedThreadPool(exoGENISubTopology.VMs.size());
+		for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -266,7 +259,7 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 			int count = 0;
 			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
-				if(count > 200*exoGENISubTopology.components.size()){
+				if(count > 200*exoGENISubTopology.VMs.size()){
 					logger.error("Unknown error! Some VM cannot be configured!");
 					return false;
 				}
@@ -305,9 +298,9 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		if(subTopologyInfo.connectors == null || subTopologyInfo.connectors.size() == 0)
 			return true;
 		
-		ExecutorService executor4conf = Executors.newFixedThreadPool(exoGENISubTopology.components.size());
-		for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
-			ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+		ExecutorService executor4conf = Executors.newFixedThreadPool(exoGENISubTopology.VMs.size());
+		for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = exoGENISubTopology.VMs.get(vi);
 			String vEngineNameOS = "provisioning.engine.VEngine.ExoGENI.ExoGENIVEngine_";
 			if(curVM.OStype.toLowerCase().contains("ubuntu"))
 				vEngineNameOS += "ubuntu";
@@ -333,7 +326,7 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 			int count = 0;
 			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
-				if(count > 200*exoGENISubTopology.components.size()){
+				if(count > 200*exoGENISubTopology.VMs.size()){
 					logger.error("Unknown error! Some VM cannot be configured!");
 					return false;
 				}
@@ -431,8 +424,8 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		boolean result = exoGENIAgent.deleteSlice(exoGENISubTopology);
 		if(result){
 			////clear all the information
-			for(int vi = 0 ; vi < exoGENISubTopology.components.size() ; vi++){
-				ExoGENIVM curVM = exoGENISubTopology.components.get(vi);
+			for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+				ExoGENIVM curVM = exoGENISubTopology.VMs.get(vi);
 				curVM.publicAddress = null;
 			}
 		}
@@ -471,9 +464,9 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 		exoGENIsubTopology.topologyName = generatedSTI.topology;
 		exoGENIsubTopology.topologyType = "ExoGENI";
 		exoGENIsubTopology.duration = ((ExoGENISubTopology)scalingTemplate.subTopology).duration;
-		exoGENIsubTopology.components = new ArrayList<ExoGENIVM>();
-		for(int vi = 0 ; vi < tempSubTopology.components.size() ; vi++){
-			ExoGENIVM curVM = (ExoGENIVM)tempSubTopology.components.get(vi);
+		exoGENIsubTopology.VMs = new ArrayList<ExoGENIVM>();
+		for(int vi = 0 ; vi < tempSubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = (ExoGENIVM)tempSubTopology.VMs.get(vi);
 			ExoGENIVM newVM = new ExoGENIVM();
 			newVM.dockers = curVM.dockers;
 			newVM.name = curVM.name;
@@ -495,7 +488,7 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 				}
 			}
 			
-			exoGENIsubTopology.components.add(newVM);
+			exoGENIsubTopology.VMs.add(newVM);
 		}
 		
 		
@@ -524,13 +517,11 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 				newConnection.source.address = curConnection.source.address;
 				newConnection.source.componentName = curConnection.source.componentName;
 				newConnection.source.netmask = curConnection.source.netmask;
-				newConnection.source.portName = curConnection.source.portName;
 				
 				newConnection.target = new SubConnectionPoint();
 				newConnection.target.address = curConnection.target.address;
 				newConnection.target.componentName = curConnection.target.componentName;
 				newConnection.target.netmask = curConnection.target.netmask;
-				newConnection.target.portName = curConnection.target.portName;
 				
 				exoGENIsubTopology.connections.add(newConnection);
 			}
@@ -570,20 +561,18 @@ public class ExoGENISEngine extends SEngine implements SEngineCoreMethod{
 				return null;
 			}
 			TopConnectionPoint newTCP = new TopConnectionPoint();
-			String [] t_VM = curTCP.componentName.split("\\.");
+			String [] t_VM = curTCP.vmName.split("\\.");
 			String VMName = t_VM[1]; 
-			newTCP.componentName = generatedSTI.topology + "." + VMName;
+			newTCP.vmName = generatedSTI.topology + "." + VMName;
 			newTCP.address = availableIP;
 			newTCP.netmask = curTCP.netmask;
-			newTCP.portName = curTCP.portName;
 			
 			//Create a new peer top connection point
 			TopConnectionPoint newPeerTCP = new TopConnectionPoint();
 			newPeerTCP.address = curTCP.peerTCP.address;
 			newPeerTCP.belongingVM = curTCP.peerTCP.belongingVM;
-			newPeerTCP.componentName = curTCP.peerTCP.componentName;
+			newPeerTCP.vmName = curTCP.peerTCP.vmName;
 			newPeerTCP.netmask = curTCP.peerTCP.netmask;
-			newPeerTCP.portName = curTCP.peerTCP.portName;
 			newPeerTCP.peerTCP = newTCP;
 			
 			newTCP.peerTCP = newPeerTCP;

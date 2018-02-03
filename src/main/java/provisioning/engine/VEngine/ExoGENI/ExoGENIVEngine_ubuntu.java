@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -13,8 +14,8 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
-import commonTool.CommonTool;
 
+import commonTool.CommonTool;
 import provisioning.engine.VEngine.VEngineCoreMethod;
 import topologyAnalysis.dataStructure.TopConnectionPoint;
 
@@ -35,6 +36,30 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		logger.debug("confFilePath: "+confFilePath);
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
+		
+		////Configure for all top self connections
+		if(this.curVM.selfEthAddresses != null){
+			int count = 0;
+			for(Map.Entry<String, Boolean> entry : curVM.selfEthAddresses.entrySet()){
+				if(!entry.getValue()){
+					String linkName = "self_"+count;
+					String remotePubAddress = curVM.publicAddress;
+					String [] addrNm = entry.getKey().split("/");
+					String localPrivateAddress = addrNm[0];
+					String netmask = addrNm[1];
+					int netmaskNum = CommonTool.netmaskStringToInt(netmask);
+					String subnet = CommonTool.getSubnet(localPrivateAddress, netmaskNum);
+					
+					fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+					fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
+					fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
+					fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
+					fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
+					fw.flush();
+					entry.setValue(true);
+				}
+			}
+		}
 		
 		////Configure for topconnections
 		if(this.topConnectors != null){
@@ -165,7 +190,10 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 
 	@Override
 	public void sshConf() {
-		
+		if (userName == null || publicKeyString == null) {
+            logger.warn("The username is not specified! Unified ssh account will not be configured!");
+            return;
+        }
 		String runFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "runSSH_" + curVM.name + System.nanoTime() + ".sh";
 		String pubFilePath = System.getProperty("java.io.tmpdir") + File.separator 
@@ -176,56 +204,54 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		try {
 			
 			fw = new FileWriter(runFilePath, false);
-			if(userName != null && publicKeyString != null){
-				fw.write("useradd -d \"/home/"+userName+"\" -m -s \"/bin/bash\" "+userName+"\n");
-				fw.write("mkdir /home/"+userName+"/.ssh \n");
-				fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
-				fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
-				fw.write("chmod 400 id_rsa\n");
-				fw.write("mv id_rsa /home/"+userName+"/.ssh/id_rsa\n");
-				fw.write("rm id_rsa.pub\n");
-			    fw.write("chmod 740 /etc/sudoers \n");
-			    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
-			    fw.write("chmod 440 /etc/sudoers \n");
-			    fw.write("chown -R "+userName+":"+userName+" /home/"+userName+"/.ssh/\n");
-			}else{
-				logger.warn("The username is not specified! Unified ssh account will not be configured!");
-				
-			}
+			fw.write("useradd -d \"/home/"+userName+"\" -m -s \"/bin/bash\" "+userName+"\n");
+			fw.write("mkdir /home/"+userName+"/.ssh \n");
+			fw.write("mv user.pub /home/"+userName+"/.ssh/authorized_keys \n");
+			fw.write("cat id_rsa.pub >> /home/"+userName+"/.ssh/authorized_keys \n");
+			fw.write("cat id_rsa.pub >> /root/.ssh/authorized_keys \n");
+			fw.write("chmod 400 id_rsa\n");
+			fw.write("cp id_rsa /home/"+userName+"/.ssh/id_rsa\n");
+			fw.write("cp id_rsa /root/.ssh/id_rsa\n");
+			fw.write("rm id_rsa.pub id_rsa\n");
+		    fw.write("chmod 740 /etc/sudoers \n");
+		    fw.write("echo \""+userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
+		    fw.write("chmod 440 /etc/sudoers \n");
+		    fw.write("chown -R "+userName+":"+userName+" /home/"+userName+"/.ssh/\n");
+			
 		    
 		    ////used for reconfigure the ssh max connections.
-		    fw.write("echo \"MaxStartups 5000\" >> /etc/ssh/sshd_config\n");
-		    fw.write("/etc/init.d/ssh restart\n");
+		    //fw.write("echo \"MaxStartups 5000\" >> /etc/ssh/sshd_config\n");
+		    //fw.write("/etc/init.d/ssh restart\n");
 		    fw.close();
 		    
 		    Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 		    
-		    if(userName != null && publicKeyString != null){
-		   		fw = new FileWriter(pubFilePath, false);
-				fw.write(this.publicKeyString);
-				fw.close();
-		    		File pubFile = new File(pubFilePath);
-				new Shell.Safe(shell).exec(
-						  "cat > user.pub",
-						  new FileInputStream(pubFile),
-						  new NullOutputStream(), new NullOutputStream()
-						);
-				String clusterPubKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa.pub";
-				File clusterPubKey = new File(clusterPubKeyPath);
-				new Shell.Safe(shell).exec(
-						  "cat > id_rsa.pub",
-						  new FileInputStream(clusterPubKey),
-						  new NullOutputStream(), new NullOutputStream()
-						);
-				String clusterPriKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa";
-				File clusterPriKey = new File(clusterPriKeyPath);
-				new Shell.Safe(shell).exec(
-						  "cat > id_rsa",
-						  new FileInputStream(clusterPriKey),
-						  new NullOutputStream(), new NullOutputStream()
-						);
-				FileUtils.deleteQuietly(pubFile);
-		    }
+
+	   		fw = new FileWriter(pubFilePath, false);
+			fw.write(this.publicKeyString);
+			fw.close();
+	    		File pubFile = new File(pubFilePath);
+			new Shell.Safe(shell).exec(
+					  "cat > user.pub",
+					  new FileInputStream(pubFile),
+					  new NullOutputStream(), new NullOutputStream()
+					);
+			String clusterPubKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa.pub";
+			File clusterPubKey = new File(clusterPubKeyPath);
+			new Shell.Safe(shell).exec(
+					  "cat > id_rsa.pub",
+					  new FileInputStream(clusterPubKey),
+					  new NullOutputStream(), new NullOutputStream()
+					);
+			String clusterPriKeyPath = this.currentDir + "clusterKeyPair" + File.separator + "id_rsa";
+			File clusterPriKey = new File(clusterPriKeyPath);
+			new Shell.Safe(shell).exec(
+					  "cat > id_rsa",
+					  new FileInputStream(clusterPriKey),
+					  new NullOutputStream(), new NullOutputStream()
+					);
+			FileUtils.deleteQuietly(pubFile);
+		  
 			
 		    File sshFile = new File(runFilePath);
 			new Shell.Safe(shell).exec(
@@ -233,7 +259,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 			  new FileInputStream(sshFile),
 			  new NullOutputStream(), new NullOutputStream()
 			);
-			Thread.sleep(1000);
+			//Thread.sleep(1000);
 			new Shell.Safe(shell).exec(
 					  "rm sshconf.sh",
 					  null,
@@ -241,7 +267,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 			);
 			
 			FileUtils.deleteQuietly(sshFile);
-		} catch (IOException | InterruptedException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			logger.error(curVM.name+": "+e.getMessage());
 		}
@@ -269,7 +295,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					);
 			
 			////Logging files to log the output of executing the script
-			String logPath = this.currentDir+curVM.name+"_script.log";
+			String logPath = this.currentDir + curVM.name + "_" + System.nanoTime() +"_script.log";
 			logger.debug("The log file of executing script on '"+curVM.name+"' is redirected to "+logPath);
 			File logFile = new File(logPath);
 			FileOutputStream logOutput = new FileOutputStream(logFile, false);
@@ -338,7 +364,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		
 		if(deletedNeeded){
 			String rmConnectionName = UUID.randomUUID().toString()+".sh";
-			Thread.sleep(2000);
+			//Thread.sleep(2000);
 			Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
 			File file = new File(confFilePath);
 			new Shell.Safe(shell).exec(
@@ -356,7 +382,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		}
 		
 		
-		}catch (IOException | InterruptedException e) {
+		}catch (IOException e) {
 			e.printStackTrace();
 			logger.error(curVM.name +": "+ e.getMessage());
 			
