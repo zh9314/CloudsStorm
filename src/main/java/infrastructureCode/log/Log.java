@@ -8,6 +8,12 @@ public class Log {
 	 */
 	public String Time;
 	
+	/**
+	 * This is the operation overhead, which record the time that this operation takes.
+	 * The unit is in second. 
+	 */
+	public String Overhead;
+	
 	public Operation Event;
 	
 	/**

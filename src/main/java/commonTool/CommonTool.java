@@ -23,8 +23,12 @@ public class CommonTool {
 
     private static final Logger logger = Logger.getLogger(CommonTool.class);
 
-    //Make sure the directory path end up with 'File.seperator'
-    //Only when the input dir equals "", it does not end with 'File.seperator'
+    /**
+     * Make sure the directory path end up with 'File.seperator'
+     * Only when the input dir equals "", it does not end with 'File.seperator'
+     * @param inputDir
+     * @return
+     */
     public static String formatDir(String inputDir) {
         String outputDir = inputDir;
         if (inputDir.equals("")) {
@@ -282,7 +286,7 @@ public class CommonTool {
         }
         String prefix = filePath.substring(0, firstIndex);
         String realPath = filePath.substring(firstIndex + 1, filePath.length());
-        if (prefix.equals("file")) {
+        if (prefix.trim().equalsIgnoreCase("file")) {
             File inputFile = new File(realPath);
             try {
                 outputString = FileUtils.readFileToString(inputFile, "UTF-8");
@@ -291,7 +295,7 @@ public class CommonTool {
                 return null;
             }
 
-        } else if (prefix.equals("url")) {
+        } else if (prefix.trim().equalsIgnoreCase("url")) {
             URL url;
             try {
                 url = new URL(realPath);
@@ -305,7 +309,7 @@ public class CommonTool {
                 e.printStackTrace();
                 return null;
             }
-        } else if (prefix.equals("name")) {
+        } else if (prefix.trim().equalsIgnoreCase("name")) {
             //In this case, 'realPath' is the file name.
             File inputFile = new File(currentDir + realPath);
             try {
@@ -320,6 +324,24 @@ public class CommonTool {
         }
         return outputString;
 
+    }
+    
+    public static String getFilePathType(String filePath) {
+    		int firstIndex = filePath.indexOf("@");
+        if (firstIndex == -1) {
+            return null;
+        }
+        String prefix = filePath.substring(0, firstIndex);
+        return prefix;
+    }
+    
+    public static String getFilePath(String filePath) {
+		int firstIndex = filePath.indexOf("@");
+	    if (firstIndex == -1) {
+	        return null;
+	    }
+	    String realPath = filePath.substring(firstIndex + 1, filePath.length());
+	    return realPath;
     }
 
     /**

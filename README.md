@@ -1,4 +1,4 @@
-# lambda_i.Infrastructure
+# CloudsStorm
 This is a **totally new** version of provisioner in DRIP subsystem of SWITCH project.
 Comparing to the previous implementation, this implementation: 
 - Use maven to construct the whole structure.

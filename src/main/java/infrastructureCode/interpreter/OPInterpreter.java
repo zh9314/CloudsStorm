@@ -54,13 +54,17 @@ public class OPInterpreter {
 			success = provision();
 		else if(opInput.Operation.trim().equalsIgnoreCase("delete"))
 			success = delete();
-		else if(opInput.Operation.trim().equalsIgnoreCase("execute"))
-			success = executeCMD();
+		else if(opInput.Operation.trim().equalsIgnoreCase("execute")
+				|| opInput.Operation.trim().equalsIgnoreCase("put")    ////upload some file from a VM
+				|| opInput.Operation.trim().equalsIgnoreCase("get"))   ////download some file from a VM
+			success = opOnVMs();
+
 
 		return success;
 	}
 	
 	private boolean provision(){
+		long opStart = System.currentTimeMillis();
 		if(opInput.SubjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
 			return false;
@@ -110,7 +114,8 @@ public class OPInterpreter {
 					logString += "||";
 				}
 			}
-			recordOpLog(logString);
+			long opEnd = System.currentTimeMillis();
+			recordOpLog(logString, (int)((opEnd-opStart)/1000));
 			return true;
 		}else{
 			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
@@ -119,6 +124,7 @@ public class OPInterpreter {
 	}
 	
 	private boolean delete(){
+		long opStart = System.currentTimeMillis();
 		if(opInput.SubjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
 			return false;
@@ -146,7 +152,8 @@ public class OPInterpreter {
 				TEngine tEngine = new TEngine();
 				tEngine.delete(topTopology, userCredential, userDatabase, deleteReqs);
 			}
-			recordOpLog(null);
+			long opEnd = System.currentTimeMillis();
+			recordOpLog(null, (int)((opEnd-opStart)/1000));
 			return true;
 		}else{
 			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
@@ -156,25 +163,26 @@ public class OPInterpreter {
 	}
 	
 	
-	private boolean executeCMD(){
+	private boolean opOnVMs(){
 		String logString = "";
+		long opStart = System.currentTimeMillis();
 		if(opInput.SubjectType == null){
 			logString = "Invalid operation without 'SubjectType': "+opInput.toString();
 			logger.warn(logString);
-			recordOpLog("WARN: "+logString);
+			recordOpLog("WARN: "+logString, 0);
 			return false;
 		}
 		if(opInput.Command == null || opInput.Command.trim().equals("")){
 			logString = "Invalid operation without defining command";
 			logger.warn(logString);
-			recordOpLog("WARN: "+logString);
+			recordOpLog("WARN: "+logString, 0);
 			return false;
 		}
 		if(opInput.SubjectType.trim().equalsIgnoreCase("vm")){
 			if(opInput.Subjects == null){
 				logString = "Invalid operation without 'Subjects'!";
 				logger.warn(logString);
-				recordOpLog("WARN: "+logString);
+				recordOpLog("WARN: "+logString, 0);
 				return false;
 			}
 			String [] opSubjectsList = opInput.Subjects.split("\\|\\|");
@@ -218,7 +226,7 @@ public class OPInterpreter {
 				}
 				String defaultSSHPrivateKey = curSubInfo.subTopology.accessKeyPair.privateKeyString;
 				ParallelExecutor PE = new ParallelExecutor(curVM.defaultSSHAccount, 
-						curVM.publicAddress, defaultSSHPrivateKey, opInput.Command);
+						curVM.publicAddress, defaultSSHPrivateKey, opInput.Operation, opInput.Command);
 				PEs.add(PE);
 				executor4CMD.execute(PE);
 			}
@@ -239,10 +247,13 @@ public class OPInterpreter {
 			
 			
 			///if the 'Log' option is not set, then the output will be logged by default
-			if(opInput.Log != null && opInput.Log.trim().equalsIgnoreCase("OFF"))
+			long opEnd = System.currentTimeMillis();
+			if(opInput.Log != null && opInput.Log.trim().equalsIgnoreCase("OFF")){
+				recordOpLog(null, (int)((opEnd-opStart)/1000));
 				return success;
+			}
 			else{
-				recordOpLog(logString);
+				recordOpLog(logString, (int)((opEnd-opStart)/1000));
 				return success;
 			}
 		}else{
@@ -251,13 +262,15 @@ public class OPInterpreter {
 		}
 	}
 	
-	private void recordOpLog(String logString){
+	
+	private void recordOpLog(String logString, int opOverhead){
 		Logs logs = new Logs();
 		Log log = new Log();
 		log.Event = this.opInput;
 		
 		log.LOG = logString;
 		log.Time = String.valueOf(System.currentTimeMillis());
+		log.Overhead = String.valueOf(opOverhead);
 		logs.LOGs = new ArrayList<Log>();
 		logs.LOGs.add(log);
 		
