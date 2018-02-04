@@ -49,7 +49,7 @@ public class MainAsTool {
 				System.out.println("ERROR! There should be two arguments for 'execute'!");
 				return ;
 			}
-			String ctrlFPath = CommonTool.formatDir(args[1]) + ctrlInf;
+			String ctrlFPath = CommonTool.formatDirWithSep(args[1]) + ctrlInf;
 			File ctrlF = new File(ctrlFPath);
 			if(!ctrlF.exists()){
 				System.out.println("ERROR! No controller is defined!");

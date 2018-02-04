@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -118,7 +119,7 @@ public class testLoading {
 			Shell shell;
 			try {
 				shell = new SSH(ctrlVM.publicAddress, 22, ctrlVM.defaultSSHAccount, ctrlST.subTopology.accessKeyPair.privateKeyString);
-				File clusterPubKey = new File(tmpFilePath);
+				File appTARGZ = new File(tmpFilePath);
 				String appDir = "/root/" + System.currentTimeMillis() ;
 				new Shell.Safe(shell).exec(
 						  "sudo mkdir "+ appDir + "/",
@@ -127,7 +128,7 @@ public class testLoading {
 						);
 				new Shell.Safe(shell).exec(
 						  "sudo cat > "+ appDir + "/AppInfs.tar.gz",
-						  new FileInputStream(clusterPubKey),
+						  new FileInputStream(appTARGZ),
 						  new NullOutputStream(), new NullOutputStream()
 						);
 				logger.warn("Now application is deploying and running on the remote! You can terminate this and check the info on remote controller!");
@@ -136,6 +137,7 @@ public class testLoading {
 						  null,
 						  new NullOutputStream(), new NullOutputStream()
 						);
+				FileUtils.deleteQuietly(appTARGZ);
 			} catch (IOException e) {
 				e.printStackTrace();
 				return ;

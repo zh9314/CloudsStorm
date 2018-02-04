@@ -37,6 +37,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 		try{
 		FileWriter fw = new FileWriter(confFilePath, false);
 		
+		boolean needConf = false;
 		////Configure for all top self connections
 		if(this.curVM.selfEthAddresses != null){
 			int count = 0;
@@ -57,6 +58,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 					fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
 					fw.flush();
 					entry.setValue(true);
+					needConf = true;
 				}
 			}
 		}
@@ -87,7 +89,6 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 						}
 						curIndex++;
 					}
-					logger.debug("Get topconnection name "+linkName);
 					remotePubAddress = curTCP.peerTCP.belongingVM.publicAddress;
 					if(remotePubAddress == null){
 						curTCP.ethName = null;
@@ -102,6 +103,7 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 				
 				///record the ethName
 				curTCP.ethName = linkName;
+				logger.debug("Configure topconnection name "+linkName);
 				
 				fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 				fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
@@ -109,27 +111,28 @@ public class ExoGENIVEngine_ubuntu extends ExoGENIVEngine implements VEngineCore
 				fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
 				fw.write("route add -host "+remotePrivateAddress+" dev "+linkName+"\n");
 				fw.flush();
+				needConf = true;
 			}
 		}
 		fw.close();
 		
+		if(needConf){
+			Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
+			File file = new File(confFilePath);
+			new Shell.Safe(shell).exec(
+			  "cat > connection.sh && sudo bash connection.sh ",
+			  new FileInputStream(file),
+			  new NullOutputStream(), new NullOutputStream()
+			);
+			FileUtils.deleteQuietly(file);
+			new Shell.Safe(shell).exec(
+					  "rm connection.sh",
+					  null,
+					  new NullOutputStream(), new NullOutputStream()
+			);
+		}
 
-		Thread.sleep(2000);
-		Shell shell = new SSH(curVM.publicAddress, 22, curVM.defaultSSHAccount, this.privateKeyString);
-		File file = new File(confFilePath);
-		new Shell.Safe(shell).exec(
-		  "cat > connection.sh && sudo bash connection.sh ",
-		  new FileInputStream(file),
-		  new NullOutputStream(), new NullOutputStream()
-		);
-		FileUtils.deleteQuietly(file);
-		new Shell.Safe(shell).exec(
-				  "rm connection.sh",
-				  null,
-				  new NullOutputStream(), new NullOutputStream()
-		);
-		
-		}catch (IOException | InterruptedException e) {
+		}catch (IOException e) {
 			e.printStackTrace();
 			logger.error(curVM.name +": "+ e.getMessage());
 			if(e.getMessage().contains("timeout: socket is not established")){   ////In this case, we give another chance to test.

@@ -29,7 +29,7 @@ public class CommonTool {
      * @param inputDir
      * @return
      */
-    public static String formatDir(String inputDir) {
+    public static String formatDirWithSep(String inputDir) {
         String outputDir = inputDir;
         if (inputDir.equals("")) {
             return outputDir;
@@ -37,6 +37,21 @@ public class CommonTool {
         if (inputDir.lastIndexOf(File.separator) != inputDir.length() - 1) {
             outputDir = inputDir + File.separator;
         }
+        return outputDir;
+    }
+    
+    
+    /**
+     * Make sure the directory path does not end up with 'File.seperator'
+     * @param inputDir
+     * @return
+     */
+    public static String formatDirWithoutSep(String inputDir) {
+        String outputDir = inputDir;
+        if (inputDir.equals("")) 
+            return outputDir;
+        if (outputDir.lastIndexOf(File.separator) == outputDir.length() - 1) 
+        		outputDir = outputDir.substring(0, outputDir.length() - 1);
         return outputDir;
     }
     
@@ -55,9 +70,16 @@ public class CommonTool {
     		return output;
     }
     
+    /**
+     * The directory name must not end up with file separator
+     * @param dirPath
+     * @return
+     */
     public static String getDirName(String dirPath){
 	    	String dirName = dirPath;
-	    	// this dir path ends up with file separator
+	    	if(dirPath.equals(""))
+	    		return "";
+	    	
 	    	if (dirPath.lastIndexOf(File.separator) == dirPath.length() - 1) 
 	    		dirName = dirPath.substring(0, dirPath.length() - 1);
 	    	int index = dirName.lastIndexOf(File.separator);
@@ -65,7 +87,6 @@ public class CommonTool {
 	    		return dirName.substring(index+1);
 	    	else
 	    		return dirName;
-    		
     }
 
     /**
@@ -80,6 +101,45 @@ public class CommonTool {
             dir = filePath.substring(0, index + 1);
         }
         return dir;
+    }
+    
+    
+    /**
+     * The input is a file or directory path of Unix based system. The output is the parent directory path of the input.
+     * This output directory must not end up with a "/", only when like "/1.txt"
+     */
+    public static String getParentDirInUnix(String inputPath) {
+        String dir = "";
+	    	if (inputPath.lastIndexOf("/") == inputPath.length() - 1) 
+	    		inputPath = inputPath.substring(0, inputPath.length() - 1);
+        if (inputPath.contains("/")) {
+            int index = inputPath.lastIndexOf("/");
+            if(index == 0)
+            		dir = "/";
+            else
+            		dir = inputPath.substring(0, index);
+        }
+        return dir;
+    }
+    
+    
+    /**
+     * The directory name must not end up with "/"
+     * @param dirPath
+     * @return
+     */
+    public static String getDirNameInUnix(String dirPath){
+	    	String dirName = dirPath;
+	    	if(dirPath.equals(""))
+	    		return "";
+	    	
+	    	if (dirPath.lastIndexOf("/") == dirPath.length() - 1) 
+	    		dirName = dirPath.substring(0, dirPath.length() - 1);
+	    	int index = dirName.lastIndexOf("/");
+	    	if(index != -1)
+	    		return dirName.substring(index+1);
+	    	else
+	    		return dirName;
     }
 
     /**
