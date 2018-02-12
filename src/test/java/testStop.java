@@ -10,7 +10,7 @@ import provisioning.database.Database;
 import provisioning.database.UserDatabase;
 import provisioning.database.EGI.EGIDatabase;
 import provisioning.engine.TEngine.TEngine;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 

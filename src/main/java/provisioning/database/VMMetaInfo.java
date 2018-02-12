@@ -1,5 +1,7 @@
 package provisioning.database;
 
+import java.util.Map;
+
 public abstract class VMMetaInfo {
 	/**
 	 * For example, 'ubuntu 14.04'
@@ -34,4 +36,20 @@ public abstract class VMMetaInfo {
 	
 	///reserved for performance model
 	//public String ProvisionCost;
+	
+	/**
+	 * For EC2 put:
+	 * AMI
+	 * 
+	 * For ExoGENI put:
+	 * OSurl
+	 * OSguid
+	 * DiskSize
+	 * 
+	 * For EGI put:
+	 * OS_occi_ID
+	 * OS_occi_ID
+	 */
+	public Map<String, String> extraInfo;
+	
 }

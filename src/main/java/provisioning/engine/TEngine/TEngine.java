@@ -1,29 +1,35 @@
 package provisioning.engine.TEngine;
 
 import java.util.ArrayList;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import commonTool.ClassDB;
 import commonTool.CommonTool;
+
 import org.apache.log4j.Logger;
+
 import provisioning.credential.Credential;
 import provisioning.credential.UserCredential;
 import provisioning.database.Database;
 import provisioning.database.UserDatabase;
+import provisioning.engine.SEngine.adapter.SEngineAdapter;
+import provisioning.engine.SEngine.adapter.SEngine_connect;
+import provisioning.engine.SEngine.adapter.SEngine_delete;
+import provisioning.engine.SEngine.adapter.SEngine_detach;
+import provisioning.engine.SEngine.adapter.SEngine_provision;
+import provisioning.engine.SEngine.adapter.SEngine_start;
+import provisioning.engine.SEngine.adapter.SEngine_stop;
+import provisioning.engine.SEngine.SEngineKeyMethod;
 import provisioning.request.DeleteRequest;
 import provisioning.request.ProvisionRequest;
 import provisioning.request.RecoverRequest;
-import provisioning.request.ScalingRequest;
 import provisioning.request.StartRequest;
 import provisioning.request.StopRequest;
-import topologyAnalysis.dataStructure.SubTopology;
-import topologyAnalysis.dataStructure.SubTopologyInfo;
-import topologyAnalysis.dataStructure.TopConnection;
-import topologyAnalysis.dataStructure.TopConnectionPoint;
-import topologyAnalysis.dataStructure.TopTopology;
-import topologyAnalysis.dataStructure.VM;
+import topology.description.actual.SubTopology;
+import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.TopTopology;
 
 public class TEngine {
 	private static final Logger logger = Logger.getLogger(TEngine.class);
@@ -38,42 +44,44 @@ public class TEngine {
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void provisionAll(TopTopology topTopology, UserCredential userCredential, UserDatabase userDatabase){
+	public boolean provisionAll(TopTopology topTopology, UserCredential userCredential, UserDatabase userDatabase){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
+		boolean opResult = true;
 		////Using multi-thread to do provisioning
 		ExecutorService executor4st = Executors.newFixedThreadPool(topTopology.topologies.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = topTopology.topologies.get(sti);
 			if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")
 					&& !subTopologyInfo.status.trim().toLowerCase().equals("deleted")){
-				logger.info("Sub-topology '"+subTopologyInfo.topology+"' cannot be provisioned! Its status is '"+subTopologyInfo.status+"'!");
-				continue;
-			}
-			if(subTopologyInfo.status.trim().toLowerCase().equals("deleted")
-					&& subTopologyInfo.tag.trim().toLowerCase().equals("scaled")){
-				logger.info("The 'scaled' 'deleted' '"+subTopologyInfo.topology+"' cannot be provisioned!");
+				logger.info("Sub-topology '"+subTopologyInfo.topology
+						+"' cannot be provisioned! Its status is '"
+						+subTopologyInfo.status+"'!");
 				continue;
 			}
 			logger.info("Provisioning sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_provision sc = new SEngine_provision(subTopologyInfo, curCredential, database);
-			executor4st.execute(sc);
+			SEngine_provision s_provision = new SEngine_provision(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_provision);
+			executor4st.execute(s_provision);
 		}
 		
 		executor4st.shutdown();
@@ -82,24 +90,39 @@ public class TEngine {
 			while (!executor4st.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*topTopology.topologies.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! "
+							+ "Some sub-topology cannot be provisioned!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
-			logger.info("All the running sub-topologies have been connected!");
-		else
-			logger.warn("Some of sub-topology may not be connected!");
+		if(sEAs.size() != 0){
+			if(connectionConf(topTopology.topologies, userCredential, userDatabase))
+				logger.info("All the running sub-topologies have been connected!");
+			else{
+				logger.warn("Some of sub-topology may not be connected!");
+				opResult = false;
+			}
+		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
+			return false;
+		}
+		
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		
+		if(!opResult)
+			return false;
+		
+		return true;
 	}
 	
 	/**
@@ -109,66 +132,62 @@ public class TEngine {
 	 * @param userDatabase
 	 * @param provisionReqs
 	 */
-	public void provision(TopTopology topTopology, UserCredential userCredential, 
-			UserDatabase userDatabase, ArrayList<ProvisionRequest> provisionReqs){
+	public boolean provision(TopTopology topTopology, UserCredential userCredential, 
+			UserDatabase userDatabase, ProvisionRequest provisionReq){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
-		if(provisionReqs == null || provisionReqs.size() == 0){
+		if(provisionReq == null || provisionReq.content.size() == 0){
 			logger.warn("Nothing needs to be provisioned!");
-			return ;
+			return true;
 		}
+		
+		boolean opResult = true;
 		ArrayList<SubTopologyInfo> provisionSTIs = new ArrayList<SubTopologyInfo>();
-		for(int ri = 0 ; ri < provisionReqs.size() ; ri++){
-			String provisionReqName = provisionReqs.get(ri).topologyName;
-			boolean findST = false;
-			for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
-				SubTopologyInfo curSTI = topTopology.topologies.get(sti);
-				if(provisionReqName.equals(curSTI.topology)){
-					findST = true;
-					if(!curSTI.status.trim().toLowerCase().equals("fresh")
-							&& !curSTI.status.trim().toLowerCase().equals("deleted")){
-						logger.warn("'"+curSTI.status+"' sub-topology '"+curSTI.topology+"' cannot be provisioned!");
-						break;
-					}
-					if(curSTI.status.trim().toLowerCase().equals("deleted")
-							&& curSTI.tag.trim().toLowerCase().equals("scaled")){
-						logger.warn("The 'scaled' 'deleted' '"+curSTI.topology+"' cannot be provisioned!");
-						break;
-					}
+		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
+			SubTopologyInfo curSTI = topTopology.topologies.get(sti);
+			if(provisionReq.content.containsKey(curSTI.topology)){
+				provisionReq.content.put(curSTI.topology, true);
+				if(!curSTI.status.trim().toLowerCase().equals("fresh")
+						&& !curSTI.status.trim().toLowerCase().equals("deleted")){
+					logger.warn("Sub-topology '"+curSTI.topology
+							+"' cannot be provisioned! Its status is '"
+							+curSTI.status+"'!");
+				}else
 					provisionSTIs.add(curSTI);
-					break;
-				}
 			}
-			if(!findST)
-				logger.warn("The sub-topology name '"+provisionReqName+"' in the requests cannot be found!");
 		}
 		
 		
 		if(provisionSTIs.size() == 0){
 			logger.warn("None of the sub-topologies needs to be provisioned!");
-			return; 
+			return true; 
 		}
 		
 		ExecutorService executor4ss = Executors.newFixedThreadPool(provisionSTIs.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < provisionSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = provisionSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_provision s_provision = new SEngine_provision(subTopologyInfo, curCredential, database);
+			SEngine_provision s_provision = new SEngine_provision(
+								subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_provision);
 			executor4ss.execute(s_provision);
 		}
 		
@@ -179,64 +198,120 @@ public class TEngine {
 				count++;
 				if(count > 500*provisionSTIs.size()){
 					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
+		////if some of the sub-topology cannot be provisioned. delete them
+		if(!checkSEnginesResults(sEAs)){
+			////delete all the failed sub-topologies during the provisioning
+			ExecutorService executor4dvm = Executors.newFixedThreadPool(provisionSTIs.size());
+			
+			for(int sti = 0 ; sti < provisionSTIs.size() ; sti++){
+				SubTopologyInfo subTopologyInfo = provisionSTIs.get(sti);
+				if(!subTopologyInfo.status.equals("unknown"))
+					continue;
+				
+				Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
+				if(curCredential == null){
+					logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+					opResult = false;
+					continue;
+				}
+				Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
+				if(database == null){
+					logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+					opResult = false;
+					continue;
+				}
+				SEngine_delete s_delete = new SEngine_delete(
+									subTopologyInfo, curCredential, database);
+				sEAs.add((SEngineAdapter)s_delete);
+				executor4dvm.execute(s_delete);
+			}
+			
+			executor4dvm.shutdown();
+			try {
+				int count = 0;
+				while (!executor4dvm.awaitTermination(2, TimeUnit.SECONDS)){
+					count++;
+					if(count > 500*provisionSTIs.size()){
+						logger.error("Unknown error! Some sub-topology cannot be provisioned!");
+						return false;
+					}
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				logger.error("Unexpected error!");
+				return false;
+			}
+		}
+		
+		if(connectionConf(topTopology.topologies, userCredential, userDatabase))
 			logger.info("All the running sub-topologies have been connected!");
-		else
+		else{
 			logger.warn("Some of sub-topology may not be connected!");
+			opResult = false;
+		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
+			return false;
+		}
+		if(!opResult)
+			return false;
 		
+		return true;
 	}
 	
-	////Using multi-thread to configure inter connections
-	private boolean interConnectionConf(ArrayList<SubTopologyInfo> subTopologyInfos,
+	////Using multi-thread to configure all the connections of all the 'running' sub-topologies
+	public boolean connectionConf(ArrayList<SubTopologyInfo> subTopologyInfos,
 			UserCredential userCredential, UserDatabase userDatabase){
-		boolean returnResult = true;
+		if(subTopologyInfos == null || subTopologyInfos.size() == 0)
+			return true;
 		
-		ExecutorService executor4conf = Executors.newFixedThreadPool(subTopologyInfos.size());
+		boolean returnResult = true;
+		ExecutorService executor4networkConf = Executors.newFixedThreadPool(subTopologyInfos.size());
 		for(int sti = 0 ; sti <subTopologyInfos.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = subTopologyInfos.get(sti);
 			if(!subTopologyInfo.status.equals("running")){
 				logger.info("'"+subTopologyInfo.status+"' sub-topology "+
-						subTopologyInfo.topology+" cannot be configured to connect!");
-				//returnResult = false;
+						subTopologyInfo.topology+" cannot be configured. It is not running!");
 				continue;
 			}
-			logger.info("Connecting sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
+			logger.info("Connecting sub-topology '"+subTopologyInfo.topology
+							+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
-				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				logger.error("The credential for sub-topology '"+subTopologyInfo.topology
+						+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
 				returnResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
-				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				logger.error("The database for sub-topology '"+subTopologyInfo.topology
+						+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
 				returnResult = false;
 				continue;
 			}
-			SEngine_conf s_conf = new SEngine_conf(subTopologyInfo, curCredential, database);
-			executor4conf.execute(s_conf);
+			SEngine_connect s_connect = new SEngine_connect(subTopologyInfo, curCredential, database);
+			executor4networkConf.execute(s_connect);
 		}
 		
-		executor4conf.shutdown();
+		executor4networkConf.shutdown();
 		try {
 			int count = 0;
-			while (!executor4conf.awaitTermination(2, TimeUnit.SECONDS)){
+			while (!executor4networkConf.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*subTopologyInfos.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
+					logger.error("Unknown error! Some sub-topology cannot be connected!");
 					return false;
 				}
 			}
@@ -255,63 +330,67 @@ public class TEngine {
 	 * @param userDatabase
 	 * @param startReqs
 	 */
-	public void start(TopTopology topTopology, 
+	public boolean start(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase, 
-			ArrayList<StartRequest> startReqs){
+			StartRequest startReq){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
-		if(startReqs == null || startReqs.size() == 0){
+		if(startReq == null || startReq.content.size() == 0){
 			logger.warn("Nothing needs to be started!");
-			return ;
+			return true;
 		}
 		
+		boolean opResult = true;
 		ArrayList<SubTopologyInfo> needToBeStarted = new ArrayList<SubTopologyInfo>();
-		for(int ri = 0 ; ri < startReqs.size() ; ri++){
-			String reqName = startReqs.get(ri).topologyName;
-			boolean findST = false;
-			for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
-				SubTopologyInfo curST = topTopology.topologies.get(sti);
-				if(reqName.equals(curST.topology)){
-					findST = true;
-					if(!curST.status.toLowerCase().equals("stopped")){
-						logger.warn("The status of sub-topology '"+reqName+"' is not 'stopped'");
-						break;
-					}
-					needToBeStarted.add(curST);
-					break;
+		//ArrayList<SubTopologyInfo> alreadyRunningSTIs = new ArrayList<SubTopologyInfo>();  
+		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
+			SubTopologyInfo curSTI = topTopology.topologies.get(sti);
+			if(startReq.content.containsKey(curSTI.topology)){
+				startReq.content.put(curSTI.topology, true);
+				if( !curSTI.status.trim().toLowerCase().equals("stopped") ){
+					String msg = "The sub-topology '"+curSTI.topology
+							+"' is not in the status of 'stopped' to be started!";
+					logger.warn(msg);
 				}
+				else	
+					needToBeStarted.add(curSTI);
 			}
-			if(!findST)
-				logger.warn("The sub-topology name '"+reqName+"' in the requests cannot be found!");
-			
+			//if( curSTI.status.trim().toLowerCase().equals("running") )
+			//	alreadyRunningSTIs.add(curSTI);
 		}
+			
+		
 		if(needToBeStarted.size() == 0){
-			logger.error("No sub-topology needs be started!");
-			return;
+			logger.warn("No sub-topology needs be started!");
+			return true;
 		}
 		
 		////Using multi-thread to do starting
 		ExecutorService executor4st = Executors.newFixedThreadPool(topTopology.topologies.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < needToBeStarted.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = needToBeStarted.get(sti);
 			logger.info("Starting sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			SEngine_start s_start = new SEngine_start(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_start);
 			executor4st.execute(s_start);
 		}
 		
@@ -321,25 +400,34 @@ public class TEngine {
 			while (!executor4st.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*topTopology.topologies.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be started!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
+		if(connectionConf(topTopology.topologies, userCredential, userDatabase))
 			logger.info("All the running sub-topologies have been connected!");
-		else
+		else{
 			logger.warn("Some of sub-topology may not be connected!");
+			opResult = false;
+		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-	
+			return false;
+		}
+			
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
@@ -348,43 +436,51 @@ public class TEngine {
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void startAll(TopTopology topTopology, 
+	public boolean startAll(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
 		ArrayList<SubTopologyInfo> needToBeStarted = new ArrayList<SubTopologyInfo>();
+		//ArrayList<SubTopologyInfo> alreadyRunningSTIs = new ArrayList<SubTopologyInfo>();  
 		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
 			SubTopologyInfo curSTI = topTopology.topologies.get(sti);
 			if(curSTI.status.trim().toLowerCase().equals("stopped"))
 				needToBeStarted.add(curSTI);
+			//if(curSTI.status.trim().toLowerCase().equals("running"))
+			//	alreadyRunningSTIs.add(curSTI);
 		}
 		if(needToBeStarted.size() == 0){
 			logger.error("No sub-topology needs be started!");
-			return;
+			return true;
 		}
 		
+		boolean opResult = true;
 		////Using multi-thread to do starting
 		ExecutorService executor4st = Executors.newFixedThreadPool(needToBeStarted.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < needToBeStarted.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = needToBeStarted.get(sti);
 			logger.info("Starting sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			SEngine_start s_start = new SEngine_start(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_start);
 			executor4st.execute(s_start);
 		}
 		
@@ -394,25 +490,35 @@ public class TEngine {
 			while (!executor4st.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*needToBeStarted.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be started!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
-			logger.info("All the running sub-topologies have been connected!");
-		else
-			logger.warn("Some of sub-topology may not be connected!");
+		if(sEAs.size() == 0){
+			if(connectionConf(topTopology.topologies, userCredential, userDatabase))
+				logger.info("All the running sub-topologies have been connected!");
+			else{
+				logger.warn("Some of sub-topology may not be connected!");
+				opResult = false;
+			}
+		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-	
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
@@ -422,65 +528,60 @@ public class TEngine {
 	 * @param userDatabase
 	 * @param stopReqs
 	 */
-	public void stop(TopTopology topTopology, 
+	public boolean stop(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase, 
-			ArrayList<StopRequest> stopReqs){
+			StopRequest stopReq){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
-		if(stopReqs == null || stopReqs.size() == 0){
+		if(stopReq == null || stopReq.content.size() == 0){
 			logger.warn("Nothing needs to be stopped!");
-			return ;
+			return true;
 		}
 		ArrayList<SubTopologyInfo> stopSTIs = new ArrayList<SubTopologyInfo>();
 		ArrayList<SubTopologyInfo> runningSTIs = new ArrayList<SubTopologyInfo>();
-		for(int ri = 0 ; ri < stopReqs.size() ; ri++){
-			String stopReqName = stopReqs.get(ri).topologyName;
-			boolean findST = false;
-			for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
-				SubTopologyInfo curSTI = topTopology.topologies.get(sti);
-				if(stopReqName.equals(curSTI.topology)){
-					findST = true;
-					if(!curSTI.status.trim().toLowerCase().equals("running")){
-						logger.warn("'"+curSTI.status+"' sub-topology '"+curSTI.topology+"' cannot be stopped!");
-						break;
-					}
-					curSTI.status = "stopped";
-					stopSTIs.add(curSTI);
-					break;
-				}
-			}
-			if(!findST)
-				logger.warn("The sub-topology name '"+stopReqName+"' in the requests cannot be found!");
-		}
-		
 		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
 			SubTopologyInfo curSTI = topTopology.topologies.get(sti);
-			if(curSTI.status.trim().toLowerCase().equals("running"))
-				runningSTIs.add(curSTI);
+			if(stopReq.content.containsKey(curSTI.topology)){
+				stopReq.content.put(curSTI.topology, true);
+				if(!curSTI.status.trim().toLowerCase().equals("running")){
+					logger.warn("'"+curSTI.status+"' sub-topology '"
+									+curSTI.topology+"' cannot be stopped!");
+				}else
+					stopSTIs.add(curSTI);
+			}else{
+				if(curSTI.status.trim().toLowerCase().equals("running"))
+					runningSTIs.add(curSTI);
+			}
 		}
+		
+		
 		
 		if(stopSTIs.size() == 0){
 			logger.warn("None of the sub-topologies needs to be stopped!");
-			return; 
+			return true; 
 		}
 		
+		boolean opResult = true;
 		ExecutorService executor4ss = Executors.newFixedThreadPool(topTopology.topologies.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < stopSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = stopSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			///identify the connectors of the stopped sub-topology are null
@@ -489,6 +590,7 @@ public class TEngine {
 					subTopologyInfo.connectors.get(tcpi).ethName = null;
 			}
 			SEngine_stop s_stop = new SEngine_stop(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_stop);
 			executor4ss.execute(s_stop);
 		}
 		////detach all the running sub-topologies with the stopped sub-topologies
@@ -497,14 +599,16 @@ public class TEngine {
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_detectFailure sd = new SEngine_detectFailure(subTopologyInfo, curCredential, database);
+			SEngine_detach sd = new SEngine_detach(subTopologyInfo, curCredential, database);
 			executor4ss.execute(sd);
 		}
 		
@@ -514,20 +618,27 @@ public class TEngine {
 			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*topTopology.topologies.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be stopped!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-			
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
+		
 	}
 	
 	
@@ -537,14 +648,14 @@ public class TEngine {
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void stopAll(TopTopology topTopology, 
+	public boolean stopAll(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
 		ArrayList<SubTopologyInfo> stopSTIs = new ArrayList<SubTopologyInfo>();
@@ -555,20 +666,23 @@ public class TEngine {
 		}
 		if(stopSTIs.size() == 0){
 			logger.warn("None of the sub-topologies needs to be stopped!");
-			return; 
+			return true; 
 		}
-		
+		boolean opResult = true;
 		ExecutorService executor4ss = Executors.newFixedThreadPool(stopSTIs.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < stopSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = stopSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			///identify the connectors of the stopped sub-topology are null
@@ -577,6 +691,7 @@ public class TEngine {
 					subTopologyInfo.connectors.get(tcpi).ethName = null;
 			}
 			SEngine_stop s_stop = new SEngine_stop(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_stop);
 			executor4ss.execute(s_stop);
 		}
 		
@@ -586,20 +701,26 @@ public class TEngine {
 			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*stopSTIs.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be stopped!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-			
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
@@ -609,68 +730,63 @@ public class TEngine {
 	 * @param userDatabase
 	 * @param stopReqs
 	 */
-	public void delete(TopTopology topTopology, 
+	public boolean delete(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase, 
-			ArrayList<DeleteRequest> deleteReqs){
+			DeleteRequest deleteReq){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false ;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
-		if(deleteReqs == null || deleteReqs.size() == 0){
+		if(deleteReq == null || deleteReq.content.size() == 0){
 			logger.warn("Nothing needs to be stopped!");
-			return ;
+			return true;
 		}
 		
+		boolean opResult = true;
 		ArrayList<SubTopologyInfo> deleteSTIs = new ArrayList<SubTopologyInfo>();
 		ArrayList<SubTopologyInfo> runningSTIs = new ArrayList<SubTopologyInfo>();
-		for(int ri = 0 ; ri < deleteReqs.size() ; ri++){
-			String deleteReqName = deleteReqs.get(ri).topologyName;
-			boolean findST = false;
-			for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
-				SubTopologyInfo curSTI = topTopology.topologies.get(sti);
-				if(deleteReqName.equals(curSTI.topology)){
-					findST = true;
-					if(!curSTI.status.trim().toLowerCase().equals("running")
-							&& !curSTI.status.trim().toLowerCase().equals("stopped")
-							&& !curSTI.status.trim().toLowerCase().equals("failed")){
-						logger.warn("'"+curSTI.status+"' sub-topology '"+curSTI.topology+"' cannot be deleted!");
-						break;
-					}
-					curSTI.status = "deleted";
-					deleteSTIs.add(curSTI);
-					break;
-				}
-			}
-			if(!findST)
-				logger.warn("The sub-topology name '"+deleteReqName+"' in the requests cannot be found!");
-		}
-		
 		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
 			SubTopologyInfo curSTI = topTopology.topologies.get(sti);
-			if(curSTI.status.trim().toLowerCase().equals("running"))
-				runningSTIs.add(curSTI);
+			if(deleteReq.content.containsKey(curSTI.topology)){
+				deleteReq.content.put(curSTI.topology, true);
+				if(!curSTI.status.trim().toLowerCase().equals("running")
+						&& !curSTI.status.trim().toLowerCase().equals("stopped")
+						&& !curSTI.status.trim().toLowerCase().equals("failed")){
+					logger.warn("'"+curSTI.status+"' sub-topology '"
+									+curSTI.topology+"' cannot be deleted!");
+					
+				}else
+					deleteSTIs.add(curSTI);
+			}else{
+				////get the 'running' sub-topologies from all the other sub-topologies not in the delete list
+				if(curSTI.status.trim().toLowerCase().equals("running"))
+					runningSTIs.add(curSTI);
+			}
 		}
 		
 		if(deleteSTIs.size() == 0){
 			logger.warn("None of the sub-topologies needs to be deleted!");
-			return; 
+			return true; 
 		}
 		
 		ExecutorService executor4ss = Executors.newFixedThreadPool(topTopology.topologies.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < deleteSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = deleteSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			///identify the connectors of the deleted sub-topology are null
@@ -679,6 +795,7 @@ public class TEngine {
 					subTopologyInfo.connectors.get(tcpi).ethName = null;
 			}
 			SEngine_delete s_delete = new SEngine_delete(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_delete);
 			executor4ss.execute(s_delete);
 		}
 		////detach all the running sub-topologies with the deleted sub-topologies
@@ -686,15 +803,22 @@ public class TEngine {
 			SubTopologyInfo subTopologyInfo = runningSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
-				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				logger.error("The credential for sub-topology '"
+							+subTopologyInfo.topology+"' from '"
+							+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
-				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				logger.error("The database for sub-topology '"
+							+subTopologyInfo.topology+"' from '"
+							+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_detectFailure sd = new SEngine_detectFailure(subTopologyInfo, curCredential, database);
+			SEngine_detach sd = new SEngine_detach(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)sd);
 			executor4ss.execute(sd);
 		}
 		
@@ -704,20 +828,28 @@ public class TEngine {
 			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*topTopology.topologies.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be deleted!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-			
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		
+		if(!opResult)
+			return false;
+		
+		return true;
 	}
 	
 	/**
@@ -727,14 +859,14 @@ public class TEngine {
 	 * @param userDatabase
 	 * @param stopReqs
 	 */
-	public void deleteAll(TopTopology topTopology, 
+	public boolean deleteAll(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
 		ArrayList<SubTopologyInfo> deleteSTIs = new ArrayList<SubTopologyInfo>();
@@ -747,20 +879,23 @@ public class TEngine {
 		}
 		if(deleteSTIs.size() == 0){
 			logger.warn("None of the sub-topologies needs to be deleted!");
-			return; 
+			return true; 
 		}
-		
+		boolean opResult = true;
 		ExecutorService executor4ss = Executors.newFixedThreadPool(deleteSTIs.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < deleteSTIs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = deleteSTIs.get(sti);
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			///identify the connectors of the deleted sub-topology are null
@@ -769,6 +904,7 @@ public class TEngine {
 					subTopologyInfo.connectors.get(tcpi).ethName = null;
 			}
 			SEngine_delete s_delete = new SEngine_delete(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)s_delete);
 			executor4ss.execute(s_delete);
 		}
 		
@@ -778,20 +914,27 @@ public class TEngine {
 			while (!executor4ss.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
 				if(count > 500*deleteSTIs.size()){
-					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					logger.error("Unknown error! Some sub-topology cannot be deleted!");
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-			
+			return false;
+		}
+		
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
@@ -802,20 +945,20 @@ public class TEngine {
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void recover(TopTopology topTopology, UserCredential userCredential, 
+	public boolean recover(TopTopology topTopology, UserCredential userCredential, 
 			UserDatabase userDatabase, ArrayList<RecoverRequest> recoverReqs){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		long recoverStart = System.currentTimeMillis();
 		
 		if(recoverReqs == null || recoverReqs.size() == 0){
-			logger.error("There is no recover request! Nothing needs to be recovered!");
-			return ;
+			logger.warn("There is no recover request! Nothing needs to be recovered!");
+			return true;
 		}
 		
 		///This list contains all the failed sub-topologies
@@ -829,9 +972,10 @@ public class TEngine {
 				if(topTopology.topologies.get(si).topology.equals(recoverTopologyName)){
 					findTopology = true;
 					if(!topTopology.topologies.get(si).status.equals("failed")){
-						logger.warn("The sub-topology '"+recoverTopologyName+"' is not 'failed'!");
+						logger.warn("The sub-topology '"+recoverTopologyName+"' is not 'failed'! Ignore!");
 						continue;
 					}
+					topTopology.topologies.get(si).status = "deleted"; ///change the status in order to provision
 					topTopology.topologies.get(si).domain = domain;
 					topTopology.topologies.get(si).cloudProvider = cloudProvider;
 					if(userCredential.sshAccess.containsKey(domain)){
@@ -854,25 +998,29 @@ public class TEngine {
 		
 		if(failedSTs.size() == 0){
 			logger.error("There is no sub-topology needing recovery!");
-			return ;
+			return true;
 		}
-		
+		boolean opResult = true;
 		////Using multi-thread to recover the failed topologies.
 		ExecutorService executor4rc = Executors.newFixedThreadPool(failedSTs.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < failedSTs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = failedSTs.get(sti);
 			logger.info("Recovering sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_recover sr = new SEngine_recover(subTopologyInfo, curCredential, database);
+			SEngine_provision sr = new SEngine_provision(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)sr);
 			executor4rc.execute(sr);
 		}
 		
@@ -883,26 +1031,33 @@ public class TEngine {
 				count++;
 				if(count > 500*failedSTs.size()){
 					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
+		if(connectionConf(topTopology.topologies, userCredential, userDatabase))
 			logger.info("All the running sub-topologies have been connected!");
-		else
+		else{
 			logger.warn("Some of running sub-topologies may not be connected to the failed ones!");
-		
+			opResult = false;
+		}
 		long recoverEnd = System.currentTimeMillis();
 		logger.info("The total recovery overhead is "+ (recoverEnd-recoverStart));
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-	
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
@@ -910,19 +1065,19 @@ public class TEngine {
 	 * If the some of the 'failed' sub-topologies is not specified by the recover 
 	 * requests, then they will be recovered from the origin domains.
 	 * If the recoverReqs is null, then all the failed sub-topologies will be 
-	 * recovered from the origin domains.
+	 * recovered from the original domains.
 	 * @param topTopology
 	 * @param userCredential
 	 * @param userDatabase
 	 */
-	public void recoverAll(TopTopology topTopology, UserCredential userCredential, 
+	public boolean recoverAll(TopTopology topTopology, UserCredential userCredential, 
 			UserDatabase userDatabase, ArrayList<RecoverRequest> recoverReqs){
 		if(userCredential.cloudAccess == null){
 			logger.error("The credentials for cloud providers must be initialized!");
-			return ;
+			return false;
 		}if(userDatabase.databases == null){
 			logger.error("The databases for different cloud providers must be initialized!");
-			return;
+			return false;
 		}
 		
 		long recoverStart = System.currentTimeMillis();
@@ -959,12 +1114,12 @@ public class TEngine {
 				}
 			}
 			if(!findTopology){
-				logger.error("The sub-topology '"+recoverTopologyName+"' cannot be found!");
-				return;
+				logger.warn("The sub-topology '"+recoverTopologyName+"' cannot be found!");
+				return false;
 			}
 		}
 		
-		
+		boolean opResult = false;
 		///This list contains all the failed sub-topologies
 		ArrayList<SubTopologyInfo> failedSTs = new ArrayList<SubTopologyInfo>();
 		///This list contains all the original sub-topologies which are not failed and must be running.
@@ -977,25 +1132,29 @@ public class TEngine {
 		}
 		if(failedSTs.size() == 0){
 			logger.warn("There is no sub-topology needing recovery!");
-			return ;
+			return true;
 		}
 		
 		////Using multi-thread to recover the failed topologies.
 		ExecutorService executor4rc = Executors.newFixedThreadPool(failedSTs.size());
+		ArrayList<SEngineAdapter> sEAs = new ArrayList<SEngineAdapter>();
 		for(int sti = 0 ; sti < failedSTs.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = failedSTs.get(sti);
 			logger.info("Recovering sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_recover sr = new SEngine_recover(subTopologyInfo, curCredential, database);
+			SEngine_provision sr = new SEngine_provision(subTopologyInfo, curCredential, database);
+			sEAs.add((SEngineAdapter)sr);
 			executor4rc.execute(sr);
 		}
 		
@@ -1006,94 +1165,116 @@ public class TEngine {
 				count++;
 				if(count > 500*failedSTs.size()){
 					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
-		////Configure the top connections for the failed sub-topologies
-		/*if(interConnectionConf(failedSTs, userCredential, userDatabase))
-			logger.info("All the failed sub-topologies have been connected!");
-		else
-			logger.warn("Some of failed sub-topology may not be connected!");
-		
-		////Configure the top connections that originally connected with failed sub-topologies.
-		if(interConnectionConf(originalSTs, userCredential, userDatabase))
-			logger.info("All the original running sub-topologies have been connected to the failed ones!");
-		else
-			logger.warn("Some of running sub-topology may not be connected to the failed ones!");
-		*/
-		if(interConnectionConf(topTopology.topologies, userCredential, userDatabase))
+		if(connectionConf(topTopology.topologies, userCredential, userDatabase))
 			logger.info("All the running sub-topologies have been connected!");
-		else
+		else{
 			logger.warn("Some of running sub-topologies may not be connected to the failed ones!");
-		
+			opResult = false;
+		}
 		long recoverEnd = System.currentTimeMillis();
 		logger.info("The total recovery overhead is "+ (recoverEnd-recoverStart));
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
-	
+			return false;
+		}
+		if(!checkSEnginesResults(sEAs))
+			return false;
+		if(!opResult)
+			return false;
+		return true;
 	}
 	
 	/**
-	 * Detect the sub-topology and mark its status as 'failed' 
-	 * make the 'publicAddress' as null.
-	 * The most important thing is that deleting the tunnel connecting to the 'failed' sub-topology 
-	 * and set 'ethName' field of the top connection point as null.
+	 * Output all the controlling information to the current directory
+	 * in order to back up these information for future human to check.
+	 * Then control S-Engine to mark this sub-topology as failed and other 
+	 * sub-topologies to disconnect with this part.
 	 */
-	public void detectFailure(TopTopology topTopology, 
+	public boolean detectFailure(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase, 
 			String subTopologyName){
+		
 		boolean find = false;
 		for(int si = 0 ; si < topTopology.topologies.size() ; si++){
 			SubTopologyInfo curSTI = topTopology.topologies.get(si);
 			if(curSTI.topology.equals(subTopologyName)){
 				find = true;
-				curSTI.status = "failed";
-				long failureTime = System.currentTimeMillis();
-				curSTI.statusInfo = "detect failure: " + failureTime;
 				SubTopology curSubTopology = curSTI.subTopology;
-				ArrayList<VM> vms = curSubTopology.getVMsinSubClass();
-				for(int vi = 0 ; vi < vms.size() ; vi++)
-					vms.get(vi).publicAddress = null;
-				if(curSTI.connectors != null){
-					for(int tcpi = 0 ; tcpi < curSTI.connectors.size() ; tcpi++)
-						curSTI.connectors.get(tcpi).ethName = null;
+				String currentDir = CommonTool.getPathDir(topTopology.topologies.get(si).subTopology.loadingPath);
+				if(curSubTopology.outputControlInfo(currentDir
+						+"_failed_"+curSTI.topology+"_"+System.currentTimeMillis()+".yml")){
+					logger.error("Cannot back up failed sub-topology "+curSTI.topology+"!");
+					return false;
 				}
+				Credential credential = userCredential.cloudAccess.get(curSTI.cloudProvider.toLowerCase());
+				if(credential == null){
+					logger.error("The credential for sub-topology '"
+								+curSTI.topology+"' from '"+curSTI.cloudProvider
+								+"' is unknown! SKIP!");
+					return false;
+				}
+				Database database = userDatabase.databases.get(curSTI.cloudProvider.toLowerCase());
+				if(database == null){
+					logger.error("The database for sub-topology '"
+								+curSTI.topology+"' from '"+curSTI.cloudProvider
+								+"' is unknown! SKIP!");
+					return false;
+				}
+				Object xSEngine;
+				try {
+					xSEngine = ClassDB.getSEngine(curSTI.cloudProvider, curSubTopology.SEngineClass).newInstance();
+				} catch (InstantiationException | IllegalAccessException e) {
+					e.printStackTrace();
+					logger.error(e.getMessage());
+					return false;
+				}
+				
+				
+				((SEngineKeyMethod)xSEngine).markFailure(curSTI, credential, database);
 				if(!curSubTopology.overwirteControlOutput()){
 					logger.error("Control information of '"+curSTI.topology+"' cannot be overwritten to the origin file!");
+					return false;
 				}
 				break;
 			}
 		}
 		if(!find){
 			logger.warn("The sub-topology '"+subTopologyName+"' cannot be found!");
-			return;
+			return false;
 		}
 		
+		boolean opResult = true;
 		////Using multi-thread to delete all the failed connected tunnels expect the failed sub-topology itself.
 		ExecutorService executor4rm = Executors.newFixedThreadPool(topTopology.topologies.size());
 		for(int sti = 0 ; sti < topTopology.topologies.size() ; sti++){
 			SubTopologyInfo subTopologyInfo = topTopology.topologies.get(sti);
 			if(subTopologyInfo.topology.equals(subTopologyName))
 				continue;
-			logger.info("Marking the failure connections for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
+			logger.info("Marking the failure connections for sub-topology '"
+						+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"'");
 			Credential curCredential = userCredential.cloudAccess.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(curCredential == null){
 				logger.error("The credential for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
 			Database database = userDatabase.databases.get(subTopologyInfo.cloudProvider.toLowerCase());
 			if(database == null){
 				logger.error("The database for sub-topology '"+subTopologyInfo.topology+"' from '"+subTopologyInfo.cloudProvider+"' is unknown! SKIP!");
+				opResult = false;
 				continue;
 			}
-			SEngine_detectFailure sd = new SEngine_detectFailure(subTopologyInfo, curCredential, database);
+			SEngine_detach sd = new SEngine_detach(subTopologyInfo, curCredential, database);
 			executor4rm.execute(sd);
 		}
 		executor4rm.shutdown();
@@ -1103,19 +1284,32 @@ public class TEngine {
 				count++;
 				if(count > 200*topTopology.topologies.size()){
 					logger.error("Unknown error! Some sub-topology cannot be provisioned!");
-					return ;
+					return false;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error("Unexpected error!");
-			return ;
+			return false;
 		}
 		
 		///overwrite the control information back to the top-topology
-		if(!topTopology.overwirteControlOutput())
+		if(!topTopology.overwirteControlOutput()){
 			logger.error("Control information of top-topology has not been overwritten to the origin file!");
+			return false;
+		}
+		if(!opResult)
+			return false;
+		return true;
 			
+	}
+	
+	private boolean checkSEnginesResults(ArrayList<SEngineAdapter> sEngineAdapters){
+		for(int si = 0 ; si<sEngineAdapters.size() ; si++)
+			if(!sEngineAdapters.get(si).opResult)
+				return false;
+
+		return true;
 	}
 	
 	
@@ -1129,7 +1323,7 @@ public class TEngine {
 	 * The sub-topology with the name of 'subTopologyName' 
 	 * must have the tag of 'scaling' and must be in the status of 'running'. 
 	 */
-	public void autoScal(TopTopology topTopology, 
+	/*public void autoScal(TopTopology topTopology, 
 			UserCredential userCredential, UserDatabase userDatabase, 
 			String subTopologyName, boolean scalingUpDown, ArrayList<ScalingRequest> scalDCs){
 		boolean find = false;
@@ -1500,6 +1694,6 @@ public class TEngine {
 
 		
 		
-	}
+	}*/
 
 }

@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import topologyAnalysis.dataStructure.EC2.EC2VM;
+import topology.dataStructure.EC2.EC2VM;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
@@ -287,6 +287,81 @@ public class EC2Agent {
 	        		break;
 		}
 		return null;
+	}
+	
+	public boolean terminateInstance(EC2VM curVM){
+		////the instance has not provisioned
+		if(curVM.instanceId == null)
+			return true;
+		
+		ArrayList<String> instanceIds = new ArrayList<String>();
+		
+		////detach the volume and delete it
+		instanceIds.add(curVM.instanceId);
+		if(curVM.volumeId != null){
+			DetachVolumeRequest detachVolumeRequest = 
+					new DetachVolumeRequest().withInstanceId(curVM.instanceId)
+					.withVolumeId(curVM.volumeId).withForce(true);
+			ec2Client.detachVolume(detachVolumeRequest);
+			ArrayList<String> volumeIds = new ArrayList<String>();
+			volumeIds.add(curVM.volumeId);
+			DescribeVolumesRequest describeVolumesRequest  = 
+					new DescribeVolumesRequest().withVolumeIds(volumeIds);
+			boolean voDetached = false;
+			int loopCount = 0;
+			while(loopCount < 10){
+				DescribeVolumesResult describeVolumesResult = ec2Client.describeVolumes(describeVolumesRequest);
+				List<Volume> vs = describeVolumesResult.getVolumes();
+				if(vs.size() != 0){
+					if(vs.get(0).getState().toString().equals(VolumeState.Available.toString())){
+						voDetached = true;
+						break;
+					}
+				}
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					return false;
+				}
+				loopCount++;
+			}
+			if(!voDetached)
+				return false;
+			DeleteVolumeRequest deleteVolumeRequest = 
+					new DeleteVolumeRequest().withVolumeId(curVM.volumeId);
+			ec2Client.deleteVolume(deleteVolumeRequest);
+		}
+
+		TerminateInstancesRequest tir = new TerminateInstancesRequest()
+												.withInstanceIds(instanceIds);
+		ec2Client.terminateInstances(tir);
+		int loopCount = 0;
+		int instanceNum = instanceIds.size();
+		while(loopCount < (200*instanceNum)){
+			DescribeInstancesRequest dis = new DescribeInstancesRequest().withInstanceIds(instanceIds);
+			DescribeInstancesResult disr = ec2Client.describeInstances(dis);
+			List<Reservation> reservations = disr.getReservations();
+			boolean allTerminated = true;
+			int instanceCount = 0;
+			for(Reservation reservation : reservations){
+				for(Instance instance : reservation.getInstances()){
+					instanceCount++;
+					if(!instance.getState().getName().equals(InstanceStateName.Terminated.toString()))
+						allTerminated = false;
+				}
+			}
+			if(allTerminated && instanceCount == instanceIds.size())
+				return true;
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				return false;
+			}
+			loopCount++;
+		}
+		return false;
 	}
 	
 	

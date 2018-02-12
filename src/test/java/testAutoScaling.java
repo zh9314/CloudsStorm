@@ -11,7 +11,7 @@ import provisioning.database.UserDatabase;
 import provisioning.database.EC2.EC2Database;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.ScalingRequest;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 
@@ -74,7 +74,7 @@ public class testAutoScaling {
 		scalReq.satisfied = false;
 		scalDCs.add(scalReq);
 		
-		tEngine.autoScal(tam.wholeTopology, userCredential, userDatabase, "ec2_zh_b", true, scalDCs);
+		//tEngine.autoScal(tam.wholeTopology, userCredential, userDatabase, "ec2_zh_b", true, scalDCs);
 	}
 
 }

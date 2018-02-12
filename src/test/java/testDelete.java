@@ -11,7 +11,7 @@ import provisioning.database.UserDatabase;
 import provisioning.database.EGI.EGIDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.DeleteRequest;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 
@@ -65,14 +65,14 @@ private static final Logger logger = Logger.getLogger(testDelete.class);
 		TEngine tEngine = new TEngine();
 		
 		DeleteRequest dq = new DeleteRequest();
-		dq.topologyName = "egi_zh_a";
+		//dq.topologyName = "egi_zh_a";
 		DeleteRequest dq2 = new DeleteRequest();
-		dq2.topologyName = "ec2_zh_b";
+		//dq2.topologyName = "ec2_zh_b";
 		ArrayList<DeleteRequest> deleteReqs = new ArrayList<DeleteRequest>();
 		deleteReqs.add(dq);
 		//deleteReqs.add(dq2);
 		
-		tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReqs);
+		//tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReqs);
 		
 		
 		

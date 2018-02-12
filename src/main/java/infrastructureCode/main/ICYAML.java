@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.UserCredential;
 import provisioning.database.UserDatabase;
-import topologyAnalysis.dataStructure.TopTopology;
+import topology.description.actual.TopTopology;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;

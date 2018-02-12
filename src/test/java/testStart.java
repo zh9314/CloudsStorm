@@ -11,7 +11,7 @@ import provisioning.database.UserDatabase;
 import provisioning.database.EGI.EGIDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.StartRequest;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 
@@ -64,11 +64,11 @@ public class testStart {
 		TEngine tEngine = new TEngine();
 		
 		StartRequest sq = new StartRequest();
-		sq.topologyName = "egi_zh_a";
+		//sq.topologyName = "egi_zh_a";
 		ArrayList<StartRequest> startReqs = new ArrayList<StartRequest>();
 		startReqs.add(sq);
 		
-		tEngine.start(tam.wholeTopology, userCredential, userDatabase, startReqs);
+	//	tEngine.start(tam.wholeTopology, userCredential, userDatabase, startReqs);
 		
 	}
 

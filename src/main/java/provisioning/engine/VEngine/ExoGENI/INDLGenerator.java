@@ -15,9 +15,7 @@ import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 import org.xml.sax.InputSource;
 
-import topologyAnalysis.dataStructure.Eth;
-import topologyAnalysis.dataStructure.SubConnection;
-import topologyAnalysis.dataStructure.ExoGENI.ExoGENIVM;
+import topology.dataStructure.ExoGENI.ExoGENIVM;
 
 
 
@@ -306,7 +304,7 @@ public class INDLGenerator {
 	    	
 	}
 	
-	public static Element getTopology(String [] links, String [] nodes, String guid){
+	public static Element getTopology(String [] nodes, String guid){
 		Element e = new Element("Description");
 		e.setNamespace(ns_rdf);
 		Attribute atr_about = new Attribute("about", "http://geni-orca.renci.org/owl/"+guid+"#");
@@ -314,14 +312,14 @@ public class INDLGenerator {
 		e.setAttribute(atr_about);
 		
 		
-		for(int i = 0 ; i<links.length ; i++){
+		/*for(int i = 0 ; i<links.length ; i++){
 			Element interFace = new Element("element");
 			interFace.setNamespace(ns_collections);
 			Attribute atr_resource = new Attribute("resource", "http://geni-orca.renci.org/owl/"+guid+"#"+links[i]);
 			atr_resource.setNamespace(ns_rdf);
 			interFace.setAttribute(atr_resource);
 			e.addContent(interFace);
-		}
+		}*/
 		for(int i = 0 ; i<nodes.length ; i++){
 			Element interFace = new Element("element");
 			interFace.setNamespace(ns_collections);
@@ -351,11 +349,8 @@ public class INDLGenerator {
 	
 	
 	public String generateINDL(ArrayList<ExoGENIVM> nodeSet, 
-			ArrayList<SubConnection> linkSet, int validDay){
+			int validDay){
 		
-		
-		if(linkSet == null)
-			linkSet = new ArrayList<SubConnection>();
 		
 		
 		Element root = new Element("RDF");
@@ -397,7 +392,7 @@ public class INDLGenerator {
 		for(int i = 0 ; i<nodeSet.size() ; i++){
 			ExoGENIVM tmpVM = nodeSet.get(i);
 			String tmpLinks [] = null;
-			if(tmpVM.ethernetPort != null){
+			/*if(tmpVM.ethernetPort != null){
 				tmpLinks = new String[tmpVM.ethernetPort.size()];
 				for(int j = 0 ; j<tmpVM.ethernetPort.size() ; j++){
 					Eth tmpEth = tmpVM.ethernetPort.get(j);
@@ -412,7 +407,7 @@ public class INDLGenerator {
 						tmpLinks[j] = linkName;
 					}
 				}
-			}
+			}*/
 			Element nodeInfo = getNode(tmpLinks, tmpVM.name, tmpVM.OStype, tmpVM.endpoint, tmpVM.nodeType, guid);
 			root.addContent(nodeInfo);
 		}
@@ -426,7 +421,7 @@ public class INDLGenerator {
 			boolean findOS = false;
 			boolean findDomain = false;
 			
-			String OSguid = curVM.OSguid, OSurl = curVM.OSurl;
+			String OSguid = curVM.OS_GUID, OSurl = curVM.OS_URL;
 			for(int j = 0; j<OSList.size() ; j++){
 				if(tmpOS.equals(OSList.get(j))){
 					findOS = true;
@@ -452,22 +447,22 @@ public class INDLGenerator {
 		}
 		
 		////get Links
-		for(int i = 0 ; i<linkSet.size() ; i++){
+		/*for(int i = 0 ; i<linkSet.size() ; i++){
 			String nodes [] = new String[2];
 			SubConnection tmpLink =linkSet.get(i);
 			nodes[0] = tmpLink.source.componentName;
 			nodes[1] = tmpLink.target.componentName;
 			Element link = getLink(tmpLink.name, nodes, Integer.valueOf(tmpLink.bandwidth), guid);
 			root.addContent(link);
-		}
+		}*/
 		
-		String allLink [] = new String[linkSet.size()];
+		//String allLink [] = new String[linkSet.size()];
 		String allNode [] = new String[nodeSet.size()];
  		for(int i = 0 ; i<nodeSet.size() ; i++)
  			allNode[i] = nodeSet.get(i).name;
- 		for(int i = 0 ; i<linkSet.size() ; i++)
- 			allLink[i] = linkSet.get(i).name;
-		Element topology = getTopology(allLink, allNode, guid);
+ 		/*for(int i = 0 ; i<linkSet.size() ; i++)
+ 			allLink[i] = linkSet.get(i).name;*/
+		Element topology = getTopology(allNode, guid);
 		root.addContent(topology);
 		
         Document Doc = new Document(root);

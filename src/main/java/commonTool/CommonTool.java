@@ -16,8 +16,8 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.KeyPair;
 
-import topologyAnalysis.dataStructure.TopConnection;
-import topologyAnalysis.dataStructure.TopConnectionPoint;
+import topology.description.actual.ActualConnection;
+import topology.description.actual.ActualConnectionPoint;
 
 public class CommonTool {
 
@@ -142,35 +142,6 @@ public class CommonTool {
 	    		return dirName;
     }
 
-    /**
-     * This function is used to modify the value of the field 'publicKeyPath' in
-     * the top level description file. This function is needed before loading
-     * the topology, when user needs to upload his public key.
-     */
-    /*public static void setPublicKeyPath(String newPbKeyPath, String topologyPath){
-		File topologyFile = new File(topologyPath);
-		String fileContent = "";
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(topologyFile));
-			String line = "";
-			while((line = in.readLine()) != null){
-				if(line.contains("publicKeyPath"))
-					fileContent += ("publicKeyPath: "+newPbKeyPath+"\n");
-				else
-					fileContent += (line+"\n");
-			}
-			in.close();
-			
-			FileWriter fw = new FileWriter(topologyPath, false);
-			fw.write(fileContent);
-			fw.close();
-			logger.debug("The 'publicKeyPath' topology file ["+topologyPath+"] is modifyed to "
-					+newPbKeyPath);
-		} catch (IOException e) {
-			e.printStackTrace();
-			logger.error("Error happens during modifying the field 'publicKeyPath'");
-		}
-	}*/
     // converting to netmask
     private static final String[] netmaskConverter = {
         "128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0", "248.0.0.0", "252.0.0.0", "254.0.0.0", "255.0.0.0",
@@ -238,6 +209,8 @@ public class CommonTool {
         String subnet = "";
         String[] subPriAddress = ip.split("\\.");
         String combineAddress = "";
+        if(subPriAddress.length != 4)
+        		return null;
         for (int i = 0; i < subPriAddress.length; i++) {
             int subAddNum = Integer.valueOf(subPriAddress[i]);
             String bString = Integer.toBinaryString(subAddNum);
@@ -291,8 +264,12 @@ public class CommonTool {
 
     /**
      * Combine the subnet and host number to be the full IP address.
+     * Return 'null' when host number is less than 1 or exceeds the capacity of the subnet,
+     * or it is a broadcast address
      */
     public static String getFullAddress(String subnet, int netmaskNum, int hostNum) {
+    		if(hostNum <= 0)
+    			return null;
         String[] subPriAddress = subnet.split("\\.");
         String combineAddress = "";
         for (int i = 0; i < subPriAddress.length; i++) {
@@ -307,7 +284,14 @@ public class CommonTool {
         String binarySubnet = combineAddress.substring(0, netmaskNum);
         String binaryHostNum = Integer.toBinaryString(hostNum);
         String fillingS = "";
-        for (int i = 0; i < ((32 - netmaskNum) - binaryHostNum.length()); i++) {
+        int fillingLen = (32 - netmaskNum) - binaryHostNum.length();
+        ///Host number exceeds the capacity of the subnet
+        if(fillingLen < 0)
+        		return null;
+        //// This is the broadcast address, cannot be a host IP address
+        if(fillingLen == 0 && !binaryHostNum.contains("0"))
+        		return null;
+        for (int i = 0; i < fillingLen ; i++) {
             fillingS += "0";
         }
         String binaryFullAddress = binarySubnet + fillingS + binaryHostNum;
@@ -409,9 +393,9 @@ public class CommonTool {
      * This method is to find whether there is a top connection contains this
      * point.
      */
-    public static TopConnection getTopConnectionByPoint(ArrayList<TopConnection> topConnections,
-            TopConnectionPoint tcp) {
-        TopConnection resultCon = null;
+    public static ActualConnection getActualConnectionByPoint(ArrayList<ActualConnection> topConnections,
+            ActualConnectionPoint tcp) {
+        ActualConnection resultCon = null;
         for (int ti = 0; ti < topConnections.size(); ti++) {
             if (topConnections.get(ti).source.address.equals(tcp.address)
                     && topConnections.get(ti).source.vmName.equals(tcp.vmName)) {

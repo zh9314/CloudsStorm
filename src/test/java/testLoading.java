@@ -7,11 +7,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.NullOutputStream;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
@@ -24,9 +22,9 @@ import provisioning.credential.UserCredential;
 import provisioning.database.UserDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.ProvisionRequest;
-import topologyAnalysis.TopologyAnalysisMain;
-import topologyAnalysis.dataStructure.SubTopologyInfo;
-import topologyAnalysis.dataStructure.VM;
+import topology.analysis.TopologyAnalysisMain;
+import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.VM;
 
 
 
@@ -37,7 +35,7 @@ public class testLoading {
 
 
 	public static void main(String[] args) {
-		String appRootDir = "examples/HadoopTest/";
+		String appRootDir = "examples/EC2HadoopTest/";
 		String topTopologyLoadingPath = appRootDir + "Infs/Topology/_top.yml";
 		String sshKeysDir = appRootDir + "Infs/Topology/";
 		String credentialsPath = appRootDir + "Infs/UC/cred.yml";
@@ -68,7 +66,7 @@ public class testLoading {
 			File logsDirF = new File(logsDir);
 			if(!logsDirF.exists())
 				logsDirF.mkdir();
-			Log4JUtils.setWarnLogFile(logsDir + "CloudsStorm.log");
+			Log4JUtils.setInfoLogFile(logsDir + "CloudsStorm.log");
 			
 			String icLogPath = logsDir + "InfrasCode.log";
 			FileWriter icLogger = null;
@@ -90,13 +88,14 @@ public class testLoading {
 			
 		}else if(ic.Mode == null || ic.Mode.trim().equalsIgnoreCase("CTRL")){
 			ProvisionRequest pq = new ProvisionRequest();
-			pq.topologyName = "_ctrl";
-			ArrayList<ProvisionRequest> provisionReqs = new ArrayList<ProvisionRequest>();
-			provisionReqs.add(pq);
+			pq.content.put("_ctrl", false); 
 			
 			TEngine tEngine = new TEngine();
 			
-			tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
+			if( !tEngine.provision(tam.wholeTopology, userCredential, userDatabase, pq) ){
+				logger.error("The controller cannot be provisioned!");
+				return ;
+			}
 			
 			////Get the IP address of the controller if it is running
 			SubTopologyInfo ctrlST = tam.wholeTopology.getSubtopology("_ctrl");
@@ -146,7 +145,6 @@ public class testLoading {
 			//tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
 		}else
 			logger.error("Unrecognized 'Mode' for executing infrastructure code!");
-		
 		
 		
 		

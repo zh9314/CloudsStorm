@@ -1,23 +1,29 @@
 package provisioning.engine.VEngine;
 
-import java.util.ArrayList;
+import com.jcabi.ssh.SSH;
+import com.jcabi.ssh.Shell;
 
-import topologyAnalysis.dataStructure.SubConnection;
-import topologyAnalysis.dataStructure.TopConnectionPoint;
 
-public class VEngine {
+public abstract class VEngine {
 
-	public ArrayList<SubConnection> subConnections;
-	public ArrayList<TopConnectionPoint> topConnectors;
-	
-	////This is used for ssh access to the VM. It is not the pair with the following publicKeyString.
-	public String privateKeyString;
-	////Used for generating the log file of executing the script on that VM
-	public String currentDir;
-	
-	//below are used for ssh configuration. 
-	//They can be set as null when just configure the inter connection
-	public String userName;
-	public String publicKeyString;
+	 /** 
+	 * Test if a host is alive
+	 * @param host ip and private key content
+	 * @return true if it's alive
+	 */
+	public static boolean isAlive(String host, int port, String privateKeyString, String sshAccount){
+		if(host == null)
+			return false;
+		  boolean alive=false;
+		  try {
+			    String cmd="echo " + host;
+			    Shell shell=new SSH(host, 22, sshAccount, privateKeyString);
+			    new Shell.Plain(shell).exec(cmd);
+			    alive=true;
+		  }catch ( Exception e) {
+			  
+		  }
+		 return alive;
+	}
 	
 }

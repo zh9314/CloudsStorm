@@ -43,65 +43,39 @@ public class UserDatabase {
 		this.databases = new HashMap<String, Database>();
 		String curDir = CommonTool.getPathDir(dbsPath);
         try {
-        UserDatabase userDatabase = mapper.readValue(new File(dbsPath), UserDatabase.class);
-        	if(userDatabase == null){
-        		logger.error("Users's Cloud databases from "+dbsPath+" is invalid!");
-            	return false;
-        	}
-        	boolean allLoaded = true;
-        	for(int i = 0 ; i < userDatabase.cloudDBs.size() ; i++){
-        		DatabaseInfo databaseInfo = userDatabase.cloudDBs.get(i);
-        		String cp = databaseInfo.cloudProvider.toLowerCase().trim();
-        		if(cp == null){
-        			logger.warn("Cloud provider must be set!");
-        			allLoaded = false;
-        			continue;
-        		}
-        		if(databaseInfo.dbInfoFile == null){
-        			logger.warn("The 'dbInfoPath' of Cloud provider "+cp+" is missing!");
-        			allLoaded = false;
-        			continue;
-        		}
-        		String className = "";
-        		String dbInfoPath = curDir + databaseInfo.dbInfoFile;
-        		if(databaseInfo.dbClassPath == null){
-        			String packagePrefix = "provisioning.database";
-        			if(cp.equals("ec2"))
-        				className = packagePrefix+".EC2.EC2Database";
-        			else if(cp.equals("exogeni"))
-        				className = packagePrefix+".ExoGENI.ExoGENIDatabase";
-        			else if(cp.equals("egi"))
-        				className = packagePrefix+".EGI.EGIDatabase";
-        			else{
-        				logger.warn("Cloud provider of "+cp+" has not been supported yet!");
-        				allLoaded = false;
-        				continue;
-        			}
-        		}else
-        			className = databaseInfo.dbClassPath;
-        		
-    			try {
-    				Object cloudDB = Class.forName(className).newInstance();
-    				boolean loaded = ((Database)cloudDB).loadDatabase(dbInfoPath, this.databases);
-    				if(!loaded){
-    					logger.warn("Databse for Cloud provider "+cp+" cannot be loaded!");
-        				allLoaded = false;
-        				continue;
-    				}
-    			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-    				e.printStackTrace();
-    				logger.warn("Cannot load the database class for "+cp+": "+e.getMessage());
-    				allLoaded = false;
-    				continue;
-    			}
-        	}
-        	if(allLoaded)
-        		logger.info("User's Cloud databases from "+dbsPath+" are all loaded!");
-        	else
-        		logger.error("Some database information cannot be loaded!");
-        	return allLoaded;
+	        UserDatabase userDatabase = mapper.readValue(new File(dbsPath), UserDatabase.class);
+	        	if(userDatabase == null){
+	        		logger.error("Users's Cloud databases from "+dbsPath+" is invalid!");
+	            	return false;
+	        	}
+	        	boolean allLoaded = true;
+	        	for(int i = 0 ; i < userDatabase.cloudDBs.size() ; i++){
+	        		DatabaseInfo databaseInfo = userDatabase.cloudDBs.get(i);
+	        		String cp = databaseInfo.cloudProvider.toLowerCase().trim();
+	        		if(cp == null){
+	        			logger.warn("Cloud provider must be set!");
+	        			allLoaded = false;
+	        			continue;
+	        		}
+	        		if(databaseInfo.dbInfoFile == null){
+	        			logger.warn("The 'dbInfoPath' of Cloud provider "+cp+" is missing!");
+	        			allLoaded = false;
+	        			continue;
+	        		}
+	        		String dbInfoPath = curDir + databaseInfo.dbInfoFile;
+	        		if(!databaseInfo.loadDatabase(dbInfoPath, this.databases)){
+	        			allLoaded = false;
+	        			continue;
+	        		}
+	        		
+	        	}
+	        	if(allLoaded)
+	        		logger.info("User's Cloud databases from "+dbsPath+" are all loaded!");
+	        	else
+	        		logger.warn("Some database information cannot be loaded!");
+	        	return allLoaded;
         } catch (Exception e) {
-            logger.error(e.toString());
+            logger.error(e.getMessage());
             e.printStackTrace();
             return false;
         }

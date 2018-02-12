@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.UserCredential;
 import provisioning.database.UserDatabase;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 import commonTool.TARGZ;

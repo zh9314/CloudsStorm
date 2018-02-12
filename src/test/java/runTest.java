@@ -1,4 +1,4 @@
-import topologyAnalysis.dataStructure.EC2.EC2VM;
+import topology.dataStructure.EC2.EC2VM;
 
 public class runTest implements Runnable{
 		

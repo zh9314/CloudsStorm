@@ -3,6 +3,8 @@ package infrastructureCode.interpreter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,9 +20,9 @@ import provisioning.database.UserDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.DeleteRequest;
 import provisioning.request.ProvisionRequest;
-import topologyAnalysis.dataStructure.SubTopologyInfo;
-import topologyAnalysis.dataStructure.TopTopology;
-import topologyAnalysis.dataStructure.VM;
+import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.TopTopology;
+import topology.description.actual.VM;
 import infrastructureCode.log.Log;
 import infrastructureCode.log.Logs;
 import infrastructureCode.main.Operation;
@@ -64,6 +66,7 @@ public class OPInterpreter {
 	}
 	
 	private boolean provision(){
+		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
 		if(opInput.SubjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
@@ -76,7 +79,7 @@ public class OPInterpreter {
 				return true;
 			}
 			TEngine tEngine = new TEngine();
-			ArrayList<ProvisionRequest> provisionReqs = new ArrayList<ProvisionRequest>();
+			ProvisionRequest provisionReq = new ProvisionRequest();
 			if(opSubjects.trim().equalsIgnoreCase("_all")){
 				logger.debug("Provision all sub-topologies!");
 				for(int si = 0 ; si<topTopology.topologies.size() ; si++){
@@ -85,37 +88,38 @@ public class OPInterpreter {
 					if(topTopology.topologies.get(si).status.equals("fresh")
 						||topTopology.topologies.get(si).status.equals("stopped")
 						||topTopology.topologies.get(si).status.equals("deleted")){
-						ProvisionRequest pq = new ProvisionRequest();
-						pq.topologyName = topTopology.topologies.get(si).topology;
-						provisionReqs.add(pq);
+						provisionReq.content.put(topTopology.topologies.get(si).topology, false);
 					}
 				}
-				tEngine.provision(topTopology, userCredential, userDatabase, provisionReqs);
+				opResult = tEngine.provision(topTopology, userCredential, userDatabase, provisionReq);
 			}else{
 				String [] opSubjectsList = opSubjects.split("\\|\\|");
 				for(int oi = 0 ; oi < opSubjectsList.length ; oi++){
-					ProvisionRequest pq = new ProvisionRequest();
-					pq.topologyName = opSubjectsList[oi];
-					provisionReqs.add(pq);
-					logger.debug("Provision sub-topology "+pq.topologyName);
+					provisionReq.content.put(opSubjectsList[oi], false);
+					logger.debug("Provision sub-topology "+opSubjectsList[oi]);
 				}
-				tEngine.provision(topTopology, userCredential, userDatabase, provisionReqs);
+				opResult = tEngine.provision(topTopology, userCredential, userDatabase, provisionReq);
 			}
 			
-			String logString = "";
-			for(int reqi = 0 ; reqi<provisionReqs.size() ; reqi++){
-				SubTopologyInfo curST = topTopology.getSubtopology(provisionReqs.get(reqi).topologyName.trim());
-				if(curST != null){
-					logString += curST.topology + "::" + curST.status + "::" + curST.statusInfo + "::";
+			Map<String, String> logsInfo = new HashMap<String, String>();
+			for(Map.Entry<String, Boolean> entryReq: provisionReq.content.entrySet()){
+				SubTopologyInfo curST = topTopology
+											.getSubtopology(entryReq.getKey().trim());
+				if(curST != null && curST.logsInfo != null){
+					for(Map.Entry<String, String> entry: curST.logsInfo.entrySet())
+						logsInfo.put(entry.getKey(), entry.getValue());
+				
 					for(int vi = 0 ; vi < curST.subTopology.getVMsinSubClass().size() ; vi++){
 						VM curVM = curST.subTopology.getVMsinSubClass().get(vi);
-						logString += curVM.name+"::"+curVM.publicAddress+"::";
+						logsInfo.put(curVM.name+"#pubIP", curVM.publicAddress); 
+					
 					}
-					logString += "||";
 				}
 			}
 			long opEnd = System.currentTimeMillis();
-			recordOpLog(logString, (int)((opEnd-opStart)/1000));
+			recordOpLog(logsInfo, (int)((opEnd-opStart)/1000));
+			if(!opResult)
+				return false;
 			return true;
 		}else{
 			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
@@ -124,6 +128,7 @@ public class OPInterpreter {
 	}
 	
 	private boolean delete(){
+		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
 		if(opInput.SubjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
@@ -138,22 +143,22 @@ public class OPInterpreter {
 			if(opSubjects.trim().equalsIgnoreCase("_all")){
 				logger.debug("Delete all sub-topologies!");
 				TEngine tEngine = new TEngine();
-				tEngine.deleteAll(topTopology, userCredential, userDatabase);
+				opResult = tEngine.deleteAll(topTopology, userCredential, userDatabase);
 			}else{
 				String [] opSubjectsList = opSubjects.split("\\|\\|");
-				ArrayList<DeleteRequest> deleteReqs = new ArrayList<DeleteRequest>();
+				DeleteRequest deleteReq = new DeleteRequest();
 				for(int oi = 0 ; oi < opSubjectsList.length ; oi++){
-					DeleteRequest dq = new DeleteRequest();
-					dq.topologyName = opSubjectsList[oi];
-					deleteReqs.add(dq);
-					logger.debug("Delete sub-topology "+dq.topologyName);
+					deleteReq.content.put(opSubjectsList[oi], false);
+					logger.debug("Delete sub-topology "+opSubjectsList[oi]);
 				}
 				
 				TEngine tEngine = new TEngine();
-				tEngine.delete(topTopology, userCredential, userDatabase, deleteReqs);
+				opResult = tEngine.delete(topTopology, userCredential, userDatabase, deleteReq);
 			}
 			long opEnd = System.currentTimeMillis();
 			recordOpLog(null, (int)((opEnd-opStart)/1000));
+			if(!opResult)
+				return false;
 			return true;
 		}else{
 			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
@@ -169,20 +174,26 @@ public class OPInterpreter {
 		if(opInput.SubjectType == null){
 			logString = "Invalid operation without 'SubjectType': "+opInput.toString();
 			logger.warn(logString);
-			recordOpLog("WARN: "+logString, 0);
+			Map<String,String> logsInfo = new HashMap<String,String>();
+			logsInfo.put("WARN", logString);
+			recordOpLog(logsInfo, 0);
 			return false;
 		}
 		if(opInput.Command == null || opInput.Command.trim().equals("")){
 			logString = "Invalid operation without defining command";
 			logger.warn(logString);
-			recordOpLog("WARN: "+logString, 0);
+			Map<String,String> logsInfo = new HashMap<String,String>();
+			logsInfo.put("WARN", logString);
+			recordOpLog(logsInfo, 0);
 			return false;
 		}
 		if(opInput.SubjectType.trim().equalsIgnoreCase("vm")){
 			if(opInput.Subjects == null){
 				logString = "Invalid operation without 'Subjects'!";
 				logger.warn(logString);
-				recordOpLog("WARN: "+logString, 0);
+				Map<String,String> logsInfo = new HashMap<String,String>();
+				logsInfo.put("WARN", logString);
+				recordOpLog(logsInfo, 0);
 				return false;
 			}
 			String [] opSubjectsList = opInput.Subjects.split("\\|\\|");
@@ -253,7 +264,9 @@ public class OPInterpreter {
 				return success;
 			}
 			else{
-				recordOpLog(logString, (int)((opEnd-opStart)/1000));
+				Map<String,String> logsInfo = new HashMap<String,String>();
+				logsInfo.put("WARN", logString);
+				recordOpLog(logsInfo, (int)((opEnd-opStart)/1000));
 				return success;
 			}
 		}else{
@@ -263,12 +276,12 @@ public class OPInterpreter {
 	}
 	
 	
-	private void recordOpLog(String logString, int opOverhead){
+	private void recordOpLog(Map<String, String> logsInfo, int opOverhead){
 		Logs logs = new Logs();
 		Log log = new Log();
 		log.Event = this.opInput;
 		
-		log.LOG = logString;
+		log.LOG = logsInfo;
 		log.Time = String.valueOf(System.currentTimeMillis());
 		log.Overhead = String.valueOf(opOverhead);
 		logs.LOGs = new ArrayList<Log>();

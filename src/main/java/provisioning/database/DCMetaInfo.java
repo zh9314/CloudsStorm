@@ -1,5 +1,8 @@
 package provisioning.database;
 
+import java.util.Map;
+
+
 public abstract class DCMetaInfo {
 	public String domain;
 	public String endpoint;
@@ -13,4 +16,8 @@ public abstract class DCMetaInfo {
 	public String latitude;
 	
 	public String availability; 
+	
+
+	public Map<String, String> extraInfo;
+	
 }

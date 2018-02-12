@@ -13,7 +13,7 @@ import provisioning.database.EC2.EC2Database;
 import provisioning.database.EGI.EGIDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.ProvisionRequest;
-import topologyAnalysis.TopologyAnalysisMain;
+import topology.analysis.TopologyAnalysisMain;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 
@@ -65,7 +65,7 @@ public class testProvisioning {
 		userDatabase.databases.put("egi", egiDatabase);
 		
 		ProvisionRequest pq = new ProvisionRequest();
-		pq.topologyName = "egi_zh_a";
+		//pq.topologyName = "egi_zh_a";
 		ArrayList<ProvisionRequest> provisionReqs = new ArrayList<ProvisionRequest>();
 		provisionReqs.add(pq);
 
@@ -74,7 +74,7 @@ public class testProvisioning {
 		//tEngine.provisionAll(tam.wholeTopology, userCredential, userDatabase);
 		//tEngine.stopAll(tam.wholeTopology, userCredential, userDatabase);
 		//tEngine.startAll(tam.wholeTopology, userCredential, userDatabase);
-		tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
+		//tEngine.provision(tam.wholeTopology, userCredential, userDatabase, provisionReqs);
 		//tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
 		long endTime = System.currentTimeMillis();
 		System.out.println("Total overhead: "+(endTime-startTime));

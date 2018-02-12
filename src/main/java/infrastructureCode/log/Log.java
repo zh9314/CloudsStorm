@@ -1,5 +1,7 @@
 package infrastructureCode.log;
 
+import java.util.Map;
+
 import infrastructureCode.main.Operation;
 
 public class Log {
@@ -19,6 +21,6 @@ public class Log {
 	/**
 	 * The detailed content of the log.
 	 */
-	public String LOG;
+	public Map<String, String> LOG;
 	
 }

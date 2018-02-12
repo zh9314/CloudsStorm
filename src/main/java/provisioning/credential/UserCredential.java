@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import commonTool.CommonTool;
-import topologyAnalysis.dataStructure.TopTopology;
+import topology.description.actual.TopTopology;
 
 
 /**
@@ -73,46 +73,19 @@ public class UserCredential {
         			allLoaded = false;
         			continue;
         		}
-        		String className = "";
         		String credInfoPath = curDir + credentialInfo.credInfoFile;
-        		if(credentialInfo.credClassPath == null){
-        			String packagePrefix = "provisioning.credential";
-        			if(cp.equals("ec2"))
-        				className = packagePrefix+".EC2Credential";
-        			else if(cp.equals("exogeni"))
-        				className = packagePrefix+".ExoGENICredential";
-        			else if(cp.equals("egi"))
-        				className = packagePrefix+".EGICredential";
-        			else{
-        				logger.warn("Cloud provider of "+cp+" has not been supported yet!");
-        				allLoaded = false;
-        				continue;
-        			}
-        		}else
-        			className = credentialInfo.credClassPath;
-        		
-    			try {
-    				Object cloudCred = Class.forName(className).newInstance();
-    				boolean loaded = ((Credential)cloudCred).loadCredential(credInfoPath, this.cloudAccess);
-    				if(!loaded){
-    					logger.warn("Credential for Cloud provider "+cp+" cannot be loaded!");
-        				allLoaded = false;
-        				continue;
-    				}
-    			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-    				e.printStackTrace();
-    				logger.warn("Cannot load the credential class for "+cp+": "+e.getMessage());
-    				allLoaded = false;
-    				continue;
-    			}
+        		if(!credentialInfo.loadCredential(credInfoPath, cloudAccess)){
+        			allLoaded = false;
+        			return false;
+        		}
         	}
         	if(allLoaded)
         		logger.info("User's Cloud credentials from "+credsPath+" are all loaded!");
         	else
-        		logger.error("Some credential cannot be loaded!");
+        		logger.warn("Some credential cannot be loaded!");
         	return allLoaded;
         } catch (Exception e) {
-            logger.error(e.toString());
+            logger.error(e.getMessage());
             e.printStackTrace();
             return false;
         }
