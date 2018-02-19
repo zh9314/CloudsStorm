@@ -69,11 +69,13 @@ public class ICInterpreter {
 					if(loopCounter == 0)
 						codeLine++;
 					Operation curOp = curLine.OpCodes.get(opCounter);
+					curOp.loopCounter = loopCounter;
 					OPInterpreter opInterpreter = new OPInterpreter(curOp,
 							ic.topTopology, ic.userCredential, ic.userDatabase,
 							ic.icLogger);
 					if(!opInterpreter.execute()){
-						logger.error("Error of Operation "+curOp.Operation+" at Code "+codeLine+ "! Exit!");
+						logger.error("Error of Operation "+curOp.Operation
+										+" at Code "+codeLine+ "! Exit!");
 						return ;
 					}
 					

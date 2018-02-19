@@ -1,0 +1,5 @@
+userKeyName: user.jks
+keyAlias: test
+keyPassword: example
+
+

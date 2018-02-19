@@ -1,0 +1,165 @@
+DCMetaInfo: 
+- domain: "Virginia"
+  endpoint: "ec2.us-east-1.amazonaws.com"
+  country: USA
+  longitude: "78.65 W"
+  latitude: "37.43 N"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0058
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-33e4bc49"
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0116
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-33e4bc49"
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0464
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-33e4bc49"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0058
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-41e0b93b"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0116
+    DefaultSSHAccount: "ubuntu"
+  - OS: "Ubuntu 16.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0464
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-41e0b93b"
+- domain: "California"
+  endpoint: "ec2.us-west-1.amazonaws.com"
+  country: USA
+  longitude: "119.42 W"
+  latitude: "36.78 N"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0069
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-915f5cf1"
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0138
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-915f5cf1"
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0552
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-915f5cf1"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0069
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-79aeae19"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0138
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-79aeae19"
+  - OS: "Ubuntu 16.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0552
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-79aeae19"
+- domain: "Ohio"
+  endpoint: "ec2.us-east-2.amazonaws.com"
+  country: USA
+  longitude: "82.90 W"
+  latitude: "40.42 N"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0058
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-f0f8d695"
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0116
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-f0f8d695"
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0464
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-f0f8d695"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 0.5
+    VMType: "t2.nano"
+    Price: 0.0058
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-2581aa40"
+  - OS: "Ubuntu 16.04"
+    CPU: 1
+    MEM: 1
+    VMType: "t2.micro"
+    Price: 0.0116
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-2581aa40"
+  - OS: "Ubuntu 16.04"
+    CPU: 2
+    MEM: 4
+    VMType: "t2.medium"
+    Price: 0.0464
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      AMI: "ami-2581aa40"
+   

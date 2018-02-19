@@ -60,20 +60,67 @@ public class OPInterpreter {
 				|| opInput.Operation.trim().equalsIgnoreCase("put")    ////upload some file from a VM
 				|| opInput.Operation.trim().equalsIgnoreCase("get"))   ////download some file from a VM
 			success = opOnVMs();
-
+		else if(opInput.Operation.trim().equalsIgnoreCase("sleep"))
+			success = opSys();
 
 		return success;
+	}
+	
+	/**
+	 * These are some system operations.
+	 * @return
+	 */
+	private boolean opSys(){
+		
+		if(opInput.Operation.equalsIgnoreCase("sleep")){
+			if(opInput.Command == null){
+				logger.error("Invalid operation for 'sleep'!");
+				return false;
+			}
+			long sleepStart = System.currentTimeMillis();
+			int timeDura = -1;
+			if(opInput.Command.endsWith("s")){
+				String duration = opInput.Command.substring(0, opInput.Command.length()-1).trim();
+				timeDura = Integer.valueOf(duration);
+			}else if(opInput.Command.endsWith("m")){
+				String duration = opInput.Command.substring(0, opInput.Command.length()-1).trim();
+				timeDura = Integer.valueOf(duration)*60;
+			}else if(opInput.Command.endsWith("h")){
+				String duration = opInput.Command.substring(0, opInput.Command.length()-1).trim();
+				timeDura = Integer.valueOf(duration)*60*60;
+			}else{
+				logger.error("Invalid time duration for 'sleep'!");
+				return false;
+			}
+			int sleepInterval = 500;
+			if(timeDura > 100)
+				sleepInterval = 1000;
+			if(timeDura > 1000)
+				sleepInterval = 10*1000;
+			
+			while(true){
+				long curTime = System.currentTimeMillis();
+				int timeSecs = (int)(curTime - sleepStart)/1000;
+				if( timeSecs > timeDura)
+					return true;
+				try {
+					Thread.sleep(sleepInterval);
+				} catch (InterruptedException e) {
+				}
+			}
+		}
+		return false;
 	}
 	
 	private boolean provision(){
 		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
-		if(opInput.SubjectType == null){
+		if(opInput.ObjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
 			return false;
 		}
-		if(opInput.SubjectType.trim().equalsIgnoreCase("subtopology")){
-			String opSubjects = opInput.Subjects;
+		if(opInput.ObjectType.trim().equalsIgnoreCase("subtopology")){
+			String opSubjects = opInput.Objects;
 			if(opSubjects == null){
 				logger.warn("Nothing to operate on!");
 				return true;
@@ -117,7 +164,7 @@ public class OPInterpreter {
 				}
 			}
 			long opEnd = System.currentTimeMillis();
-			recordOpLog(logsInfo, (int)((opEnd-opStart)/1000));
+			recordOpLog(logsInfo, (int)((opEnd-opStart)));
 			if(!opResult)
 				return false;
 			return true;
@@ -130,12 +177,12 @@ public class OPInterpreter {
 	private boolean delete(){
 		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
-		if(opInput.SubjectType == null){
+		if(opInput.ObjectType == null){
 			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
 			return false;
 		}
-		if(opInput.SubjectType.trim().equalsIgnoreCase("subtopology")){
-			String opSubjects = opInput.Subjects;
+		if(opInput.ObjectType.trim().equalsIgnoreCase("subtopology")){
+			String opSubjects = opInput.Objects;
 			if(opSubjects == null){
 				logger.warn("Nothing to operate on!");
 				return true;
@@ -156,7 +203,7 @@ public class OPInterpreter {
 				opResult = tEngine.delete(topTopology, userCredential, userDatabase, deleteReq);
 			}
 			long opEnd = System.currentTimeMillis();
-			recordOpLog(null, (int)((opEnd-opStart)/1000));
+			recordOpLog(null, (int)((opEnd-opStart)));
 			if(!opResult)
 				return false;
 			return true;
@@ -171,7 +218,7 @@ public class OPInterpreter {
 	private boolean opOnVMs(){
 		String logString = "";
 		long opStart = System.currentTimeMillis();
-		if(opInput.SubjectType == null){
+		if(opInput.ObjectType == null){
 			logString = "Invalid operation without 'SubjectType': "+opInput.toString();
 			logger.warn(logString);
 			Map<String,String> logsInfo = new HashMap<String,String>();
@@ -187,8 +234,16 @@ public class OPInterpreter {
 			recordOpLog(logsInfo, 0);
 			return false;
 		}
-		if(opInput.SubjectType.trim().equalsIgnoreCase("vm")){
-			if(opInput.Subjects == null){
+		
+		////replace the command with some predefined synatx 
+		////Do not replace the original string, in order to avoid 
+		String curCMD = opInput.Command.replaceAll("\\$counter", 
+							String.valueOf(opInput.loopCounter))
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+		
+		
+		if(opInput.ObjectType.trim().equalsIgnoreCase("vm")){
+			if(opInput.Objects == null){
 				logString = "Invalid operation without 'Subjects'!";
 				logger.warn(logString);
 				Map<String,String> logsInfo = new HashMap<String,String>();
@@ -196,7 +251,7 @@ public class OPInterpreter {
 				recordOpLog(logsInfo, 0);
 				return false;
 			}
-			String [] opSubjectsList = opInput.Subjects.split("\\|\\|");
+			String [] opSubjectsList = opInput.Objects.split("\\|\\|");
 			ExecutorService executor4CMD = Executors.newFixedThreadPool(opSubjectsList.length);
 			ArrayList<ParallelExecutor> PEs = new ArrayList<ParallelExecutor>();
 			boolean success = true;
@@ -237,7 +292,7 @@ public class OPInterpreter {
 				}
 				String defaultSSHPrivateKey = curSubInfo.subTopology.accessKeyPair.privateKeyString;
 				ParallelExecutor PE = new ParallelExecutor(curVM.defaultSSHAccount, 
-						curVM.publicAddress, defaultSSHPrivateKey, opInput.Operation, opInput.Command);
+						curVM.publicAddress, defaultSSHPrivateKey, opInput.Operation, curCMD, subVMName);
 				PEs.add(PE);
 				executor4CMD.execute(PE);
 			}
@@ -248,25 +303,28 @@ public class OPInterpreter {
 					Thread.sleep(1000);
 				}
 			} catch (InterruptedException e) {
-				e.printStackTrace();
-				logger.error("Unexpected error for threads!");
 				return false;
 			}
-			
-			for(int pi = 0 ; pi<PEs.size() ; pi++)
-				logString += (PEs.get(pi).exeResult+"||");
+			Map<String,String> logsInfo = new HashMap<String,String>();
+			for(int pi = 0 ; pi<PEs.size() ; pi++){
+				logsInfo.put(PEs.get(pi).subjectName, PEs.get(pi).exeResult);
+				if(!PEs.get(pi).exeState)
+					success = false;
+			}
+			int tail = logString.lastIndexOf("||");
+			if(tail != -1)
+				logString = logString.substring(0, tail);
+			logsInfo.put("MSG", logString);
 			
 			
 			///if the 'Log' option is not set, then the output will be logged by default
 			long opEnd = System.currentTimeMillis();
 			if(opInput.Log != null && opInput.Log.trim().equalsIgnoreCase("OFF")){
-				recordOpLog(null, (int)((opEnd-opStart)/1000));
+				recordOpLog(null, (int)((opEnd-opStart)));
 				return success;
 			}
 			else{
-				Map<String,String> logsInfo = new HashMap<String,String>();
-				logsInfo.put("WARN", logString);
-				recordOpLog(logsInfo, (int)((opEnd-opStart)/1000));
+				recordOpLog(logsInfo, (int)((opEnd-opStart)));
 				return success;
 			}
 		}else{

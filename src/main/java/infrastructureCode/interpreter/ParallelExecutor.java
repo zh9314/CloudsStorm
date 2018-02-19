@@ -24,18 +24,25 @@ public class ParallelExecutor implements Runnable {
 	private String exeCMD;
 	private String operation;
 	
-	ParallelExecutor(String user, String pubIP, String priKey, String operation, String exeCMD){
+	////tells whether the operation is executed correctly
+	public boolean exeState;
+	public String subjectName;
+	
+	ParallelExecutor(String user, String pubIP, String priKey, String operation, String exeCMD, String subjectName){
 		this.user = user;
 		this.pubIP = pubIP;
 		this.privateKeyString = priKey;
 		this.operation = operation;
 		this.exeCMD = exeCMD;
+		this.subjectName = subjectName;
 		exeResult = " ";
+		exeState = true;
 	}
 	
 	@Override
 	public void run() {
 		if(operation == null){
+			exeState = false;
 			return ;
 		}
 		try {
@@ -51,12 +58,14 @@ public class ParallelExecutor implements Runnable {
 				String [] srcdst = exeCMD.split("::");
 				if(srcdst.length != 2){
 					exeResult = "ERROR: Invalid path for operation '"+operation.trim()+"'!";
+					exeState = false;
 					return ;
 				}
 				int firstLen = srcdst[0].split(":=").length;
 				int secondLen = srcdst[1].split(":=").length;
 				if(firstLen != 2 || secondLen != 2){
 					exeResult = "ERROR: Invalid paths for operation '"+operation.trim()+"'!";
+					exeState = false;
 					return ;
 				}
 	
@@ -70,7 +79,9 @@ public class ParallelExecutor implements Runnable {
 					srcPath = srcdst[1].split(":=")[1];
 					dstPath = srcdst[0].split(":=")[1];
 				}else{
-					exeResult = "ERROR: Invalid paths for operation '"+operation.trim()+"' missing 'src' or 'dst'!";
+					exeResult = "ERROR: Invalid paths for operation '"
+									+operation.trim()+"' missing 'src' or 'dst'!";
+					exeState = false;
 					return ;
 				}
 				String srcPathType = CommonTool.getFilePathType(srcPath);
@@ -78,7 +89,9 @@ public class ParallelExecutor implements Runnable {
 				if(operation.trim().equalsIgnoreCase("put")){
 					if(dstPathType == null 
 						||!dstPathType.trim().equalsIgnoreCase("file")){
-						exeResult = "ERROR: Invalid 'dst' path type for operation '"+operation.trim()+"', must be 'file'!";
+						exeResult = "ERROR: Invalid 'dst' path type for operation '"
+										+operation.trim()+"', must be 'file'!";
+						exeState = false;
 						return ;
 					}
 					String srcRealPath = CommonTool.getFilePath(srcPath);
@@ -135,26 +148,35 @@ public class ParallelExecutor implements Runnable {
 							}
 						}
 					}else{
-						exeResult = "ERROR: Invalid 'src' path type for operation '"+operation.trim()+"', must be 'file' or 'url'!";
+						exeResult = "ERROR: Invalid 'src' path type for operation '"
+										+operation.trim()+"', must be 'file' or 'url'!";
+						exeState = false;
 						return ;
 					}
 				}
 				if(operation.trim().equalsIgnoreCase("get")){
 					if(srcPathType == null 
 							|| !srcPathType.trim().equalsIgnoreCase("file")){
-						exeResult = "ERROR: Invalid 'src' path type for operation '"+operation.trim()+"', must be 'file'!";
+						exeResult = "ERROR: Invalid 'src' path type for operation '"
+										+operation.trim()+"', must be 'file'!";
+						exeState = false;
 						return ;
 					}
 					if(dstPathType == null
 							|| !dstPathType.trim().equalsIgnoreCase("file")){
-						exeResult = "ERROR: Invalid 'dst' path type for operation '"+operation.trim()+"', must be 'file'!";
+						exeResult = "ERROR: Invalid 'dst' path type for operation '"
+										+operation.trim()+"', must be 'file'!";
+						exeState = false;
 						return ;
 					}
 					String srcRealPath = CommonTool.getFilePath(srcPath);   /// this is the remote path on the operation subject
 					String dstRealPath = CommonTool.getFilePath(dstPath);   /// this is the local path
 					File dstFile = new File(dstRealPath);
 					if(!dstFile.isDirectory()){
-						exeResult = "ERROR: 'dst' path "+dstPath+" must be a local directory for operation '"+operation.trim()+"'!";
+						exeResult = "ERROR: 'dst' path " + dstPath
+										+ " must be a local directory for operation '"
+										+ operation.trim()+"'!";
+						exeState = false;
 						return ;
 					}
 					
@@ -186,6 +208,7 @@ public class ParallelExecutor implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 			exeResult = "ERROR: "+e.getMessage();
+			exeState = false;
 			return ;
 		}
 	}

@@ -1,0 +1,47 @@
+Mode: "LOCAL" # or CTRL
+InfrasCodes: Object
+- CodeType: "LOOP"
+  Duration: null 
+  Count: 19
+  Deadline: null
+  OpCodes:
+    - Operation: "provision"
+      ObjectType: SubTopology
+      Objects: "uva_pf_1||aus_pf_1||bbn_pf_1||cal_pf_1"
+    - Operation: "execute"
+      Command: "sysbench --test=cpu --cpu-max-prime=20000 run"
+      ObjectType: VM
+      Objects: "uva_pf_1.Node1||aus_pf_1.Node2||bbn_pf_1.Node3||cal_pf_1.Node4"
+    - Operation: "execute"
+      Command: "sysbench --test=memory --num-threads=2 run"
+      ObjectType: VM
+      Objects: "uva_pf_1.Node1||aus_pf_1.Node2||bbn_pf_1.Node3||cal_pf_1.Node4"
+    - Operation: "provision"
+      ObjectType: SubTopology
+      Objects: "uva_client"
+    - Operation: "execute"
+      Command: "nohup iperf -s >> /tmp/listen.txt 2>&1 &"
+      ObjectType: VM
+      Objects: "uva_pf_1.Node1||aus_pf_1.Node2||bbn_pf_1.Node3||cal_pf_1.Node4"
+    - Operation: "execute"
+      Command: "iperf -c 192.168.10.11 -t 60 -i 5"
+      ObjectType: VM
+      Objects: "uva_client.Node0"
+    - Operation: "execute"
+      Command: "iperf -c 192.168.10.12 -t 60 -i 5"
+      ObjectType: VM
+      Objects: "uva_client.Node0"
+    - Operation: "execute"
+      Command: "iperf -c 192.168.10.13 -t 60 -i 5"
+      ObjectType: VM
+      Objects: "uva_client.Node0"
+    - Operation: "execute"
+      Command: "iperf -c 192.168.10.14 -t 60 -i 5"
+      ObjectType: VM
+      Objects: "uva_client.Node0"
+    - Operation: "delete"
+      ObjectType: SubTopology
+      Objects: "uva_client||uva_pf_1||aus_pf_1||bbn_pf_1||cal_pf_1"
+    - Operation: "sleep"
+      Command: "20m"
+

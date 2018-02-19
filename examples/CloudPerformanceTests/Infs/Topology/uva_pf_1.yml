@@ -1,0 +1,6 @@
+---
+VMs:
+- name: "Node1"
+  nodeType: "XOSmall"
+  OStype: "Ubuntu 14.04"
+  script: "name@sysbenchInstall.sh"

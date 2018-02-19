@@ -1,0 +1,38 @@
+DCMetaInfo: 
+- domain: "CESNET"
+  endpoint: "https://carach5.ics.muni.cz:11443"
+  country: CZE
+  longitude: "15.47 E"
+  latitude: "49.82 N"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 2 
+    MEM: 2
+    VMType: "medium"
+    Price: null
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      OS_OCCI_ID: "http://occi.carach5.ics.muni.cz/occi/infrastructure/os_tpl#uuid_38d42ca1_f4e9_5b5c_98de_37eb2d26301a_warg_default_shared_218"
+      RES_OCCI_ID: "http://fedcloud.egi.eu/occi/compute/flavour/1.0#medium"
+  - OS: "Ubuntu 14.04"
+    CPU: 8
+    MEM: 8
+    VMType: "extra_large"
+    Price: null
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      OS_OCCI_ID: "http://occi.carach5.ics.muni.cz/occi/infrastructure/os_tpl#uuid_38d42ca1_f4e9_5b5c_98de_37eb2d26301a_warg_default_shared_218" 
+      RES_OCCI_ID: "http://schemas.fedcloud.egi.eu/occi/infrastructure/resource_tpl#extra_large"
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "small"
+    Price: null
+    DefaultSSHAccount: "ubuntu"
+    extraInfo:
+      OS_OCCI_ID: "http://occi.carach5.ics.muni.cz/occi/infrastructure/os_tpl#uuid_38d42ca1_f4e9_5b5c_98de_37eb2d26301a_warg_default_shared_218" 
+      RES_OCCI_ID: "http://fedcloud.egi.eu/occi/compute/flavour/1.0#small"
+
+
+

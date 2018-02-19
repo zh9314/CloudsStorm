@@ -1,0 +1,6 @@
+---
+VMs:
+- name: "Node4"
+  nodeType: "t2.micro"
+  OStype: "Ubuntu 14.04"
+  script: "name@sysbenchInstall.sh"

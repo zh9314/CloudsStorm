@@ -234,6 +234,7 @@ public class EC2VEngine extends VEngine{
 			curVM.volumeId = null;
 			curVM.routeTableId = null;
 			curVM.internetGatewayId = null;
+			curVM.extraInfo.clear();
 		}
 		
 		return true;

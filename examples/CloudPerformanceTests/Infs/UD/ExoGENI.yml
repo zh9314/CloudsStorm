@@ -1,0 +1,118 @@
+GlobalEntry: "https://geni.renci.org:11443/orca/xmlrpc"
+DCMetaInfo: 
+- domain: "UvA (Amsterdam, The Netherlands) XO Rack"
+  endpoint: "uvanlvmsite.rdf#uvanlvmsite"
+  country: NLD
+  longitude: "4.95 E"
+  latitude: "52.36 N"
+  availability: null 
+  extraInfo:
+    LocalEntry: "https://uva-nl-hn.exogeni.net:11443/orca/xmlrpc"
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "XOSmall"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 10
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 3
+    VMType: "XOMedium"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 25
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 6
+    VMType: "XOLarge"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 50
+- domain: "BBN/GPO (Boston, MA USA) XO Rack"
+  endpoint: "bbnvmsite.rdf#bbnvmsite"
+  country: USA
+  longitude: "71.06 W"
+  latitude: "42.36 N"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "XOSmall"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 10
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 3
+    VMType: "XOMedium"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 25
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 6
+    VMType: "XOLarge"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 50
+- domain: "NICTA (Sydney, Australia) XO Rack"
+  endpoint: "nictavmsite.rdf#nictavmsite"
+  country: AUS
+  longitude: "151.21 E"
+  latitude: "33.87 S"
+  availability: null 
+  VMMetaInfo:
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 1
+    VMType: "XOSmall"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 10
+  - OS: "Ubuntu 14.04"
+    CPU: 1
+    MEM: 3
+    VMType: "XOMedium"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 25
+  - OS: "Ubuntu 14.04"
+    CPU: 2
+    MEM: 6
+    VMType: "XOLarge"
+    Price: null
+    DefaultSSHAccount: "root"
+    extraInfo:
+      OS_URL: "http://geni-images.renci.org/images/standard/ubuntu/ub1404-v1.0.4.xml"
+      OS_GUID: "9394ca154aa35eb55e604503ae7943ddaecc6ca5"
+      DiskSize: 50
+
+
+

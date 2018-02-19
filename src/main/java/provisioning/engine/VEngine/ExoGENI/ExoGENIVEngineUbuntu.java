@@ -140,9 +140,11 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 					ActualConnectionPoint curACP = curVM.vmConnectors.get(tci);
 					
 					///If this tunnel connection has already been configured, skipped it
+					///or
 					///If the peer VM has not been started, skipped it.
-					if(curACP.ethName != null 
-							&& curACP.peerACP.belongingVM.publicAddress != null)
+					if(curACP.ethName != null )
+						continue;
+					if(curACP.peerACP.belongingVM.publicAddress == null)
 						continue;
 					
 					String linkName = "", remotePubAddress = "", remotePrivateAddress = "", 

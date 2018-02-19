@@ -35,7 +35,7 @@ public class testLoading {
 
 
 	public static void main(String[] args) {
-		String appRootDir = "examples/EC2HadoopTest/";
+		String appRootDir = "examples/PerformanceCollect/";
 		String topTopologyLoadingPath = appRootDir + "Infs/Topology/_top.yml";
 		String sshKeysDir = appRootDir + "Infs/Topology/";
 		String credentialsPath = appRootDir + "Infs/UC/cred.yml";

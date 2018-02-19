@@ -1,0 +1,9 @@
+cloudDBs:
+- cloudProvider: "EC2"
+  dbInfoFile: EC2.yml
+- cloudProvider: "ExoGENI"
+  dbInfoFile: ExoGENI.yml
+- cloudProvider: "EGI"
+  dbInfoFile: EGI.yml
+
+

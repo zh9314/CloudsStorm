@@ -1,5 +1,7 @@
 package infrastructureCode.main;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class Operation {
 	public String Operation;
 	
@@ -17,14 +19,22 @@ public class Operation {
 	
 	
 	/**
-	 * The type of the subject of this operation.
+	 * The type of the object of this operation.
 	 * Can be: "VM", "SubTopology"
 	 */
-	public String SubjectType;
+	public String ObjectType;
 	
 	/**
-	 * To define the set of subjects of this operation.
+	 * To define the set of objects of this operation.
 	 * The names are split by "||" as parallel lambda calculus.
 	 */
-	public String Subjects;
+	public String Objects;
+	
+	
+	/**
+	 * This is a counter to tell the position in the code type of 'LOOP'.
+	 * In the infrastructure code, it is identified as '$counter'
+	 */
+	@JsonIgnore
+	public int loopCounter;
 }

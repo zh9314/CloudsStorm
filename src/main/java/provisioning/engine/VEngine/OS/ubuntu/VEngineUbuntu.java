@@ -119,8 +119,9 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 					
 					///If this tunnel connection has already been configured, skipped it
 					///If the peer VM has not been started, skipped it.
-					if(curACP.ethName != null 
-							&& curACP.peerACP.belongingVM.publicAddress != null)
+					if(curACP.ethName != null )
+						continue;
+					if(curACP.peerACP.belongingVM.publicAddress == null)
 						continue;
 					
 					String linkName = "", remotePubAddress = "", remotePrivateAddress = "", 

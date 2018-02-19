@@ -138,17 +138,7 @@ public class TopologyAnalysisMain{
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+sourceTopologyName);
 					return false;
-				}if(vmInfo.selfEthAddresses == null)
-					vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
-				if(sourceTcp.netmask == null){
-					logger.error("Field 'netmask' of source connection "+sourceTcp.address+" must be specified!");
-					return false;
-				}String nm = sourceTcp.netmask;
-				if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(sourceTcp.netmask))) == null){
-					logger.error("Field 'netmask' of source connection "+sourceTcp.address+" is not valid!");
-					return false;
 				}
-				vmInfo.selfEthAddresses.put(sourceTcp.address+"/"+nm, false);
 				sourceTcp.belongingVM = vmInfo;
 				sourceTcp.belongingSubT = sti.topology;
 				sourceTcp.peerACP = targetTcp;
@@ -181,17 +171,7 @@ public class TopologyAnalysisMain{
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+targetTopologyName);
 					return false;
-				}if(vmInfo.selfEthAddresses == null)
-					vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
-				if(targetTcp.netmask == null){
-					logger.error("Field 'netmask' of target connection "+targetTcp.address+" must be specified!");
-					return false;
-				} nm = targetTcp.netmask;
-				if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(targetTcp.netmask))) == null){
-					logger.error("Field 'netmask' of target connection "+targetTcp.address+" is not valid!");
-					return false;
 				}
-				vmInfo.selfEthAddresses.put(targetTcp.address+"/"+nm, false);
 				targetTcp.belongingVM = vmInfo;
 				targetTcp.belongingSubT = sti.topology;
 				targetTcp.peerACP = sourceTcp;
@@ -342,7 +322,17 @@ public class TopologyAnalysisMain{
 					if(vmInfo == null){
 						logger.error("There is no VM called "+VMName+" in "+subTopologyName);
 						return false;
+					}if(vmInfo.selfEthAddresses == null)
+						vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
+					if(curSubnet.netmask == null){
+						logger.error("Field 'netmask' of target connection "+curMember.address+" must be specified!");
+						return false;
+					} String nm = curSubnet.netmask;
+					if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(curSubnet.netmask))) == null){
+						logger.error("Field 'netmask' of target connection "+curMember.address+" is not valid!");
+						return false;
 					}
+					vmInfo.selfEthAddresses.put(curMember.address+"/"+nm, false);
 					curMember.absVMName = VMName;
 				}
 			}
