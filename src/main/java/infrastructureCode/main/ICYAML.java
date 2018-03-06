@@ -8,6 +8,9 @@ import org.apache.log4j.Logger;
 
 import provisioning.credential.UserCredential;
 import provisioning.database.UserDatabase;
+import provisioning.request.HScalingSTRequest;
+import provisioning.request.HScalingVMRequest;
+import provisioning.request.VScalingVMRequest;
 import topology.description.actual.TopTopology;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -36,6 +39,15 @@ public class ICYAML {
 	
 	@JsonIgnore
 	public FileWriter icLogger;
+	
+	@JsonIgnore
+	public HScalingSTRequest hscalSTReq = new HScalingSTRequest();
+	
+	@JsonIgnore
+	public HScalingVMRequest hscalVMReq = new HScalingVMRequest();
+	
+	@JsonIgnore
+	public VScalingVMRequest vscalVMReq = new VScalingVMRequest();
 	
 	public ICYAML(){
 		

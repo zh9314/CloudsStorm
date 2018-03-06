@@ -98,6 +98,10 @@ public class TopologyAnalysisMain{
 			for(int vi = 0 ; vi < vms.size() ; vi++){
 				VM curVM = vms.get(vi);
 				curVM.ponintBack2STI = wholeTopology.topologies.get(si);
+				if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true")){
+					continue;
+				}
+				curVM.fake = null;
 				if(!wholeTopology.VMIndex.containsKey(curVM.name))
 					wholeTopology.VMIndex.put(curVM.name, curVM);
 				else{
@@ -134,13 +138,13 @@ public class TopologyAnalysisMain{
 				}
 				
 				//Get the VM in the sub-topology
-				VM vmInfo = sti.subTopology.getVMinSubClassbyName(VMName);
+				VM vmInfo = wholeTopology.VMIndex.get(VMName);
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+sourceTopologyName);
 					return false;
 				}
 				sourceTcp.belongingVM = vmInfo;
-				sourceTcp.belongingSubT = sti.topology;
+				sourceTcp.belongingSubT = vmInfo.ponintBack2STI.topology;
 				sourceTcp.peerACP = targetTcp;
 				if(sti.connectors == null)
 					sti.connectors = new ArrayList<ActualConnectionPoint>();
@@ -167,13 +171,13 @@ public class TopologyAnalysisMain{
 				}
 				
 				//Get the VM in the sub-topology
-				vmInfo = sti.subTopology.getVMinSubClassbyName(VMName);
+				vmInfo = wholeTopology.VMIndex.get(VMName);
 				if(vmInfo == null){
 					logger.error("There is no VM called "+VMName+" in "+targetTopologyName);
 					return false;
 				}
 				targetTcp.belongingVM = vmInfo;
-				targetTcp.belongingSubT = sti.topology;
+				targetTcp.belongingSubT = vmInfo.ponintBack2STI.topology;
 				targetTcp.peerACP = sourceTcp;
 				if(sti.connectors == null)
 					sti.connectors = new ArrayList<ActualConnectionPoint>();
@@ -300,125 +304,13 @@ public class TopologyAnalysisMain{
 		}
 			
 		///check the subnet and complete the missing non-logic connections
-		if(wholeTopology.subnets != null){
-			for(int si = 0 ; si < wholeTopology.subnets.size() ; si++){
-				Subnet curSubnet = wholeTopology.subnets.get(si);
-				for(int mi = 0 ; mi<curSubnet.members.size() ; mi++){
-					Member curMember = curSubnet.members.get(mi);
-					String [] t_VM = curMember.vmName.split("\\.");
-					if(t_VM[0].trim().equals("") || t_VM.length != 2){
-						logger.error("The format of member "+curMember.vmName+" in subnet "
-								+curSubnet.name+" is not correct!");
-						return false;
-					}
-					String VMName = t_VM[1]; String subTopologyName = t_VM[0];
-					SubTopologyInfo sti = wholeTopology.subTopologyIndex.get(subTopologyName);
-					if(sti == null){
-						logger.error("The sub-topology of subnet "+curMember.vmName+" doesn't exist!");
-						return false;
-					}
-					//Get the VM in the sub-topology
-					VM vmInfo = sti.subTopology.getVMinSubClassbyName(VMName);
-					if(vmInfo == null){
-						logger.error("There is no VM called "+VMName+" in "+subTopologyName);
-						return false;
-					}if(vmInfo.selfEthAddresses == null)
-						vmInfo.selfEthAddresses = new HashMap<String, Boolean>();
-					if(curSubnet.netmask == null){
-						logger.error("Field 'netmask' of target connection "+curMember.address+" must be specified!");
-						return false;
-					} String nm = curSubnet.netmask;
-					if(( nm = CommonTool.netmaskIntToString(Integer.valueOf(curSubnet.netmask))) == null){
-						logger.error("Field 'netmask' of target connection "+curMember.address+" is not valid!");
-						return false;
-					}
-					vmInfo.selfEthAddresses.put(curMember.address+"/"+nm, false);
-					curMember.absVMName = VMName;
-				}
-			}
-			
-			for(int si = 0 ; si < wholeTopology.subnets.size() ; si++){
-				Subnet curSubnet = wholeTopology.subnets.get(si);
-				//// the number of the nodes in this subnet
-				int nodesNum = curSubnet.members.size();
-				for(int mi = 0 ; mi<curSubnet.members.size() ; mi++){
-					Member curMember = curSubnet.members.get(mi);
-					////This means there are still missing some connections for this subnet  
-					if(curMember.adjacentNodes.size() != (nodesNum-1)){
-						for(int allm = 0 ; allm < curSubnet.members.size() ; allm++){
-							Member peerMember = curSubnet.members.get(allm);
-							////skip the node itself
-							if(peerMember.vmName
-									.equals(curMember.vmName))
-								continue;
-							if(!curMember.adjacentNodes
-									.containsKey(peerMember.vmName)){
-								String [] t_VM = curMember.vmName.split("\\.");
-								String sourceSubT = t_VM[0];
-								t_VM = peerMember.vmName.split("\\.");
-								String targetSubT = t_VM[0];
-								
-								
-								ActualConnection newCon = new ActualConnection();
-								newCon.logic = "false";
-								newCon.name = wholeTopology.generateConnectionName();
-								newCon.source = new ActualConnectionPoint();
-								newCon.target = new ActualConnectionPoint();
-								
-								newCon.source.peerACP = newCon.target;
-								newCon.target.peerACP = newCon.source;
-								
-								newCon.source.address = curMember.address;
-								newCon.source.netmask = curSubnet.netmask;
-								newCon.source.belongingVM 
-									= wholeTopology.VMIndex.get(curMember.absVMName);
-								newCon.source.belongingSubT = sourceSubT;
-								newCon.source.vmName = curMember.vmName;
-								
-								if(wholeTopology.subTopologyIndex.get(sourceSubT).connectors == null)
-									wholeTopology.subTopologyIndex.get(sourceSubT).connectors 
-										= new ArrayList<ActualConnectionPoint>();
-								wholeTopology.subTopologyIndex.get(sourceSubT).connectors.add(newCon.source);
-								if(newCon.source.belongingVM.vmConnectors == null)
-									newCon.source.belongingVM.vmConnectors
-										= new ArrayList<ActualConnectionPoint>();
-								newCon.source.belongingVM.vmConnectors.add(newCon.source);
-								
-								newCon.target.address = peerMember.address;
-								newCon.target.netmask = curSubnet.netmask;
-								newCon.target.belongingVM 
-									= wholeTopology.VMIndex.get(peerMember.absVMName);
-								newCon.target.belongingSubT = targetSubT;
-								newCon.target.vmName = peerMember.vmName;
-								
-								if(wholeTopology.subTopologyIndex.get(targetSubT).connectors == null)
-									wholeTopology.subTopologyIndex.get(targetSubT).connectors 
-										= new ArrayList<ActualConnectionPoint>();
-								wholeTopology.subTopologyIndex.get(targetSubT).connectors.add(newCon.target);
-								if(newCon.target.belongingVM.vmConnectors == null)
-									newCon.target.belongingVM.vmConnectors
-										= new ArrayList<ActualConnectionPoint>();
-								newCon.target.belongingVM.vmConnectors.add(newCon.target);
-								
-								if(wholeTopology.connections == null)
-									wholeTopology.connections = new ArrayList<ActualConnection>();
-								wholeTopology.connections.add(newCon);
-								wholeTopology.connectionIndex.put(newCon.name, newCon);
-								
-								curMember.adjacentNodes.put(peerMember.vmName, peerMember);
-								peerMember.adjacentNodes.put(curMember.vmName, curMember);
-							}
-						}
-					}
-				}
-			}
-			
-			
-		}
+		if(!wholeTopology.completeConInfoFromSubnet())
+			return false;
 	
-		
 		return true;
 	}
+	
+	
 	
 	
 	

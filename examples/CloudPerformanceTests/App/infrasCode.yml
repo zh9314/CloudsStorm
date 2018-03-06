@@ -1,5 +1,5 @@
 Mode: "LOCAL" # or CTRL
-InfrasCodes: Object
+InfrasCodes:
 - CodeType: "LOOP"
   Duration: null 
   Count: 19

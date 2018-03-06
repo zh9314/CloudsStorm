@@ -50,11 +50,10 @@ public abstract class VM {
      *  because there is some time that no connection is setup. For example, 
      *  the tunnel is not set. Then the VM's private IP address of this connection 
      *  should still can be connected! This is especially for the top connections. 
-     *  The keys are all the private IPs of this VM. Boolean tells whether the self 
-     *  eth tunnel port has been setup. It is initialized as TRUE.
+     *  The keys are all the private IPs of this VM. Value tells whether the self 
+     *  eth tunnel port has been setup. It is the tunnel name. It is initialized as null.
      */
-    @JsonIgnore
-    public Map<String, Boolean> selfEthAddresses;
+    public Map<String, String> selfEthAddresses;
     
     
     /**
@@ -97,6 +96,12 @@ public abstract class VM {
 	 * it means this is no scaled.
 	 */
 	public String scaledFrom;
+	
+	/**
+	 * If it is null or false, it means this VM is not fake.
+	 * Otherwise, this VM will not be loaded to be vmIndex.
+	 */
+	public String fake;
 
     /**
      * Load script content from 'script' of current VM.

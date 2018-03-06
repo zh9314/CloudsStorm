@@ -14,17 +14,26 @@ import org.apache.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
+import commonTool.ClassSet;
 import commonTool.CommonTool;
+import commonTool.Values;
 import provisioning.credential.UserCredential;
 import provisioning.database.UserDatabase;
 import provisioning.engine.TEngine.TEngine;
 import provisioning.request.DeleteRequest;
+import provisioning.request.HScalingSTRequest;
+import provisioning.request.HScalingSTRequest.STScalingReqEle;
+import provisioning.request.HScalingVMRequest;
+import provisioning.request.HScalingVMRequest.VMScalingReqEle;
 import provisioning.request.ProvisionRequest;
+import provisioning.request.VScalingVMRequest;
+import provisioning.request.VScalingVMRequest.VMVScalingReqEle;
 import topology.description.actual.SubTopologyInfo;
 import topology.description.actual.TopTopology;
 import topology.description.actual.VM;
 import infrastructureCode.log.Log;
 import infrastructureCode.log.Logs;
+import infrastructureCode.main.ICYAML;
 import infrastructureCode.main.Operation;
 
 public class OPInterpreter {
@@ -35,15 +44,15 @@ public class OPInterpreter {
 	private UserCredential userCredential;
 	private UserDatabase userDatabase;
 	private FileWriter opLogger;
+	private ICYAML ic;
 	
-	public OPInterpreter(Operation input,
-			TopTopology topTopology, UserCredential userCredential, UserDatabase userDatabase,
-			FileWriter opLogger){
+	public OPInterpreter(Operation input, ICYAML ic){
 		this.opInput = input;
-		this.topTopology = topTopology;
-		this.userCredential = userCredential;
-		this.userDatabase = userDatabase;
-		this.opLogger = opLogger;
+		this.topTopology = ic.topTopology;
+		this.userCredential = ic.userCredential;
+		this.userDatabase = ic.userDatabase;
+		this.opLogger = ic.icLogger;
+		this.ic = ic;
 	}
 	
 	public boolean execute(){
@@ -54,6 +63,10 @@ public class OPInterpreter {
 		boolean success = false;
 		if(opInput.Operation.trim().equalsIgnoreCase("provision"))
 			success = provision();
+		else if(opInput.Operation.trim().equalsIgnoreCase("hscale"))
+			success = hscale();
+		else if(opInput.Operation.trim().equalsIgnoreCase("vscale"))
+			success = vscale();
 		else if(opInput.Operation.trim().equalsIgnoreCase("delete"))
 			success = delete();
 		else if(opInput.Operation.trim().equalsIgnoreCase("execute")
@@ -116,18 +129,18 @@ public class OPInterpreter {
 		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
 		if(opInput.ObjectType == null){
-			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
+			logger.error("Invalid operation without 'ObjectType': "+opInput.toString());
 			return false;
 		}
 		if(opInput.ObjectType.trim().equalsIgnoreCase("subtopology")){
-			String opSubjects = opInput.Objects;
-			if(opSubjects == null){
+			String opObjects = opInput.Objects;
+			if(opObjects == null){
 				logger.warn("Nothing to operate on!");
 				return true;
 			}
 			TEngine tEngine = new TEngine();
 			ProvisionRequest provisionReq = new ProvisionRequest();
-			if(opSubjects.trim().equalsIgnoreCase("_all")){
+			if(opObjects.trim().equalsIgnoreCase("_all")){
 				logger.debug("Provision all sub-topologies!");
 				for(int si = 0 ; si<topTopology.topologies.size() ; si++){
 					if(topTopology.topologies.get(si).topology.equalsIgnoreCase("_ctrl"))
@@ -140,10 +153,10 @@ public class OPInterpreter {
 				}
 				opResult = tEngine.provision(topTopology, userCredential, userDatabase, provisionReq);
 			}else{
-				String [] opSubjectsList = opSubjects.split("\\|\\|");
-				for(int oi = 0 ; oi < opSubjectsList.length ; oi++){
-					provisionReq.content.put(opSubjectsList[oi], false);
-					logger.debug("Provision sub-topology "+opSubjectsList[oi]);
+				String [] opObjectsList = opObjects.split("\\|\\|");
+				for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+					provisionReq.content.put(opObjectsList[oi], false);
+					logger.debug("Provision sub-topology "+opObjectsList[oi]);
 				}
 				opResult = tEngine.provision(topTopology, userCredential, userDatabase, provisionReq);
 			}
@@ -169,7 +182,7 @@ public class OPInterpreter {
 				return false;
 			return true;
 		}else{
-			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
+			logger.warn("Invalid 'ObjectType' for operation 'provision'!");
 			return false;
 		}
 	}
@@ -178,25 +191,25 @@ public class OPInterpreter {
 		boolean opResult = true;
 		long opStart = System.currentTimeMillis();
 		if(opInput.ObjectType == null){
-			logger.error("Invalid operation without 'SubjectType': "+opInput.toString());
+			logger.error("Invalid operation without 'ObjectType': "+opInput.toString());
 			return false;
 		}
 		if(opInput.ObjectType.trim().equalsIgnoreCase("subtopology")){
-			String opSubjects = opInput.Objects;
-			if(opSubjects == null){
+			String opObjects = opInput.Objects;
+			if(opObjects == null){
 				logger.warn("Nothing to operate on!");
 				return true;
 			}
-			if(opSubjects.trim().equalsIgnoreCase("_all")){
+			if(opObjects.trim().equalsIgnoreCase("_all")){
 				logger.debug("Delete all sub-topologies!");
 				TEngine tEngine = new TEngine();
 				opResult = tEngine.deleteAll(topTopology, userCredential, userDatabase);
 			}else{
-				String [] opSubjectsList = opSubjects.split("\\|\\|");
+				String [] opObjectsList = opObjects.split("\\|\\|");
 				DeleteRequest deleteReq = new DeleteRequest();
-				for(int oi = 0 ; oi < opSubjectsList.length ; oi++){
-					deleteReq.content.put(opSubjectsList[oi], false);
-					logger.debug("Delete sub-topology "+opSubjectsList[oi]);
+				for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+					deleteReq.content.put(opObjectsList[oi], false);
+					logger.debug("Delete sub-topology "+opObjectsList[oi]);
 				}
 				
 				TEngine tEngine = new TEngine();
@@ -208,7 +221,373 @@ public class OPInterpreter {
 				return false;
 			return true;
 		}else{
-			logger.warn("Invalid 'SubjectType' for operation 'delete'!");
+			logger.warn("Invalid 'ObjectType' for operation 'delete'!");
+			return false;
+		}
+		
+	}
+	
+	private boolean hscale(){
+		long opStart = System.currentTimeMillis();
+		Map<String,String> logsInfo = new HashMap<String,String>();
+		if(opInput.ObjectType == null){
+			logger.error("Invalid operation without 'ObjectType': "+opInput.toString());
+			logsInfo.put("WARN", "Invalid operation without 'ObjectType'");
+			recordOpLog(logsInfo, 0);
+			return false;
+		}
+		Map<String, String> actualOptions = null;
+		if(opInput.Options != null){
+			actualOptions = new HashMap<String, String>();
+			for(Map.Entry<String, String> entry: opInput.Options.entrySet()){
+				String orgOptionString = entry.getValue();
+				if(orgOptionString != null){
+					String newOptionString = orgOptionString.replaceAll("\\$counter", 
+							String.valueOf(opInput.loopCounter))
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+					actualOptions.put(entry.getKey(), newOptionString);
+				}
+			}
+		}
+		
+		String opObjects = opInput.Objects;
+		if(opObjects == null){
+			logger.warn("Nothing to operate on!");
+			logsInfo.put("WARN", "Nothing to operate on!");
+			recordOpLog(logsInfo, 0);
+			return true;
+		}
+		
+		if(opInput.ObjectType.trim().equalsIgnoreCase("subtopology")){
+			String upDown = actualOptions.get(Values.Options.scalingUpDown);
+			if(upDown == null){
+				logger.error("Scaling up or down must be specified for "+opInput.Operation);
+				logsInfo.put("ERROR", "Scaling up or down must be specified");
+				recordOpLog(logsInfo, 0);
+				return false;
+			}
+			boolean scalingUpDown = false;
+			if(upDown.trim().equalsIgnoreCase("up"))
+				scalingUpDown = true;
+			else if(upDown.trim().equalsIgnoreCase("down"))
+				scalingUpDown = false;
+			else {
+				logger.error("Scaling up or down must be specified for "+opInput.Operation);
+				logsInfo.put("ERROR", "Scaling up or down must be specified");
+				recordOpLog(logsInfo, 0);
+				return false;
+			}
+			
+			String [] opObjectsList = opObjects.split("\\|\\|");
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				STScalingReqEle reqEle = ic.hscalSTReq.new STScalingReqEle();
+				reqEle.reqID = actualOptions.get(Values.Options.requstID);
+				if(reqEle.reqID == null){
+					logger.error("'ReqID' must be set in 'options' of "+opInput.Operation);
+					logsInfo.put("ERROR", "'ReqID' must be set in 'options'");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}else
+					reqEle.reqID = reqEle.reqID.trim();
+				reqEle.cloudProvider = actualOptions.get(Values.Options.cloudProivder);
+				reqEle.domain = actualOptions.get(Values.Options.domain);
+				reqEle.scaledTopology = actualOptions.get(Values.Options.scaledTopology);
+				reqEle.scaledClasses = new ClassSet();
+				reqEle.scaledClasses.SubTopologyClass = actualOptions.get(Values.Options.subTopologyClass);
+				reqEle.scaledClasses.SEngineClass = actualOptions.get(Values.Options.sEngineClass);
+				reqEle.scaledClasses.VEngineClass = actualOptions.get(Values.Options.vEngineClass);
+				reqEle.scalingUpDown = scalingUpDown;
+				
+				reqEle.targetTopology = opObjectsList[oi].trim();
+				ic.hscalSTReq.content.put(reqEle, false);
+				logger.debug("Generate a scaling request for sub-topology "+opObjectsList[oi]);
+			}
+			
+			return true;
+		}else if(opInput.ObjectType.trim().equalsIgnoreCase("vm")){
+			String [] opObjectsList = opObjects.split("\\|\\|");
+			VMScalingReqEle reqEle = ic.hscalVMReq.new VMScalingReqEle();
+			reqEle.reqID = actualOptions.get(Values.Options.requstID);
+			if(reqEle.reqID == null){
+				logger.error("'ReqID' must be set in 'options' of "+opInput.Operation);
+				logsInfo.put("ERROR", "'ReqID' must be set in 'options'");
+				recordOpLog(logsInfo, 0);
+				return false;
+			}else
+				reqEle.reqID = reqEle.reqID.trim();
+			reqEle.cloudProvider = actualOptions.get(Values.Options.cloudProivder);
+			reqEle.domain = actualOptions.get(Values.Options.domain);
+			reqEle.scaledTopology = actualOptions.get(Values.Options.scaledTopology);
+			reqEle.scaledClasses = new ClassSet();
+			reqEle.scaledClasses.SubTopologyClass = actualOptions.get(Values.Options.subTopologyClass);
+			reqEle.scaledClasses.SEngineClass = actualOptions.get(Values.Options.sEngineClass);
+			reqEle.scaledClasses.VEngineClass = actualOptions.get(Values.Options.vEngineClass);
+			
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				String objVMName = opObjectsList[oi];
+				if(objVMName.trim().equals(""))
+					continue;
+				if(!objVMName.contains(".")){
+					String thisLog = "Invalid 'Object' named " + objVMName;
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				String [] names = objVMName.split("\\.");
+				SubTopologyInfo curSubInfo = topTopology.getSubtopology(names[0]);
+				if(curSubInfo == null){
+					String thisLog = "There is no 'SubTopology' named "+names[0];
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				String objVMabsName = names[1];
+				VM curVM = topTopology.VMIndex.get(objVMabsName);
+				if(curVM == null){
+					String thisLog = "There is no 'VM' named "+names[1];
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				
+				reqEle.targetVMs.add(objVMabsName.trim());
+				
+				logger.debug("Generate a scaling request containing VM "+opObjectsList[oi]);
+			}
+			ic.hscalVMReq.content.put(reqEle, false);
+			return true;
+		}else if(opInput.ObjectType.trim().equalsIgnoreCase("req")){
+			HScalingSTRequest tmpHscaleSTReqUP = new HScalingSTRequest();
+			HScalingSTRequest tmpHscaleSTReqDOWN = new HScalingSTRequest();
+			HScalingVMRequest tmpHscaleVMReq = new HScalingVMRequest();
+			String [] opObjectsList = opObjects.split("\\|\\|");
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				String reqID = opObjectsList[oi].trim();
+				for(Map.Entry<STScalingReqEle, Boolean> entry: ic.hscalSTReq.content.entrySet()){
+					String curReqID = entry.getKey().reqID;
+					if(reqID.equals(curReqID)){
+						if(entry.getKey().scalingUpDown)
+							tmpHscaleSTReqUP.content.put(entry.getKey(), entry.getValue());
+						else
+							tmpHscaleSTReqDOWN.content.put(entry.getKey(), entry.getValue());
+					}
+				}
+				for(Map.Entry<VMScalingReqEle, Boolean> entry: ic.hscalVMReq.content.entrySet()){
+					String curReqID = entry.getKey().reqID;
+					if(reqID.equals(curReqID))
+						tmpHscaleVMReq.content.put(entry.getKey(), entry.getValue());
+					
+				}
+			}
+			TEngine tEngine = new TEngine();
+			boolean validReq = false;
+			long scalingStart = System.currentTimeMillis();
+			if(tmpHscaleSTReqDOWN.content.size() != 0){
+				validReq = true;
+				if(!tEngine.horizontalScaleSLevel(topTopology, userCredential, 
+											userDatabase, tmpHscaleSTReqDOWN, false)){
+					logger.error("HScaling down in S-Level error!");
+					logsInfo.put("ERROR", "HScaling down in S-Level error!");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+			}
+			if(tmpHscaleSTReqUP.content.size() != 0){
+				validReq = true;
+				if(!tEngine.horizontalScaleSLevel(topTopology, userCredential, 
+											userDatabase, tmpHscaleSTReqUP, true)){
+					logger.error("HScaling up in S-Level error!");
+					logsInfo.put("ERROR", "HScaling up in S-Level error!");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+			}
+			if(tmpHscaleVMReq.content.size() != 0){
+				validReq = true;
+				if(!tEngine.horizontalScaleVLevel(topTopology, 
+											userCredential, userDatabase, tmpHscaleVMReq)){
+					logger.error("HScaling in V-Level error!");
+					logsInfo.put("ERROR", "HScaling in V-Level error!");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+			}
+			
+			if(!validReq){
+				logsInfo.put("WARN", "No valid scaling request!");
+				return false;
+			}
+			
+			long opEnd = System.currentTimeMillis();
+			logsInfo.put("Scaling", String.valueOf(opEnd - scalingStart));
+			recordOpLog(logsInfo, (int)((opEnd-opStart)));
+			
+			////remove all the requests
+			for(Map.Entry<VMScalingReqEle, Boolean> entry: tmpHscaleVMReq.content.entrySet()){
+				if(!CommonTool.rmObjInMap(ic.hscalVMReq.content, entry.getKey())){
+					logger.error("Unexpected! the request is not found!");
+					return false;
+				}
+			}
+			for(Map.Entry<STScalingReqEle, Boolean> entry: tmpHscaleSTReqUP.content.entrySet()){
+				if(!CommonTool.rmObjInMap(ic.hscalSTReq.content, entry.getKey())){
+					logger.error("Unexpected! the request is not found!");
+					return false;
+				}
+			}
+			for(Map.Entry<STScalingReqEle, Boolean> entry: tmpHscaleSTReqDOWN.content.entrySet()){
+				if(!CommonTool.rmObjInMap(ic.hscalSTReq.content, entry.getKey())){
+					logger.error("Unexpected! the request is not found!");
+					return false;
+				}
+			}
+
+			return true;
+			
+		}
+		else{
+			logger.warn("Invalid 'ObjectType' for operation 'hscale'!");
+			return false;
+		}
+	}
+	
+	private boolean vscale(){
+		long opStart = System.currentTimeMillis();
+		Map<String,String> logsInfo = new HashMap<String,String>();
+		if(opInput.ObjectType == null){
+			logger.error("Invalid operation without 'ObjectType': "+opInput.toString());
+			logsInfo.put("WARN", "Invalid operation without 'ObjectType'");
+			recordOpLog(logsInfo, 0);
+			return false;
+		}
+		Map<String, String> actualOptions = null;
+		if(opInput.Options != null){
+			actualOptions = new HashMap<String, String>();
+			for(Map.Entry<String, String> entry: opInput.Options.entrySet()){
+				String orgOptionString = entry.getValue();
+				if(orgOptionString != null){
+					String newOptionString = orgOptionString.replaceAll("\\$counter", 
+							String.valueOf(opInput.loopCounter))
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+					actualOptions.put(entry.getKey(), newOptionString);
+				}
+			}
+		}
+		
+		String opObjects = opInput.Objects;
+		if(opObjects == null){
+			logger.warn("Nothing to operate on!");
+			logsInfo.put("WARN", "Nothing to operate on!");
+			recordOpLog(logsInfo, 0);
+			return true;
+		}
+		
+		if(opInput.ObjectType.trim().equalsIgnoreCase("vm")){
+			String [] opObjectsList = opObjects.split("\\|\\|");
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				String objVMName = opObjectsList[oi];
+				if(objVMName.trim().equals(""))
+					continue;
+				if(!objVMName.contains(".")){
+					String thisLog = "Invalid 'Object' named " + objVMName;
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				String [] names = objVMName.split("\\.");
+				SubTopologyInfo curSubInfo = topTopology.getSubtopology(names[0]);
+				if(curSubInfo == null){
+					String thisLog = "There is no 'SubTopology' named "+names[0];
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				String objVMabsName = names[1];
+				VM curVM = topTopology.VMIndex.get(objVMabsName);
+				if(curVM == null){
+					String thisLog = "There is no 'VM' named "+names[1];
+					logger.error(thisLog);
+					logsInfo.put("ERROR", thisLog);
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+				VMVScalingReqEle reqEle = ic.vscalVMReq.new VMVScalingReqEle();
+				reqEle.reqID = actualOptions.get(Values.Options.requstID);
+				if(reqEle.reqID == null){
+					logger.error("'ReqID' must be set in 'options' of "+opInput.Operation);
+					logsInfo.put("ERROR", "'ReqID' must be set in 'options'");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}else
+					reqEle.reqID = reqEle.reqID.trim();
+				reqEle.targetCPU = Double.valueOf(actualOptions.get(Values.Options.targetCPU));
+				reqEle.targetMEM = Double.valueOf(actualOptions.get(Values.Options.targetMEM));
+				reqEle.orgVMName = objVMabsName;
+				reqEle.scaledClasses = new ClassSet();
+				reqEle.scaledClasses.SubTopologyClass = actualOptions.get(Values.Options.subTopologyClass);
+				reqEle.scaledClasses.SEngineClass = actualOptions.get(Values.Options.sEngineClass);
+				reqEle.scaledClasses.VEngineClass = actualOptions.get(Values.Options.vEngineClass);
+				
+				ic.vscalVMReq.content.put(reqEle, false);
+				logger.debug("Generate a vertical scaling request for VM "+opObjectsList[oi]);
+			}
+			
+			return true;
+		}else if(opInput.ObjectType.trim().equalsIgnoreCase("req")){
+			VScalingVMRequest tmpVscaleVMReq = new VScalingVMRequest();
+			String [] opObjectsList = opObjects.split("\\|\\|");
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				String reqID = opObjectsList[oi].trim();
+				
+				for(Map.Entry<VMVScalingReqEle, Boolean> entry: ic.vscalVMReq.content.entrySet()){
+					String curReqID = entry.getKey().reqID;
+					if(reqID.equals(curReqID))
+						tmpVscaleVMReq.content.put(entry.getKey(), entry.getValue());
+						
+				}
+			}
+			TEngine tEngine = new TEngine();
+			boolean validReq = false;
+			long scalingStart = System.currentTimeMillis();
+			
+			if(tmpVscaleVMReq.content.size() != 0){
+				validReq = true;
+				if(!tEngine.verticalScale(topTopology, userCredential, 
+												userDatabase, tmpVscaleVMReq)){
+					logger.error("VScaling in V-Level error!");
+					logsInfo.put("ERROR", "VScaling in V-Level error!");
+					recordOpLog(logsInfo, 0);
+					return false;
+				}
+			}
+			
+			if(!validReq){
+				logsInfo.put("WARN", "No valid scaling request!");
+				return false;
+			}
+			
+			long opEnd = System.currentTimeMillis();
+			logsInfo.put("Scaling", String.valueOf(opEnd - scalingStart));
+			recordOpLog(logsInfo, (int)((opEnd-opStart)));
+			
+			///remove the requests
+			for(Map.Entry<VMVScalingReqEle, Boolean> entry: tmpVscaleVMReq.content.entrySet()){
+				if(!CommonTool.rmObjInMap(ic.vscalVMReq.content, entry.getKey())){
+					logger.error("Unexpected! the request is not found!");
+					return false;
+				}
+			}
+
+			return true;
+			
+		}
+		else{
+			logger.warn("Invalid 'ObjectType' for operation 'vscale'!");
 			return false;
 		}
 		
@@ -219,7 +598,7 @@ public class OPInterpreter {
 		String logString = "";
 		long opStart = System.currentTimeMillis();
 		if(opInput.ObjectType == null){
-			logString = "Invalid operation without 'SubjectType': "+opInput.toString();
+			logString = "Invalid operation without 'ObjectType': "+opInput.toString();
 			logger.warn(logString);
 			Map<String,String> logsInfo = new HashMap<String,String>();
 			logsInfo.put("WARN", logString);
@@ -240,33 +619,49 @@ public class OPInterpreter {
 		String curCMD = opInput.Command.replaceAll("\\$counter", 
 							String.valueOf(opInput.loopCounter))
 							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+		Map<String, String> actualOptions = null;
+		if(opInput.Options != null){
+			actualOptions = new HashMap<String, String>();
+			for(Map.Entry<String, String> entry: opInput.Options.entrySet()){
+				String orgOptionString = entry.getValue();
+				if(orgOptionString != null){
+					String newOptionString = orgOptionString.replaceAll("\\$counter", 
+							String.valueOf(opInput.loopCounter))
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+					actualOptions.put(entry.getKey(), newOptionString);
+				}
+			}
+		}
 		
 		
 		if(opInput.ObjectType.trim().equalsIgnoreCase("vm")){
 			if(opInput.Objects == null){
-				logString = "Invalid operation without 'Subjects'!";
+				logString = "Invalid operation without 'Objects'!";
 				logger.warn(logString);
 				Map<String,String> logsInfo = new HashMap<String,String>();
 				logsInfo.put("WARN", logString);
 				recordOpLog(logsInfo, 0);
 				return false;
 			}
-			String [] opSubjectsList = opInput.Objects.split("\\|\\|");
-			ExecutorService executor4CMD = Executors.newFixedThreadPool(opSubjectsList.length);
+			String [] opObjectsList = opInput.Objects.split("\\|\\|");
+			ExecutorService executor4CMD = Executors.newFixedThreadPool(opObjectsList.length);
 			ArrayList<ParallelExecutor> PEs = new ArrayList<ParallelExecutor>();
+			boolean multiOp = true;
+			if(opObjectsList.length == 1)
+				multiOp = false;
 			boolean success = true;
-			for(int oi = 0 ; oi < opSubjectsList.length ; oi++){
-				String subVMName = opSubjectsList[oi];
-				if(subVMName.trim().equals(""))
+			for(int oi = 0 ; oi < opObjectsList.length ; oi++){
+				String objVMName = opObjectsList[oi];
+				if(objVMName.trim().equals(""))
 					continue;
-				if(!subVMName.contains(".")){
-					String thisLog = "Invalid 'Subject' named " + subVMName;
+				if(!objVMName.contains(".")){
+					String thisLog = "Invalid 'Object' named " + objVMName;
 					logString += ("WARN: "+ thisLog + "||");
 					logger.warn(thisLog);
 					success = false;
 					continue;
 				}
-				String [] names = subVMName.split("\\.");
+				String [] names = objVMName.split("\\.");
 				SubTopologyInfo curSubInfo = topTopology.getSubtopology(names[0]);
 				if(curSubInfo == null){
 					String thisLog = "There is no 'SubTopology' named "+names[0];
@@ -292,7 +687,9 @@ public class OPInterpreter {
 				}
 				String defaultSSHPrivateKey = curSubInfo.subTopology.accessKeyPair.privateKeyString;
 				ParallelExecutor PE = new ParallelExecutor(curVM.defaultSSHAccount, 
-						curVM.publicAddress, defaultSSHPrivateKey, opInput.Operation, curCMD, subVMName);
+											curVM.publicAddress, defaultSSHPrivateKey, 
+											opInput.Operation, curCMD, 
+											actualOptions, objVMName, multiOp);
 				PEs.add(PE);
 				executor4CMD.execute(PE);
 			}
@@ -307,7 +704,7 @@ public class OPInterpreter {
 			}
 			Map<String,String> logsInfo = new HashMap<String,String>();
 			for(int pi = 0 ; pi<PEs.size() ; pi++){
-				logsInfo.put(PEs.get(pi).subjectName, PEs.get(pi).exeResult);
+				logsInfo.put(PEs.get(pi).objectName, PEs.get(pi).exeResult);
 				if(!PEs.get(pi).exeState)
 					success = false;
 			}
@@ -328,7 +725,7 @@ public class OPInterpreter {
 				return success;
 			}
 		}else{
-			logger.warn("Invalid 'SubjectType' for operation 'execute'!");
+			logger.warn("Invalid 'ObjectType' for operation 'execute'!");
 			return false;
 		}
 	}

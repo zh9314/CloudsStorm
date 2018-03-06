@@ -7,6 +7,9 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -441,8 +444,34 @@ public class CommonTool {
             return false;
         }
         return true;
-
     }
+    
+    public static boolean rmObjInMap(Map<?, ?> map, Object targetObj){
+    	 	Iterator<?> it = map.entrySet().iterator();
+    	    while (it.hasNext())
+    	    {
+    	    		Entry<?, ?> item = (Entry<?, ?>) it.next();
+    	    		if(item.getKey() == targetObj){
+    	    			it.remove();
+    	    			return true;
+    	    		}
+    	    }
+    	    return false;
+    }
+    
+    public static boolean rmKeyInMap(Map<?, ?> map, Object targetKey){
+    		if(targetKey == null)
+    			return false;
+	 	Iterator<?> it = map.entrySet().iterator();
+	    while (it.hasNext())
+	    {
+	    		Entry<?, ?> item = (Entry<?, ?>) it.next();
+	    		if(targetKey.equals(item.getKey())){
+	    			it.remove();
+	    		}
+	    }
+	    return false;
+}
 
     //This is used for converting the ip integer into binary string.
     //As the number of bits between '.' in IP is 8. 

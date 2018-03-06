@@ -82,7 +82,7 @@ public class MainAsTool {
 			}
 			
 			String topTopologyLoadingPath = appRootDir + "Infs" +File.separator+ "Topology" +File.separator+ "_top.yml";
-			String sshKeysDir = appRootDir + "Infs" +File.separator+ "Topology" +File.separator;
+			//String sshKeysDir = appRootDir + "Infs" +File.separator+ "Topology" +File.separator;
 			String credentialsPath = appRootDir + "Infs" +File.separator+ "UC" +File.separator+ "cred.yml";
 			String dbsPath = appRootDir + "Infs" +File.separator+ "UD" +File.separator+ "db.yml";
 			String ICPath = appRootDir + "App" +File.separator+ "infrasCode.yml";
@@ -105,7 +105,7 @@ public class MainAsTool {
 			UserDatabase userDatabase = new UserDatabase();
 			userDatabase.loadCloudDBs(dbsPath);
 			
-			userCredential.initalSSHKeys(sshKeysDir, tam.wholeTopology);
+			//userCredential.initalSSHKeys(sshKeysDir, tam.wholeTopology);
 			
 			String icLogPath = logsDir + "InfrasCode.log";
 			FileWriter icLogger = null;

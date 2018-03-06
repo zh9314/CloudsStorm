@@ -1,8 +1,11 @@
 package provisioning.engine.SEngine.adapter;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import commonTool.Values;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
@@ -21,6 +24,7 @@ public class SEngine_delete extends SEngineAdapter{
 	
 	@Override
 	public void run() {
+		subTopologyInfo.logsInfo = new HashMap<String, String>();
 		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
 		String sEngineClass = subTopologyInfo.subTopology.SEngineClass;
 		Class<?> CurSEngine = ClassDB.getSEngine(cp, sEngineClass);
@@ -36,7 +40,7 @@ public class SEngine_delete extends SEngineAdapter{
 			Object sEngine = CurSEngine.newInstance();
 			
 			/////some common checks on the sub-topology
-			if( subTopologyInfo.status.trim().toLowerCase().equals("deleted") ){
+			if( subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.deleted) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' has already been deleted!";
 				logger.info(msg);
@@ -44,7 +48,7 @@ public class SEngine_delete extends SEngineAdapter{
 				return ;
 			}
 			
-			if( subTopologyInfo.status.trim().toLowerCase().equals("fresh") ){
+			if( subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.fresh) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is in status of 'fresh'. It cannot be deleted!";
 				logger.warn(msg);
@@ -62,16 +66,20 @@ public class SEngine_delete extends SEngineAdapter{
 			}
 			
 			long stOpStart = System.currentTimeMillis();
-			
+			if(subTopologyInfo.topology.startsWith("_tmp_")
+					&& !((SEngineKeyMethod)sEngine).supportSeparate()){
+				subTopologyInfo.status = Values.STStatus.deleted;
+				return ;
+			}
 			if(!((SEngineKeyMethod)sEngine).delete(subTopologyInfo, credential, database)){
 				logger.error("Delete for sub-topology '"+subTopologyInfo.topology+"' failed!");
-				subTopologyInfo.status = "unknown";
+				subTopologyInfo.status = Values.STStatus.unknown;
 				opResult = false;
 			}else
 				logger.info("Sub-topology '"+subTopologyInfo.topology+"' has been deleted!");
 			
 			if(opResult){
-				subTopologyInfo.status = "deleted";
+				subTopologyInfo.status = Values.STStatus.deleted;
 				long stOpEnd = System.currentTimeMillis();
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#Delete",  
 												(stOpEnd - stOpStart)+"@"+stOpStart);

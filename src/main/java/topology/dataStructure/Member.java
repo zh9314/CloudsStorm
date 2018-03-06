@@ -30,7 +30,7 @@ public class Member {
 	/**
 	 * Indicate the adjacent VMs that connects with this VM.
 	 * In order to create the non-logic connection according to the 
-	 * subnet.
+	 * subnet. The key is also the VM full name.
 	 */
 	@JsonIgnore
 	public Map<String, Member> adjacentNodes = new HashMap<String, Member>();

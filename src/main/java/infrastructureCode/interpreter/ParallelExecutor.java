@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -13,6 +14,7 @@ import com.jcabi.ssh.Shell;
 
 import commonTool.CommonTool;
 import commonTool.TARGZ;
+import commonTool.Values;
 
 public class ParallelExecutor implements Runnable {
 	
@@ -23,18 +25,24 @@ public class ParallelExecutor implements Runnable {
 	private String user;
 	private String exeCMD;
 	private String operation;
+	private Map<String, String> options;
+	private boolean multiOp; 
 	
 	////tells whether the operation is executed correctly
 	public boolean exeState;
-	public String subjectName;
+	public String objectName;
 	
-	ParallelExecutor(String user, String pubIP, String priKey, String operation, String exeCMD, String subjectName){
+	ParallelExecutor(String user, String pubIP, String priKey, 
+						String operation, String exeCMD,
+						Map<String, String> options, String objectName, boolean multiOp){
 		this.user = user;
 		this.pubIP = pubIP;
 		this.privateKeyString = priKey;
 		this.operation = operation;
 		this.exeCMD = exeCMD;
-		this.subjectName = subjectName;
+		this.objectName = objectName;
+		this.options = options;
+		this.multiOp = multiOp;
 		exeResult = " ";
 		exeState = true;
 	}
@@ -55,35 +63,17 @@ public class ParallelExecutor implements Runnable {
 				exeResult = cmdOutputBytes.toString("UTF-8");
 			}else if(operation.trim().equalsIgnoreCase("put")
 					|| operation.trim().equalsIgnoreCase("get")){
-				String [] srcdst = exeCMD.split("::");
-				if(srcdst.length != 2){
-					exeResult = "ERROR: Invalid path for operation '"+operation.trim()+"'!";
-					exeState = false;
-					return ;
-				}
-				int firstLen = srcdst[0].split(":=").length;
-				int secondLen = srcdst[1].split(":=").length;
-				if(firstLen != 2 || secondLen != 2){
-					exeResult = "ERROR: Invalid paths for operation '"+operation.trim()+"'!";
+				if(!options.containsKey(Values.Options.srcPath) 
+						|| !options.containsKey(Values.Options.dstPath)){
+					exeResult = "ERROR: Invalid options of path for operation '"
+												+operation.trim()+"'!";
 					exeState = false;
 					return ;
 				}
 	
-				String firstName = srcdst[0].split(":=")[0];
-				String secondName = srcdst[1].split(":=")[0];
-				String srcPath, dstPath;
-				if(firstName.trim().equalsIgnoreCase("src") && secondName.trim().equalsIgnoreCase("dst")){
-					srcPath = srcdst[0].split(":=")[1];
-					dstPath = srcdst[1].split(":=")[1];
-				}else if(firstName.trim().equalsIgnoreCase("dst") && secondName.trim().equalsIgnoreCase("src")){
-					srcPath = srcdst[1].split(":=")[1];
-					dstPath = srcdst[0].split(":=")[1];
-				}else{
-					exeResult = "ERROR: Invalid paths for operation '"
-									+operation.trim()+"' missing 'src' or 'dst'!";
-					exeState = false;
-					return ;
-				}
+				String srcPath = options.get(Values.Options.srcPath);
+				String dstPath = options.get(Values.Options.dstPath);
+				
 				String srcPathType = CommonTool.getFilePathType(srcPath);
 				String dstPathType = CommonTool.getFilePathType(dstPath);
 				if(operation.trim().equalsIgnoreCase("put")){
@@ -171,7 +161,21 @@ public class ParallelExecutor implements Runnable {
 					}
 					String srcRealPath = CommonTool.getFilePath(srcPath);   /// this is the remote path on the operation subject
 					String dstRealPath = CommonTool.getFilePath(dstPath);   /// this is the local path
+					///if it needs to get file from multiple VMs, the sub directory of 
+					///the object VM name is needed
+					if(multiOp){
+						String subDir = CommonTool.formatDirWithSep(dstRealPath);
+						dstRealPath = subDir + this.objectName ;
+					}
 					File dstFile = new File(dstRealPath);
+					if(!dstFile.exists())
+						if(!dstFile.mkdirs()){
+							exeResult = "ERROR: 'dst' path " + dstPath
+									+ " cannot be created!";
+							exeState = false;
+							return ;
+						}
+					
 					if(!dstFile.isDirectory()){
 						exeResult = "ERROR: 'dst' path " + dstPath
 										+ " must be a local directory for operation '"

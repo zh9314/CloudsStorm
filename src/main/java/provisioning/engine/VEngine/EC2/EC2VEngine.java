@@ -195,7 +195,7 @@ public class EC2VEngine extends VEngine{
 	
 	
 	/**
-	 * The return value is the private key string, which is downloaded from EC2
+	 * The return value is the private key string, which downloads from EC2
 	 * @return
 	 */
 	public static String createSSHKeyPair(SubTopologyInfo subTopologyInfo,

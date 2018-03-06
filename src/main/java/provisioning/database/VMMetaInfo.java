@@ -9,7 +9,7 @@ public abstract class VMMetaInfo {
 	public String OS;
 	
 	/**
-	 * A positive integer to identify how many vcores. 
+	 * A positive number to identify how many vcores. 
 	 */
 	public String CPU;
 	

@@ -117,6 +117,12 @@ public class SubTopologyInfo {
     @JsonIgnore
     public String publicKeyString;
     
+    /**
+     * Identify whether this sub-topology is a scaled copy.
+     * When a scaled copy is deleted, it must be totally deleted from the entire topoloty. 
+     */
+    public String scaledFrom;
+    
     
     public boolean loadSubTopology(String topologyPath) {
     		

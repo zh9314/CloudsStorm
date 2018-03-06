@@ -1,8 +1,11 @@
 package provisioning.engine.SEngine.adapter;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import commonTool.Values;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
@@ -21,6 +24,7 @@ public class SEngine_start extends SEngineAdapter {
 	
 	@Override
 	public void run() {
+		subTopologyInfo.logsInfo = new HashMap<String, String>();
 		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
 		String sEngineClass = subTopologyInfo.subTopology.SEngineClass;
 		Class<?> CurSEngine = ClassDB.getSEngine(cp, sEngineClass);
@@ -36,7 +40,7 @@ public class SEngine_start extends SEngineAdapter {
 			Object sEngine = CurSEngine.newInstance();
 			
 			/////some common checks on the sub-topology
-			if( subTopologyInfo.status.trim().toLowerCase().equals("running") ){
+			if( subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.running) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is already in 'running'";
 				logger.warn(msg);
@@ -44,7 +48,7 @@ public class SEngine_start extends SEngineAdapter {
 				return ;
 			}
 			
-			if( !subTopologyInfo.status.trim().toLowerCase().equals("stopped") ){
+			if( !subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.stopped) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is not in the status of 'stopped' to be started!";
 				logger.warn(msg);
@@ -64,7 +68,7 @@ public class SEngine_start extends SEngineAdapter {
 			long stOpStart = System.currentTimeMillis();
 			if(!((SEngineKeyMethod)sEngine).start(subTopologyInfo, credential, database)){
 				logger.error("Starting for sub-topology '"+subTopologyInfo.topology+"' failed!");
-				subTopologyInfo.status = "unknown";
+				subTopologyInfo.status = Values.STStatus.unknown;
 				
 				opResult = false;
 				
@@ -72,7 +76,7 @@ public class SEngine_start extends SEngineAdapter {
 				logger.info("Sub-topology '"+subTopologyInfo.topology+"' has been started!");
 			
 			if(opResult){
-				subTopologyInfo.status = "running";
+				subTopologyInfo.status = Values.STStatus.running;
 				long stOpEnd = System.currentTimeMillis();
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#Start", 
 												(stOpEnd - stOpStart)+"@"+stOpStart);

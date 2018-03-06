@@ -69,6 +69,7 @@ public class EC2SubTopology extends SubTopology{
 	@Override
 	public boolean formatChecking(String topologyStatus) {
 		
+		
 		for(int vmi = 0 ; vmi < this.VMs.size() ; vmi++){
 			EC2VM curVM = VMs.get(vmi);
 			if(topologyStatus.equals("fresh")){

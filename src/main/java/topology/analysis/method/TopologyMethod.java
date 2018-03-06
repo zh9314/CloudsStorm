@@ -1,11 +1,7 @@
 package topology.analysis.method;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public interface TopologyMethod {
 

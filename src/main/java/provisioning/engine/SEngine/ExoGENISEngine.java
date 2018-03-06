@@ -1,6 +1,7 @@
 package provisioning.engine.SEngine;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -151,6 +152,11 @@ public class ExoGENISEngine extends SEngine{
 	public boolean supportStop(SubTopologyInfo subTopologyInfo) {
 		return false;
 	}
+	
+	@Override
+	public boolean supportSeparate() {
+		return false;
+	}
 
 	@Override
 	public boolean delete(SubTopologyInfo subTopologyInfo,
@@ -164,12 +170,19 @@ public class ExoGENISEngine extends SEngine{
 		logger.debug("Endpoint for '"+subTopologyInfo.topology+"' is "+subTopologyInfo.endpoint);
 		
 		boolean result = exoGENIAgent.deleteSlice(exoGENISubTopology);
-		if(result){
-			////clear all the information
-			for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
-				ExoGENIVM curVM = (ExoGENIVM)exoGENISubTopology.VMs.get(vi);
-				curVM.publicAddress = null;
+		////clear all the information
+		for(int vi = 0 ; vi < exoGENISubTopology.VMs.size() ; vi++){
+			ExoGENIVM curVM = (ExoGENIVM)exoGENISubTopology.VMs.get(vi);
+			curVM.publicAddress = null;
+			if(curVM.vmConnectors != null){
+				for(int vapi = 0 ; vapi < curVM.vmConnectors.size() ; vapi++)
+					curVM.vmConnectors.get(vapi).ethName = null;
 			}
+			if(curVM.selfEthAddresses != null){
+				for(Map.Entry<String, String> entry : curVM.selfEthAddresses.entrySet())
+					curVM.selfEthAddresses.put(entry.getKey(), null);
+			}
+			curVM.fake = null;
 		}
 		exoGENISubTopology.sliceName = null;
 		

@@ -63,7 +63,8 @@ public class ExoGENIAgent {
 				
 				int statusNow = analysisStatus(status);
 				
-				Thread.sleep(7000);
+				////Check the status every 15s, in order to reduce workload on server
+				Thread.sleep(15000);
 				
 				if(statusNow == 1)
 				{
@@ -112,6 +113,10 @@ public class ExoGENIAgent {
 	
 	public boolean deleteSlice(ExoGENISubTopology exoGENISubTopology){
 		String sliceName = exoGENISubTopology.sliceName;
+		if(sliceName == null){
+			logger.warn("Slice name of  '"+exoGENISubTopology.topologyName+"' cannot be null!");
+			return true;
+		}
 		ExoGENIRPCConnector rpc = new ExoGENIRPCConnector(cloudEntry, 
 				userKeyPath, keyAlias, keyPass);
 		try {
@@ -124,7 +129,10 @@ public class ExoGENIAgent {
 				return false;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			if(e.getMessage().contains("unable to find")){
+				logger.info("Slice "+sliceName+" does not exist!");
+				return true;
+			}
 			logger.error("Error happens during deleting slice '"+sliceName+"' : "+e.getMessage());
 			return false;
 		}

@@ -90,7 +90,7 @@ public class EGIVEngineUbuntu extends VEngineUbuntu {
 		    
 		    if(curVM.selfEthAddresses != null 
 		    		&& curVM.selfEthAddresses.size() != 0){
-		    		for(Map.Entry<String, Boolean> entry : 
+		    		for(Map.Entry<String, String> entry : 
 		    				curVM.selfEthAddresses.entrySet()){
 		    			String selfIP = entry.getKey().split("/")[0];
 		    			fw.write("echo \""+selfIP
@@ -117,8 +117,8 @@ public class EGIVEngineUbuntu extends VEngineUbuntu {
 		    
 			if(curVM.selfEthAddresses != null){
 				int count = 0;
-				for(Map.Entry<String, Boolean> entry : curVM.selfEthAddresses.entrySet()){
-					if(!entry.getValue()){
+				for(Map.Entry<String, String> entry : curVM.selfEthAddresses.entrySet()){
+					if(entry.getValue() == null){
 						String linkName = "self_"+count;
 						String remotePubAddress = curVM.publicAddress;
 						String [] addrNm = entry.getKey().split("/");
@@ -133,7 +133,7 @@ public class EGIVEngineUbuntu extends VEngineUbuntu {
 						fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
 						fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
 						fw.flush();
-						entry.setValue(true);
+						curVM.selfEthAddresses.put(entry.getKey(), linkName);
 					}
 				}
 			}

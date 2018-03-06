@@ -118,6 +118,13 @@ public interface SEngineKeyMethod {
 	 */
 	public boolean delete(SubTopologyInfo subTopologyInfo, 
 			Credential credential, Database database);
+	
+	/**
+	 * This tells whether this sub-topology supports separate management 
+	 * for its VMs. Default value is true.
+	 * @return 
+	 */
+	public boolean supportSeparate();
 
 
 }

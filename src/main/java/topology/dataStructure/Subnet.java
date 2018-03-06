@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import commonTool.CommonTool;
 
 
 
@@ -28,12 +29,33 @@ public class Subnet {
 	public ArrayList<Member> members;
 	
 	/**
-	 * This is a list to record all the connections which belong to 
-	 * this subnet.
+	 * Key value pairs to store the name and the member. Tha name is the 
+	 * vm full name, containing the sub-topology name.
 	 */
-	//@JsonIgnore
-	//public ArrayList<String> conNames = new ArrayList<String>();
-	
 	@JsonIgnore
 	public Map<String, Member> memberIndex = new HashMap<String, Member>();
+	
+	@JsonIgnore
+	public void rmMember(String vmName){
+		if(vmName == null)
+			return ;
+		String vmFullName = null;
+		for(int mi = 0 ; mi<members.size() ; mi++){
+			Member curMember = members.get(mi);
+			if(curMember.absVMName.equals(vmName.trim())){
+				///delete it according to the VM full name
+				vmFullName = curMember.vmName;
+				CommonTool.rmKeyInMap(this.memberIndex, vmFullName);
+				members.remove(mi--);
+				break;
+			}
+		}
+		if(vmFullName == null)
+			return ;
+		////update the adj members
+		for(int mi = 0 ; mi<members.size() ; mi++){
+			Member curMember = members.get(mi);
+			CommonTool.rmKeyInMap(curMember.adjacentNodes, vmFullName);
+		}
+	}
 }

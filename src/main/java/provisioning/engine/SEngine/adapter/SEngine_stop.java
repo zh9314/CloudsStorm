@@ -1,8 +1,11 @@
 package provisioning.engine.SEngine.adapter;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import commonTool.Values;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
@@ -23,6 +26,7 @@ public class SEngine_stop extends SEngineAdapter {
 	
 	@Override
 	public void run() {
+		subTopologyInfo.logsInfo = new HashMap<String, String>();
 		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
 		String sEngineClass = subTopologyInfo.subTopology.SEngineClass;
 		Class<?> CurSEngine = ClassDB.getSEngine(cp, sEngineClass);
@@ -37,7 +41,7 @@ public class SEngine_stop extends SEngineAdapter {
 		try {
 			Object sEngine = CurSEngine.newInstance();
 			
-			if( subTopologyInfo.status.trim().toLowerCase().equals("stopped") ){
+			if( subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.stopped) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is already in 'stopped'";
 				logger.warn(msg);
@@ -46,7 +50,7 @@ public class SEngine_stop extends SEngineAdapter {
 			}
 			
 			/////some common checks on the sub-topology
-			if( !subTopologyInfo.status.trim().toLowerCase().equals("running") ){
+			if( !subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.running) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is not in the status of 'running' to be stopped!";
 				logger.warn(msg);
@@ -74,7 +78,7 @@ public class SEngine_stop extends SEngineAdapter {
 				logger.info("Sub-topology '"+subTopologyInfo.topology+"' has been stopped!");
 			
 			if(opResult){
-				subTopologyInfo.status = "stopped";
+				subTopologyInfo.status = Values.STStatus.stopped;
 				long stOpEnd = System.currentTimeMillis();
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#Stop", 
 												(stOpEnd - stOpStart)+"@"+stOpStart);

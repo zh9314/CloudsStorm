@@ -148,7 +148,7 @@ public class ClassDB {
 		}
 	}
 	
-	public static Class<?> getVM(String cloudProvider, String className){
+	/*public static Class<?> getVM(String cloudProvider, String className){
 		if(cloudProvider != null)
 			cloudProvider = cloudProvider.trim().toLowerCase();
 		if(className == null){
@@ -177,7 +177,7 @@ public class ClassDB {
 					return VMMap.get(cloudProvider);
 			}
 		}
-	}
+	}*/
 	
 	public static Class<?> getSEngine(String cloudProvider, String className){
 		if(cloudProvider != null)

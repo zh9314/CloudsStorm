@@ -30,9 +30,7 @@ public class ICInterpreter {
 			////Sequence code
 			if(ic.InfrasCodes.get(ici).CodeType.equals("SEQ")){
 				SEQCode curLine = ((SEQCode)ic.InfrasCodes.get(ici));
-				OPInterpreter opInterpreter = new OPInterpreter(curLine.OpCode,
-						ic.topTopology, ic.userCredential, ic.userDatabase,
-						ic.icLogger);
+				OPInterpreter opInterpreter = new OPInterpreter(curLine.OpCode, ic);
 				codeLine++;
 				if(!opInterpreter.execute()){
 					logger.error("Error of Operation "+curLine.OpCode.Operation+" at Code "+codeLine+ "! Exit!");
@@ -70,9 +68,7 @@ public class ICInterpreter {
 						codeLine++;
 					Operation curOp = curLine.OpCodes.get(opCounter);
 					curOp.loopCounter = loopCounter;
-					OPInterpreter opInterpreter = new OPInterpreter(curOp,
-							ic.topTopology, ic.userCredential, ic.userDatabase,
-							ic.icLogger);
+					OPInterpreter opInterpreter = new OPInterpreter(curOp, ic);
 					if(!opInterpreter.execute()){
 						logger.error("Error of Operation "+curOp.Operation
 										+" at Code "+codeLine+ "! Exit!");

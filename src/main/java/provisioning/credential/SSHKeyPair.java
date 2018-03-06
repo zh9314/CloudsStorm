@@ -1,5 +1,12 @@
 package provisioning.credential;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
+
+import commonTool.CommonTool;
+
 
 
 /**
@@ -22,6 +29,40 @@ public class SSHKeyPair {
 	
 	public String privateKeyString;
 	
-	
+	public boolean loadSSHKeyPair(String sshKeyPairId, String keyDir){
+		String sshKeyDir = CommonTool.formatDirWithSep(keyDir);
+		String privateKeyPath = sshKeyDir + "id_rsa";
+        File privateKeyFile = new File(privateKeyPath);
+        String publicKeyPath = sshKeyDir + "id_rsa.pub";
+        File publicKeyFile = new File(publicKeyPath);
+        String publicKeyIdPath = sshKeyDir + "name.pub";
+        File publicKeyIdFile = new File(publicKeyIdPath);
+        String privateKeyString = null, publicKeyString = null, publicKeyIdString = null;
+        try {
+        		if(privateKeyFile.exists())
+        			privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
+        		else
+        			return false;
+        		boolean atLeastOne = false;
+        		if(publicKeyFile.exists()){
+        			publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
+        			atLeastOne = true;
+        		}
+        		if(publicKeyIdFile.exists()){
+        			publicKeyIdString = FileUtils.readFileToString(publicKeyIdFile, "UTF-8");
+        			atLeastOne = true;
+        		}
+        		if(!atLeastOne)
+        			return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        this.publicKeyString = publicKeyString;
+        this.privateKeyString = privateKeyString;
+        this.publicKeyId = publicKeyIdString;
+        this.SSHKeyPairId = sshKeyPairId;
+        return true;
+	}
 
 }

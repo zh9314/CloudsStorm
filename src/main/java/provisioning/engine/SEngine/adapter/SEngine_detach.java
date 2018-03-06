@@ -1,5 +1,6 @@
 package provisioning.engine.SEngine.adapter;
 
+
 import org.apache.log4j.Logger;
 
 import provisioning.credential.Credential;
@@ -7,6 +8,7 @@ import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
 import topology.description.actual.SubTopologyInfo;
 import commonTool.ClassDB;
+import commonTool.Values;
 
 public class SEngine_detach extends SEngineAdapter{
 	private static final Logger logger = Logger.getLogger(SEngine_detach.class);
@@ -37,11 +39,10 @@ public class SEngine_detach extends SEngineAdapter{
 			Object sEngine = CurSEngine.newInstance();
 			
 			/////some common checks on the sub-topology
-			if( !subTopologyInfo.status.trim().toLowerCase().equals("running") ){
+			if( !subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.running) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is not in the status of 'running' to detach with others!";
-				logger.warn(msg);
-				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#WARN", msg);
+				logger.info(msg);
 				return ;
 			}
 			

@@ -47,5 +47,33 @@ public class BasicDatabase extends Database{
 			}
 		return null;
 	}
+
+	@Override
+	public String getVMType(String domain, String OS, double vCPUNum, double mem) {
+		if(domain == null || OS == null || vCPUNum <= 0 || mem <= 0)
+			return null;
+		String VMType = null;
+		double closeRatio = 10000;
+		for(int di = 0 ; di < this.DCMetaInfo.size(); di++)
+			if(this.DCMetaInfo.get(di).domain != null
+			 && domain.trim().equalsIgnoreCase(DCMetaInfo.get(di).domain.trim())){
+				for(int vi = 0 ; vi < DCMetaInfo.get(di).VMMetaInfo.size() ; vi++){
+					BasicVMMetaInfo curInfo = DCMetaInfo.get(di).VMMetaInfo.get(vi);
+					if(OS.trim().equalsIgnoreCase(curInfo.OS.trim()))
+					{
+						double curCloseRatio = (vCPUNum - Double.valueOf(curInfo.CPU))
+												+ (mem - Double.valueOf(curInfo.MEM));
+						if(curCloseRatio < 0)
+							curCloseRatio = 0 - curCloseRatio;
+						if(curCloseRatio < closeRatio){
+							closeRatio = curCloseRatio;
+							VMType = curInfo.VMType;
+						}
+					}
+				}
+			}
+		
+		return VMType;
+	}
 	
 }

@@ -1,9 +1,12 @@
 package provisioning.engine.SEngine.adapter;
 
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import commonTool.Values;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
@@ -28,6 +31,7 @@ public class SEngine_provision extends SEngineAdapter {
 	
 	@Override
 	public void run() {
+		subTopologyInfo.logsInfo = new HashMap<String, String>();
 		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
 		String sEngineClass = subTopologyInfo.subTopology.SEngineClass;
 		Class<?> CurSEngine = ClassDB.getSEngine(cp, sEngineClass);
@@ -43,7 +47,7 @@ public class SEngine_provision extends SEngineAdapter {
 			Object sEngine = CurSEngine.newInstance();
 			
 			/////some common checks on the sub-topology
-			if( subTopologyInfo.status.trim().toLowerCase().equals("running") ){
+			if( subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.running) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is already in 'running'";
 				logger.warn(msg);
@@ -51,8 +55,8 @@ public class SEngine_provision extends SEngineAdapter {
 				return ;
 			}
 			
-			if(!subTopologyInfo.status.trim().toLowerCase().equals("fresh")
-					&& !subTopologyInfo.status.trim().toLowerCase().equals("deleted")){
+			if(!subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.fresh)
+					&& !subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.deleted)){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is not in the status of 'fresh' or 'deleted'!";
 				logger.warn(msg);
@@ -82,13 +86,15 @@ public class SEngine_provision extends SEngineAdapter {
 			if(!((SEngineKeyMethod)sEngine).provision(subTopologyInfo, credential, database)){
 				logger.error("Provisioning for sub-topology '"+subTopologyInfo.topology+"' failed!");
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", "Provision failed! Delete!");
-				subTopologyInfo.status = "unknown";
+				subTopologyInfo.status = Values.STStatus.unknown;
 				
-				/// if provisioning failed, cannot directly delete it. 
-				/// Because tunnel connection need its information
-				/// However, after provisioning, these failed sub-topologies are directly deleted. 
+				/// if provisioning failed, directly delete it. 
 				/// So the failed status can only be caused by some topology is detected to be unavailable.
-				
+				if(!((SEngineKeyMethod)sEngine).delete(subTopologyInfo, credential, database)){
+					logger.error("Sub-topology '"+subTopologyInfo.topology+"' error when deleting!");
+					subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", "Provision failed and error when deleting!");
+				}else
+					subTopologyInfo.status = Values.STStatus.deleted;
 				opResult = false;
 
 				

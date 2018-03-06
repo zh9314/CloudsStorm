@@ -68,7 +68,6 @@ public class ExoGENISubTopology extends SubTopology{
 	@Override
 	public boolean formatChecking(String topologyStatus) {
 		
-		
 		if(topologyStatus.equals("fresh") && sliceName != null){
 			logger.error("Field 'sliceName' in a 'fresh' sub-topology cannot be specified!");
 			return false;

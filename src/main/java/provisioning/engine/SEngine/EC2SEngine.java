@@ -1,8 +1,11 @@
 package provisioning.engine.SEngine;
 
+import java.io.File;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+
+import commonTool.CommonTool;
 
 import provisioning.credential.Credential;
 import provisioning.credential.SSHKeyPair;
@@ -64,22 +67,41 @@ public class EC2SEngine extends SEngine {
 	public boolean createAccessSSHKey(SubTopologyInfo subTopologyInfo, 
 			Credential credential, Database database) {
 		SubTopology ec2SubTopology = subTopologyInfo.subTopology;
+		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
+		String dc = subTopologyInfo.domain.trim().toLowerCase();
 		//create a key pair for this sub-topology, if there is none.
 		if(ec2SubTopology.accessKeyPair == null){
-			String keyPairId = UUID.randomUUID().toString();
-			String publicKeyId = "publicKey-"+keyPairId;
-			String privateKeyString = 
-					EC2VEngine.createSSHKeyPair(subTopologyInfo, 
-							credential, publicKeyId);
-			if(privateKeyString == null){
-				logger.error("Unexpected error for creating ssh key pair for sub-topology '"+ec2SubTopology.topologyName+"'!");
-				return false;
-			}
+			String keyPairId = cp+"-"+dc;
 			subTopologyInfo.sshKeyPairId = keyPairId;
-			ec2SubTopology.accessKeyPair = new SSHKeyPair();
-			ec2SubTopology.accessKeyPair.publicKeyId = publicKeyId;
-			ec2SubTopology.accessKeyPair.privateKeyString = privateKeyString;
-			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
+			String currentDir = CommonTool.getPathDir(ec2SubTopology.loadingPath);
+            String sshKeyDir = currentDir + keyPairId + File.separator;
+            File keyDir = new File(sshKeyDir);
+            if (!keyDir.exists()) {
+                logger.info("There is no ssh key pair for sub-topology '" + ec2SubTopology.topologyName + "'! Generating!");
+                
+                String publicKeyId = "publicKey-"+UUID.randomUUID().toString();
+	    			String privateKeyString = 
+	    					EC2VEngine.createSSHKeyPair(subTopologyInfo, 
+	    							credential, publicKeyId);
+	    			if(privateKeyString == null){
+	    				logger.error("Unexpected error for creating ssh key pair for sub-topology '"+ec2SubTopology.topologyName+"'!");
+	    				return false;
+	    			}
+	    			ec2SubTopology.accessKeyPair = new SSHKeyPair();
+	    			ec2SubTopology.accessKeyPair.publicKeyId = publicKeyId;
+	    			ec2SubTopology.accessKeyPair.privateKeyString = privateKeyString;
+	    			ec2SubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
+                
+            } else {
+                logger.info("The ssh key pair for sub-topology '" + ec2SubTopology.topologyName + "' has already exist!");
+                ec2SubTopology.accessKeyPair = new SSHKeyPair();
+                if(!ec2SubTopology.accessKeyPair.loadSSHKeyPair(keyPairId, sshKeyDir)){
+                		logger.error("Error when loading SSH key Pair from "+sshKeyDir);
+                		return false;
+                }
+            }
+
+			
 		}
 		return true;
 	}
@@ -112,6 +134,9 @@ public class EC2SEngine extends SEngine {
 		////leverage VEngine to delete all the VMs
 		if(!super.delete(subTopologyInfo, credential, database))
 			return false;
+		
+		if(subTopologyInfo.topology.startsWith("_tmp_"))
+			return true;
 		
 		if(!EC2VEngine.deleteVPC(subTopologyInfo, credential))
 			return false;

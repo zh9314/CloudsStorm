@@ -1,5 +1,7 @@
 package infrastructureCode.main;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class Operation {
@@ -10,6 +12,12 @@ public class Operation {
 	 * the remote node.
 	 */
 	public String Command;
+	
+	/**
+	 * This contains all the options that needed by this operation.
+	 * It stores the key value pairs for these options.
+	 */
+	public Map<String, String> Options;
 	
 	/**
 	 * It means whether to log the output of this command. Only valid 

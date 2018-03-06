@@ -64,7 +64,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 		    
 		    if(curVM.selfEthAddresses != null 
 		    		&& curVM.selfEthAddresses.size() != 0){
-		    		for(Map.Entry<String, Boolean> entry : 
+		    		for(Map.Entry<String, String> entry : 
 		    				curVM.selfEthAddresses.entrySet()){
 		    			String selfIP = entry.getKey().split("/")[0];
 		    			fw.write("echo \""+selfIP
@@ -91,8 +91,8 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 		    
 			if(curVM.selfEthAddresses != null){
 				int count = 0;
-				for(Map.Entry<String, Boolean> entry : curVM.selfEthAddresses.entrySet()){
-					if(!entry.getValue()){
+				for(Map.Entry<String, String> entry : curVM.selfEthAddresses.entrySet()){
+					if(entry.getValue() == null){
 						String linkName = "self_"+count;
 						String remotePubAddress = curVM.publicAddress;
 						String [] addrNm = entry.getKey().split("/");
@@ -107,7 +107,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 						fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
 						fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
 						fw.flush();
-						entry.setValue(true);
+						curVM.selfEthAddresses.put(entry.getKey(), linkName);
 					}
 				}
 			}
@@ -448,7 +448,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 					String remotePrivateAddress = curACP.peerACP.address; 
 					if(tunnelName == null){
 						logger.warn("TunnelName of '"+curVM.name
-								+"' has been deleted for unknown reason!");
+								+"' has been deleted for some reason!");
 						continue ;
 					}
 					fw.write("route del -host "+remotePrivateAddress

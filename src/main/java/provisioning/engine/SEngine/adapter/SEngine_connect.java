@@ -3,6 +3,7 @@ package provisioning.engine.SEngine.adapter;
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import commonTool.Values;
 import provisioning.credential.Credential;
 import provisioning.database.Database;
 import provisioning.engine.SEngine.SEngineKeyMethod;
@@ -45,7 +46,7 @@ public class SEngine_connect extends SEngineAdapter{
 			/////some common checks on the sub-topology
 			
 			/// in this case, we do not say this operation is failed.
-			if( !subTopologyInfo.status.trim().toLowerCase().equals("running") ){
+			if( !subTopologyInfo.status.trim().toLowerCase().equals(Values.STStatus.running) ){
 				String msg = "The sub-topology '"+subTopologyInfo.topology
 						+"' is not in the status of 'fresh' or 'deleted'!";
 				logger.warn(msg);
@@ -72,12 +73,19 @@ public class SEngine_connect extends SEngineAdapter{
 				return ;
 			}
 			
+			if(!subTopologyInfo.subTopology.overwirteControlOutput()){
+				String msg = "Control information of '"+subTopologyInfo.topology
+						+"' has not been overwritten to the origin file!";
+				logger.error(msg);
+				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", msg);
+				opResult = false;
+			}
+			
 			if(opResult){
 				long stOpEnd = System.currentTimeMillis();
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#Network", 
 										(stOpEnd - stOpStart)+"@"+stOpStart);
 			}
-			
 			return ;
 		} catch (InstantiationException | IllegalAccessException
 				 e) {

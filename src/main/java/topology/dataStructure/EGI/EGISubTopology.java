@@ -48,6 +48,7 @@ private static final Logger logger = Logger.getLogger(EGISubTopology.class);
 	@Override
 	public boolean formatChecking(String topologyStatus) {
 		
+		
 		for(int vmi = 0 ; vmi < this.VMs.size() ; vmi++){
 			EGIVM curVM = VMs.get(vmi);
 			if(topologyStatus.equals("fresh")){

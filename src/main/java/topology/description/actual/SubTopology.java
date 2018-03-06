@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,8 +24,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import commonTool.ClassDB;
 import commonTool.CommonTool;
+import commonTool.Values;
 
-public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
+public abstract class SubTopology implements SubTopologyMethod, TopologyMethod, Cloneable{
 	
 	private static Logger logger = Logger.getLogger(SubTopology.class);
 	
@@ -87,10 +91,13 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
 	public final boolean commonFormatChecking(String topologyStatus){
 		logger.info("Validation on the sub-topology '"+this.topologyName+"'");
 		
+		if(topologyStatus == null)
+			return false;
+		
 		//// to make sure that there is 'VMs' field defined in the sub-topology
 		//// this is essential to the sub-topology definition
 		Class<?> XSubTopology = ClassDB.getSubTopology(
-				cloudProvider.trim().toLowerCase(), null);
+									cloudProvider , this.subTopologyClass);
 		try {
 			if(XSubTopology.getField("VMs") == null){
 				logger.error("VM must be defined in the sub-topology '"
@@ -138,11 +145,22 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
 					logger.info("Script of "+curVM.script+" is loaded!");
 			}
 			
-			if(topologyStatus.equals("fresh") && (curVM.publicAddress != null)){
+			if(topologyStatus.equals(Values.STStatus.fresh) && (curVM.publicAddress != null)){
 				logger.error("VM '"+curVM.name+"' cannot have public address in 'fresh' status!");
 				return false;
 			}
 			
+			if(topologyStatus.trim().equalsIgnoreCase(Values.STStatus.fresh)
+					|| topologyStatus.trim().equalsIgnoreCase(Values.STStatus.deleted)){
+				if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true")){
+					logger.error("There cannot be 'fake' VM in the status of 'fresh' or 'deleted'!");
+					return false;
+				}else
+					curVM.fake = null;
+			}
+			
+			if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true"))
+				continue;
 			if(topologyStatus.equals("running") && (curVM.publicAddress == null)){
 				logger.error("VM '"+curVM.name+"' must have public address in 'running' status!");
 				return false;
@@ -278,18 +296,113 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
 	}
 
 
-	@Override
+	@Override  @JsonIgnore
 	public boolean formatChecking(String topologyStatus) {
+		
 		return true;
 	}
 
-
+	 @JsonIgnore
+	public boolean setVMsInSubClass(ArrayList<VM> setVMs){
+		Class<?> XSubTopology = ClassDB.getSubTopology(
+										cloudProvider , this.subTopologyClass);
+		try {
+			Field XVMs = XSubTopology.getDeclaredField("VMs");
+			if(XVMs == null){
+				logger.error("VM must be defined in the sub-topology '"
+							+topologyName+"' description!");
+				return false;
+			}
+			XVMs.setAccessible(true);
+			XVMs.set(this, setVMs);
+		} catch (NoSuchFieldException | SecurityException 
+				| IllegalArgumentException | IllegalAccessException e) {
+			logger.error(e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	@JsonIgnore
+	public boolean addVMInSubClass(VM newVM){
+		Class<?> XSubTopology = ClassDB.getSubTopology(
+									cloudProvider , this.subTopologyClass);
+		try {
+			Field XVMs = XSubTopology.getDeclaredField("VMs");
+			if(XVMs == null){
+				logger.error("VM must be defined in the sub-topology '"
+							+topologyName+"' description!");
+				return false;
+			}
+			Object VMList = XVMs.get(this);
+			Method add = ArrayList.class.getDeclaredMethod("add", Object.class);
+			add.invoke(VMList, newVM);
+		} catch (NoSuchFieldException | SecurityException 
+				| IllegalArgumentException | IllegalAccessException 
+				| NoSuchMethodException | InvocationTargetException e) {
+			logger.error(e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	@JsonIgnore
+	public boolean removeVMInSubClass(VM rmVM){
+		Class<?> XSubTopology = ClassDB.getSubTopology(
+									cloudProvider , this.subTopologyClass);
+		try {
+			Field XVMs = XSubTopology.getDeclaredField("VMs");
+			if(XVMs == null){
+				logger.error("VM must be defined in the sub-topology '"
+							+topologyName+"' description!");
+				return false;
+			}
+			Object VMList = XVMs.get(this);
+			Method rm = ArrayList.class.getDeclaredMethod("remove", Object.class);
+			rm.invoke(VMList, rmVM);
+		} catch (NoSuchFieldException | SecurityException 
+				| IllegalArgumentException | IllegalAccessException 
+				| NoSuchMethodException | InvocationTargetException e) {
+			logger.error(e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Get the VM Class path in this type of sub-topology 
+	 * @return
+	 */
+	@JsonIgnore
+	public Class<?> getVMClass(){
+		Class<?> XSubTopology = ClassDB.getSubTopology(
+									cloudProvider, this.subTopologyClass);
+		try {
+			Field XVMs = XSubTopology.getDeclaredField("VMs");
+			if(XVMs == null){
+				logger.error("VM must be defined in the sub-topology '"
+							+topologyName+"' description!");
+				return null;
+			}
+			ParameterizedType VMListType = (ParameterizedType) XVMs.getGenericType();
+			Class<?> VMClass = (Class<?>) VMListType.getActualTypeArguments()[0];
+			return VMClass;
+		} catch (NoSuchFieldException | SecurityException 
+				| IllegalArgumentException e) {
+			logger.error(e.getMessage());
+			e.printStackTrace();
+			return null;
+		}
+	}
 	
 	@Override @JsonIgnore
 	public VM getVMinSubClassbyName(String vmName)
 	{
 		Class<?> XSubTopology = ClassDB.getSubTopology(
-				cloudProvider.trim().toLowerCase(), null);
+									cloudProvider, this.subTopologyClass);
 		try {
 			Field XVMs = XSubTopology.getField("VMs");
 			if(XVMs == null){
@@ -335,7 +448,7 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
 	public  ArrayList<VM> getVMsinSubClass() 
 	{
 		Class<?> XSubTopology = ClassDB.getSubTopology(
-				cloudProvider.trim().toLowerCase(), null);
+									cloudProvider , this.subTopologyClass);
 		try {
 			Field XVMs = XSubTopology.getField("VMs");
 			if(XVMs == null){
@@ -353,5 +466,15 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod{
 			return null;
 		}
 	}
+	
+	@Override @JsonIgnore
+	public Object clone() {  
+		try {
+			return super.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}  
+		return null;
+	}  
 
 }

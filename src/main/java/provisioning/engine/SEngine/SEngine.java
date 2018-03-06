@@ -1,20 +1,18 @@
 package provisioning.engine.SEngine;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
 import commonTool.CommonTool;
+import commonTool.Values;
 import provisioning.engine.VEngine.VEngine;
 import provisioning.engine.VEngine.VEngineOpMethod;
 import provisioning.engine.VEngine.adapter.VEngineAdapter;
@@ -105,6 +103,8 @@ public class SEngine implements SEngineKeyMethod {
         			subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", msg);
                  return false;
             }
+            curVM.CPU = vmMetaInfo.CPU;
+            curVM.Mem = vmMetaInfo.MEM;
             curVM.defaultSSHAccount = vmMetaInfo.DefaultSSHAccount;
             
             ///update extra information for this VM, if there is any. 
@@ -134,9 +134,11 @@ public class SEngine implements SEngineKeyMethod {
 	public boolean createAccessSSHKey(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database) {
 		SubTopology xSubTopology = subTopologyInfo.subTopology;
+		String cp = subTopologyInfo.cloudProvider.trim().toLowerCase();
+		String dc = subTopologyInfo.domain.trim().toLowerCase();
 		//create a key pair for this sub-topology, if there is none.
         if (xSubTopology.accessKeyPair == null) {
-            String keyPairId = UUID.randomUUID().toString();
+            String keyPairId = cp+"-"+dc;
             String currentDir = CommonTool.getPathDir(xSubTopology.loadingPath);
             String sshKeyDir = currentDir + keyPairId + File.separator;
             File keyDir = new File(sshKeyDir);
@@ -148,27 +150,14 @@ public class SEngine implements SEngineKeyMethod {
             } else 
                 logger.info("The ssh key pair for sub-topology '" + xSubTopology.topologyName + "' has already exist!");
 
-            String privateKeyPath = sshKeyDir + "id_rsa";
-            File privateKeyFile = new File(privateKeyPath);
-            String publicKeyPath = sshKeyDir + "id_rsa.pub";
-            File publicKeyFile = new File(publicKeyPath);
-            String privateKeyString, publicKeyString;
-            try {
-                privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
-                publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
-            } catch (IOException e) {
-                e.printStackTrace();
-                logger.error(e.getMessage());
-                return false;
+            xSubTopology.accessKeyPair = new SSHKeyPair();
+            if(!xSubTopology.accessKeyPair.loadSSHKeyPair(keyPairId, sshKeyDir)){
+            		logger.error("Error when loading SSH key Pair from "+sshKeyDir);
+            		return false;
             }
             subTopologyInfo.sshKeyPairId = keyPairId;
-            xSubTopology.accessKeyPair = new SSHKeyPair();
-            xSubTopology.accessKeyPair.publicKeyString = publicKeyString;
-            xSubTopology.accessKeyPair.privateKeyString = privateKeyString;
-            xSubTopology.accessKeyPair.SSHKeyPairId = keyPairId;
-            xSubTopology.accessKeyPair.publicKeyId = keyPairId;
+           
         } else {
-        		xSubTopology.accessKeyPair.publicKeyId = xSubTopology.accessKeyPair.SSHKeyPairId;
             if(xSubTopology.accessKeyPair.publicKeyString == null
             		|| xSubTopology.accessKeyPair.privateKeyString == null){
             		String msg = "Sub-topology "+ subTopologyInfo.topology 
@@ -207,6 +196,7 @@ public class SEngine implements SEngineKeyMethod {
 				count++;
 				if(count > 100*xVMs.size()){
 					logger.error("Some VM cannot be provisioned!");
+					subTopologyInfo.status = Values.STStatus.unknown;
 					return false;
 				}
 			}
@@ -221,12 +211,16 @@ public class SEngine implements SEngineKeyMethod {
 					+"' has not been overwritten to the origin file!";
 			logger.error(msg);
 			subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", msg);
+			subTopologyInfo.status = Values.STStatus.running;
 			return false;
 		}
 		
-		if(!checkVEnginesResults(vEAs))
+		if(!checkVEnginesResults(vEAs)){
+			subTopologyInfo.status = Values.STStatus.unknown;
 			return false;
+		}
         
+		subTopologyInfo.status = Values.STStatus.running;
 		return true;
 	}
 
@@ -240,6 +234,10 @@ public class SEngine implements SEngineKeyMethod {
 		ExecutorService executor4vm = Executors.newFixedThreadPool(xVMs.size());
 		for(int vi = 0 ; vi<xVMs.size() ; vi++){
 			VM curVM = xVMs.get(vi);
+			if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true")){
+				continue;
+			}
+			curVM.fake = null;
 			VEngine_connect v_connect = new VEngine_connect(
 					curVM, credential, database);
 			vEAs.add(v_connect);
@@ -278,6 +276,10 @@ public class SEngine implements SEngineKeyMethod {
 		ExecutorService executor4vm = Executors.newFixedThreadPool(xVMs.size());
 		for(int vi = 0 ; vi<xVMs.size() ; vi++){
 			VM curVM = xVMs.get(vi);
+			if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true")){
+				continue;
+			}
+			curVM.fake = null;
 			VEngine_deploy v_deploy = new VEngine_deploy(
 					curVM, credential, database);
 			vEAs.add(v_deploy);
@@ -310,9 +312,10 @@ public class SEngine implements SEngineKeyMethod {
 	public boolean markFailure(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database) {
 		SubTopology xSubTopology = subTopologyInfo.subTopology;
-		
-		if(!subTopologyInfo.status.trim().equalsIgnoreCase("running")){
-			String msg = "Only 'running' sub-topology can be marked as 'failed' for "
+		////mark the deleted sub-topology as failed is to make the sub-topology can be recovered from another datacenter
+		if(!subTopologyInfo.status.trim().equalsIgnoreCase(Values.STStatus.running)
+			&& !subTopologyInfo.status.trim().equalsIgnoreCase(Values.STStatus.deleted)){
+			String msg = "Only 'running' and 'deleted' sub-topology can be marked as 'failed' for "
 					+subTopologyInfo.topology;
 			logger.warn(msg);
 			subTopologyInfo.logsInfo.put("WARN", msg);
@@ -321,15 +324,19 @@ public class SEngine implements SEngineKeyMethod {
 		ArrayList<VM> xVMs = xSubTopology.getVMsinSubClass();
 		for(int vi = 0 ; vi < xVMs.size() ; vi++){
 			VM curVM = xVMs.get(vi);
-			subTopologyInfo.status = "failed";
-			long failureTime = System.currentTimeMillis();
-			subTopologyInfo.logsInfo.put("failed", String.valueOf(failureTime));
 			curVM.publicAddress = null;
 			if(curVM.vmConnectors != null){
 				for(int vapi = 0 ; vapi < curVM.vmConnectors.size() ; vapi++)
 					curVM.vmConnectors.get(vapi).ethName = null;
 			}
+			if(curVM.selfEthAddresses != null){
+				for(Map.Entry<String, String> entry : curVM.selfEthAddresses.entrySet())
+					curVM.selfEthAddresses.put(entry.getKey(), null);
+			}
 		}
+		long failureTime = System.currentTimeMillis();
+		subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#Failed", String.valueOf(failureTime));
+		subTopologyInfo.status = Values.STStatus.failed;
 		if(!xSubTopology.overwirteControlOutput()){
 			String msg = "Control information of '"+xSubTopology.topologyName
 					+"' has not been overwritten to the origin file!";
@@ -382,6 +389,14 @@ public class SEngine implements SEngineKeyMethod {
 			Database database) {
 		SubTopology xSubTopology = subTopologyInfo.subTopology;
 		
+		if(!subTopologyInfo.status.trim().equalsIgnoreCase(Values.STStatus.running)){
+			String msg = "Only 'running' sub-topology can be stopped for "
+					+subTopologyInfo.topology;
+			logger.warn(msg);
+			subTopologyInfo.logsInfo.put("WARN", msg);
+			return false;
+		}
+		
 		ArrayList<VEngineAdapter> vEAs = new ArrayList<VEngineAdapter>();
 		ArrayList<VM> xVMs = xSubTopology.getVMsinSubClass();
 		ExecutorService executor4vm = Executors.newFixedThreadPool(xVMs.size());
@@ -400,6 +415,7 @@ public class SEngine implements SEngineKeyMethod {
 				count++;
 				if(count > 100*xVMs.size()){
 					logger.error("Some VM cannot be provisioned!");
+					subTopologyInfo.status = Values.STStatus.unknown;
 					return false;
 				}
 			}
@@ -409,11 +425,15 @@ public class SEngine implements SEngineKeyMethod {
 			return false;
 		}
 
-		if(!checkVEnginesResults(vEAs))
+		if(!checkVEnginesResults(vEAs)){
+			subTopologyInfo.status = Values.STStatus.unknown;
 			return false;
+		}
 
 		for(int vi = 0 ; vi<xVMs.size() ; vi++)
 			xVMs.get(vi).publicAddress = null;
+		
+		subTopologyInfo.status = Values.STStatus.stopped;
 		return true;
 	}
 
@@ -421,6 +441,14 @@ public class SEngine implements SEngineKeyMethod {
 	public boolean start(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database) {
 		SubTopology xSubTopology = subTopologyInfo.subTopology;
+		
+		if(!subTopologyInfo.status.trim().equalsIgnoreCase(Values.STStatus.stopped)){
+			String msg = "Only 'stopped' sub-topology can be started for "
+					+subTopologyInfo.topology;
+			logger.warn(msg);
+			subTopologyInfo.logsInfo.put("WARN", msg);
+			return false;
+		}
 		
 		ArrayList<VEngineAdapter> vEAs = new ArrayList<VEngineAdapter>();
 		ArrayList<VM> xVMs = xSubTopology.getVMsinSubClass();
@@ -440,6 +468,7 @@ public class SEngine implements SEngineKeyMethod {
 				count++;
 				if(count > 100*xVMs.size()){
 					logger.error("Some VM cannot be provisioned!");
+					subTopologyInfo.status = Values.STStatus.unknown;
 					return false;
 				}
 			}
@@ -450,8 +479,12 @@ public class SEngine implements SEngineKeyMethod {
 		}
 
 		
-		if(!checkVEnginesResults(vEAs))
+		if(!checkVEnginesResults(vEAs)){
+			subTopologyInfo.status = Values.STStatus.unknown;
 			return false;
+		}
+		
+		subTopologyInfo.status = Values.STStatus.running;
 		return true;
 	}
 
@@ -478,6 +511,7 @@ public class SEngine implements SEngineKeyMethod {
 				count++;
 				if(count > 100*xVMs.size()){
 					logger.error("Some VM cannot be provisioned!");
+					subTopologyInfo.status = Values.STStatus.unknown;
 					return false;
 				}
 			}
@@ -486,11 +520,25 @@ public class SEngine implements SEngineKeyMethod {
 			logger.error("Unexpected error!");
 			return false;
 		}
-		if(!checkVEnginesResults(vEAs))
+		if(!checkVEnginesResults(vEAs)){
+			subTopologyInfo.status = Values.STStatus.unknown;
 			return false;
+		}
 		
-		for(int vi = 0 ; vi<xVMs.size() ; vi++)
-			xVMs.get(vi).publicAddress = null;
+		for(int vi = 0 ; vi<xVMs.size() ; vi++){
+			VM curVM = xVMs.get(vi);
+			curVM.publicAddress = null;
+			if(curVM.vmConnectors != null){
+				for(int vapi = 0 ; vapi < curVM.vmConnectors.size() ; vapi++)
+					curVM.vmConnectors.get(vapi).ethName = null;
+			}
+			if(curVM.selfEthAddresses != null){
+				for(Map.Entry<String, String> entry : curVM.selfEthAddresses.entrySet())
+					curVM.selfEthAddresses.put(entry.getKey(), null);
+			}
+			curVM.fake = null;
+		}
+		subTopologyInfo.status = Values.STStatus.deleted;
 		return true;
 	}
 
@@ -505,6 +553,10 @@ public class SEngine implements SEngineKeyMethod {
 		ExecutorService executor4vm = Executors.newFixedThreadPool(xVMs.size());
 		for(int vi = 0 ; vi<xVMs.size() ; vi++){
 			VM curVM = xVMs.get(vi);
+			if(curVM.fake != null && curVM.fake.trim().equalsIgnoreCase("true")){
+				continue;
+			}
+			curVM.fake = null;
 			VEngine_detach v_detach = new VEngine_detach(
 					curVM, credential, database);
 			vEAs.add(v_detach);
@@ -537,6 +589,11 @@ public class SEngine implements SEngineKeyMethod {
 			if(!vEngineAdapters.get(vi).opResult)
 				return false;
 
+		return true;
+	}
+
+	@Override
+	public boolean supportSeparate() {
 		return true;
 	}
 	
