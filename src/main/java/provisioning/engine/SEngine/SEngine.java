@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -145,7 +146,14 @@ public class SEngine implements SEngineKeyMethod {
             if (!keyDir.exists()) {
                 logger.info("There is no ssh key pair for sub-topology '" + xSubTopology.topologyName + "'! Generating!");
                 if (!CommonTool.rsaKeyGenerate(sshKeyDir)) {
-                    return false;
+                    ///it may be caused by there is some illegal character in 'cp' or 'dc' to be directory name 
+                		keyPairId = UUID.randomUUID().toString();
+                		sshKeyDir = currentDir + keyPairId + File.separator;
+                		logger.info("Try another key pair dir "+sshKeyDir);
+                		if (!CommonTool.rsaKeyGenerate(sshKeyDir)) {
+                			logger.error("FATAL! cannot generate ssh key pair dir!");
+                			return false;
+                		}
                 }
             } else 
                 logger.info("The ssh key pair for sub-topology '" + xSubTopology.topologyName + "' has already exist!");

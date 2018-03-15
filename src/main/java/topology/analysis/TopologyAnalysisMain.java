@@ -1,12 +1,14 @@
 package topology.analysis;
 
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import provisioning.credential.SSHKeyPair;
 import commonTool.CommonTool;
 import topology.dataStructure.Member;
 import topology.dataStructure.Subnet;
@@ -47,6 +49,14 @@ public class TopologyAnalysisMain{
 			if(!tmpInfo.loadSubTopology(topologyPath)){
 				logger.error("One of the sub-topology cannot be loaded!");
 				return false;
+			}
+			if(tmpInfo.sshKeyPairId != null){
+				tmpInfo.subTopology.accessKeyPair = new SSHKeyPair();
+				String sshKeyDir = topologiesDir + tmpInfo.sshKeyPairId + File.separator;
+	            if(!tmpInfo.subTopology.accessKeyPair.loadSSHKeyPair(tmpInfo.sshKeyPairId, sshKeyDir)){
+	            		logger.error("Error when loading SSH key Pair from "+sshKeyDir);
+	            		return false;
+	            }
 			}
 		}
 		

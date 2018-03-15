@@ -429,7 +429,7 @@ public class CommonTool {
             return false;
         }
         if (!keyDir.mkdir()) {
-            logger.error("Cannot create directory " + keyDirPath);
+            logger.warn("Cannot create directory " + keyDirPath);
             return false;
         }
         JSch jsch = new JSch();
@@ -437,7 +437,7 @@ public class CommonTool {
         try {
             kpair = KeyPair.genKeyPair(jsch, KeyPair.RSA);
             kpair.writePrivateKey(keyDirPath + "id_rsa");
-            kpair.writePublicKey(keyDirPath + "id_rsa.pub", "clusterKeyPair-" + UUID.randomUUID().toString());
+            kpair.writePublicKey(keyDirPath + "id_rsa.pub", "keyPair-" + UUID.randomUUID().toString());
             kpair.dispose();
         } catch (JSchException | IOException e) {
             e.printStackTrace();

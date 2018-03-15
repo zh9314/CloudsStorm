@@ -56,7 +56,7 @@ public class SEngine_connect extends SEngineAdapter{
 			}
 			if( subTopologyInfo.subTopology.accessKeyPair == null
 					|| subTopologyInfo.subTopology.accessKeyPair.privateKeyString == null){
-				String msg = "SSH key information is missing for detaching sub-topology '"
+				String msg = "SSH key information is missing for connecting sub-topology '"
 						+subTopologyInfo.topology+"'!";
 				logger.error(msg);
 				subTopologyInfo.logsInfo.put(subTopologyInfo.topology+"#ERROR", msg);
