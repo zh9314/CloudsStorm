@@ -128,7 +128,7 @@ public class ExoGENISEngine extends SEngine{
 			int count = 0;
 			while (!executor4vm.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
-				if(count > 100*xVMs.size()){
+				if(count > 2000*xVMs.size()){
 					logger.error("Some VM cannot be configured after provisioning!");
 					return false;
 				}
