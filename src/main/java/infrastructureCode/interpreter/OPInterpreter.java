@@ -689,7 +689,7 @@ public class OPInterpreter {
 					continue;
 				}
 				if(!curSubInfo.status.trim().equalsIgnoreCase("running")){
-					String thisLog = "The subject SubTopology "+names[0]+" must be running first!";
+					String thisLog = "The object SubTopology "+names[0]+" must be running first!";
 					logString += ("WARN: "+ thisLog +"||");
 					logger.warn(thisLog);
 					success = false;

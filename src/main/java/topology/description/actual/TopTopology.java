@@ -399,8 +399,11 @@ public class TopTopology extends Topology implements TopologyMethod{
 			curInfo.userName = this.userName;
 			curInfo.publicKeyString = this.publicKeyString;
 			
-			////The folder of 'clusterKeyPair' must exist, 
-			////if there is a running sub-topology.
+			////the default status is "fresh"
+			if(curInfo.status == null)
+				curInfo.status = Values.STStatus.fresh;
+			
+			////If there is a running sub-topology, the folder of 'clusterKeyPair' must exist.
 			if(curInfo.status.equals(Values.STStatus.running)){
 				runningST = true;
 				String currentDir = CommonTool.getPathDir(this.loadingPath);
