@@ -24,9 +24,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import lambdaInfrs.credential.SSHKeyPair;
+
 import org.apache.log4j.Logger;
 
-import provisioning.credential.SSHKeyPair;
 import commonTool.CommonTool;
 import topology.dataStructure.Member;
 import topology.dataStructure.Subnet;

@@ -40,7 +40,7 @@ public class Values {
 		public static final String subTopologyClass = "STClass";
 		public static final String sEngineClass = "SEClass";
 		public static final String vEngineClass = "VEClass";
-		public static final String scalingUpDown = "UpDown";
+		public static final String scalingOutIn = "OutIn";
 		
 		///following are used for 'vscale'
 		public static final String targetCPU = "CPU";

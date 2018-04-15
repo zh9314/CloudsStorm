@@ -122,29 +122,23 @@
             <version>0.2.6</version>
         </dependency>
 	
-        <!--dependency jars for ExoGENI-->
+        <!--dependency jars for ExoGENI from my repo-->
         <dependency>
             <groupId>orca</groupId>
             <artifactId>ndl</artifactId>
             <version>5.0</version>
-            <!--<scope>system</scope>-->
-            <!--<systemPath>/Users/zh9314/Documents/workspace/DRIPProvisioningAgent/lib/ndl-5.0-SNAPSHOT.jar</systemPath>-->
         </dependency>
 	
         <dependency>
             <groupId>orca</groupId>
             <artifactId>util</artifactId>
             <version>5.0</version>
-            <!--<scope>system</scope>-->
-            <!--<systemPath>/Users/zh9314/Documents/workspace/DRIPProvisioningAgent/lib/util-5.0-SNAPSHOT.jar</systemPath>-->
         </dependency>
 	
         <dependency>
             <groupId>com.hp.hpl.jena</groupId>
             <artifactId>jena-core</artifactId>
             <version>2.11.2</version>
-            <!--<scope>system</scope>-->
-            <!--<systemPath>/Users/zh9314/Documents/workspace/DRIPProvisioningAgent/lib/jena-core-2.11.2.jar</systemPath>-->
         </dependency>
 	
         <dependency>
@@ -196,7 +190,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>asCMDTool.MainAsTool</mainClass>
+                            <mainClass>standalone.MainAsTool</mainClass>
                         </manifest>
                         <manifestEntries>
                             <Class-Path>.</Class-Path>
@@ -215,17 +209,8 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-            <id>skoulouzis-snapshots</id>
-            <url>https://raw.githubusercontent.com/skoulouzis/mvn-repo/master/snapshots</url>
-        </repository>
-                
-                
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>releases</id>
-            <url>https://raw.githubusercontent.com/skoulouzis/mvn-repo/master/releases</url>
+            <id>zh-dependencies</id>
+            <url>https://raw.githubusercontent.com/CloudsStorm/mvn-repo/master/dependencies</url>
         </repository>
       
     </repositories>
