@@ -68,6 +68,12 @@ public class UserCredential {
 	 * @return
 	 */
 	public boolean loadCloudAccessCreds(String credsPath){
+		File testF = new File(credsPath);
+		if(!testF.exists()){
+			logger.error(credsPath + " does not exist!");
+			return false;
+		}
+		
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		this.cloudAccess = new HashMap<String, Credential>();
 		String curDir = CommonTool.getPathDir(credsPath);

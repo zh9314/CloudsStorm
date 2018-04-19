@@ -57,6 +57,12 @@ public class UserDatabase {
 	 * @return
 	 */
 	public boolean loadCloudDBs(String dbsPath){
+		File testF = new File(dbsPath);
+		if(!testF.exists()){
+			logger.error(dbsPath + " does not exist!");
+			return false;
+		}
+		
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		this.databases = new HashMap<String, Database>();
 		String curDir = CommonTool.getPathDir(dbsPath);

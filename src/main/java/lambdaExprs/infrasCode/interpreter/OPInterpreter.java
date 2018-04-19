@@ -267,7 +267,9 @@ public class OPInterpreter {
 				if(orgOptionString != null){
 					String newOptionString = orgOptionString.replaceAll("\\$counter", 
 							String.valueOf(opInput.loopCounter))
-							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()))
+							.replaceAll("\\$cur_dir", CommonTool.formatDirWithoutSep(ic.curDir))
+							.replaceAll("\\$root_dir", CommonTool.formatDirWithoutSep(ic.rootDir));
 					actualOptions.put(entry.getKey(), newOptionString);
 				}
 			}
@@ -494,7 +496,9 @@ public class OPInterpreter {
 				if(orgOptionString != null){
 					String newOptionString = orgOptionString.replaceAll("\\$counter", 
 							String.valueOf(opInput.loopCounter))
-							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()))
+							.replaceAll("\\$cur_dir", CommonTool.formatDirWithoutSep(ic.curDir))
+							.replaceAll("\\$root_dir", CommonTool.formatDirWithoutSep(ic.rootDir));
 					actualOptions.put(entry.getKey(), newOptionString);
 				}
 			}
@@ -628,8 +632,9 @@ public class OPInterpreter {
 			recordOpLog(logsInfo, 0);
 			return false;
 		}
-		if(opInput.Command == null || opInput.Command.trim().equals("")){
-			logString = "Invalid operation without defining command";
+		if(opInput.Operation.trim().equalsIgnoreCase("execute") && 
+			(opInput.Command == null || opInput.Command.trim().equals(""))){
+			logString = "Invalid operation 'execute' without defining command";
 			logger.warn(logString);
 			Map<String,String> logsInfo = new HashMap<String,String>();
 			logsInfo.put("WARN", logString);
@@ -637,11 +642,16 @@ public class OPInterpreter {
 			return false;
 		}
 		
-		////replace the command with some predefined synatx 
-		////Do not replace the original string, in order to avoid 
-		String curCMD = opInput.Command.replaceAll("\\$counter", 
-							String.valueOf(opInput.loopCounter))
-							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+		String curCMD = "";
+		if(opInput.Command != null){
+			////replace the command with some predefined syntax 
+			////Do not replace the original string, in order to avoid this command is in a loop and needs to be reused.  
+			curCMD = opInput.Command.replaceAll("\\$counter", 
+								String.valueOf(opInput.loopCounter))
+								.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()))
+								.replaceAll("\\$cur_dir", CommonTool.formatDirWithoutSep(ic.curDir))
+								.replaceAll("\\$root_dir", CommonTool.formatDirWithoutSep(ic.rootDir));
+		}
 		Map<String, String> actualOptions = null;
 		if(opInput.Options != null){
 			actualOptions = new HashMap<String, String>();
@@ -650,7 +660,9 @@ public class OPInterpreter {
 				if(orgOptionString != null){
 					String newOptionString = orgOptionString.replaceAll("\\$counter", 
 							String.valueOf(opInput.loopCounter))
-							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()));
+							.replaceAll("\\$time", String.valueOf(System.currentTimeMillis()))
+							.replaceAll("\\$cur_dir", CommonTool.formatDirWithoutSep(ic.curDir))
+							.replaceAll("\\$root_dir", CommonTool.formatDirWithoutSep(ic.rootDir));
 					actualOptions.put(entry.getKey(), newOptionString);
 				}
 			}
@@ -748,7 +760,7 @@ public class OPInterpreter {
 				return success;
 			}
 		}else{
-			logger.warn("Invalid 'ObjectType' for operation 'execute'!");
+			logger.warn("Invalid 'ObjectType' for operation '"+opInput.Operation+"'!");
 			return false;
 		}
 	}

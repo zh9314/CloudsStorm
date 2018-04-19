@@ -82,6 +82,18 @@ public class ICYAML {
 	@JsonIgnore
 	public VScalingVMRequest vscalVMReq = new VScalingVMRequest();
 	
+	/**
+	 * A variable to record current directory for this infrastructure code.
+	 */
+	@JsonIgnore
+	public String curDir;
+	
+	/**
+	 * A variable to record the root directory for this infrastructure code. It always ends up with file separator.
+	 * This value can be assigned in the standalone mode. The default value is the current directory.
+	 */
+	public String rootDir = "./";
+	
 	public ICYAML(){
 		
 	}
@@ -93,7 +105,16 @@ public class ICYAML {
 	}
 	
 	
-	public boolean loadInfrasCodes(String IC){
+	public boolean loadInfrasCodes(String IC, String rootDir){
+		File testF = new File(IC);
+		if(!testF.exists()){
+			logger.error(IC + " does not exist!");
+			return false;
+		}
+		
+		this.curDir = CommonTool.getPathDir(IC);
+		this.rootDir = rootDir;
+		
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
         	ICYAML icYaml = mapper.readValue(new File(IC), ICYAML.class);

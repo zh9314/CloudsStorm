@@ -47,6 +47,14 @@ public class DatabaseInfo {
 	public String dbInfoFile;
 	
 	public boolean loadDatabase(String dbInfoPath, Map<String, Database> databases) {
+		
+		File testF = new File(dbInfoPath);
+		if(!testF.exists()){
+			logger.error(dbInfoPath + " does not exist!");
+			return false;
+		}
+		
+		
 		if(cloudProvider == null){
 			logger.error("Cloud provider must be set!");
 			return false;

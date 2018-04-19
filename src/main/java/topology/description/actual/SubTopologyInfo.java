@@ -143,6 +143,12 @@ public class SubTopologyInfo {
     
     
     public boolean loadSubTopology(String topologyPath) {
+    	
+    		File testExist = new File(topologyPath);
+    		if(!testExist.exists()){
+    			logger.error("Sub-topology file " + topologyPath + " does not exist!");
+    			return false;
+    		}
     		
     		///logs will be refreshed every time
     		this.logsInfo = new HashMap<String, String>();

@@ -50,6 +50,12 @@ public class CredentialInfo {
 	
 	public boolean loadCredential(String credInfoPath, 
 				Map<String, Credential> credentials) {
+		File testF = new File(credInfoPath);
+		if(!testF.exists()){
+			logger.error(credInfoPath + " does not exist!");
+			return false;
+		}
+		
 		if(cloudProvider == null){
 			logger.error("Cloud provider must be set!");
 			return false;

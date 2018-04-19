@@ -89,6 +89,8 @@ public class MainAsTool {
 			String dbsPath = appRootDir + dbInf;
 			String ctrlFPath = appRootDir + ctrlInf;
 			String logsDir = appRootDir + logsInf;
+			String ICPath = appRootDir + icInf;
+			
 			
 			TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
 			if(!tam.fullLoadWholeTopology())
@@ -104,9 +106,9 @@ public class MainAsTool {
 				logsDirF.mkdir();
 			Log4JUtils.setInfoLogFile(logsDir + "CloudsStorm.log");
 			
-			String ICPath = appRootDir + icInf;
+			
 			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
-			if(!ic.loadInfrasCodes(ICPath))
+			if(!ic.loadInfrasCodes(ICPath, appRootDir))
 				return ;
 			
 			ic.execute(appRootDir, ctrlFPath, logsDir);
@@ -126,6 +128,7 @@ public class MainAsTool {
 			String ICPath = appRootDir + icInf;
 			String logsDir = appRootDir + logsInf;
 			
+			
 			TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
 			if(!tam.fullLoadWholeTopology())
 				return;
@@ -141,7 +144,7 @@ public class MainAsTool {
 			Log4JUtils.setInfoLogFile(logsDir + "CloudsStorm.log");
 			
 			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
-			if(!ic.loadInfrasCodes(ICPath))
+			if(!ic.loadInfrasCodes(ICPath, appRootDir))
 				return ;
 			
 			ic.run(logsDir);
@@ -198,7 +201,7 @@ public class MainAsTool {
 			
 			
 			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
-			if(!ic.loadInfrasCodes(ICPath)){
+			if(!ic.loadInfrasCodes(ICPath, appRootDir)){
 				return ;
 			}
 			

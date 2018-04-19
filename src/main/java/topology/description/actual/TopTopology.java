@@ -78,6 +78,12 @@ public class TopTopology extends Topology implements TopologyMethod{
 
 	
 	public boolean loadTopology(String topologyPath) {
+		File testF = new File(topologyPath);
+		if(!testF.exists()){
+			logger.error(topologyPath + " does not exist!");
+			return false;
+		}
+		
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
         	TopTopology topTopology = mapper.readValue(new File(topologyPath), TopTopology.class);
