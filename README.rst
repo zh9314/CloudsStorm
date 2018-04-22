@@ -1,6 +1,7 @@
 .. image:: https://github.com/CloudsStorm/CloudsStorm.github.io/blob/master/_static/CloudsStormLogo.png
+  :height: 100px
+  :width: 200 px
   :alt: Logo
-  :scale: 1 %
   :align: right
 
 What is CloudsStorm?
