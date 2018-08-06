@@ -197,8 +197,9 @@ public class ICYAML {
 			VM ctrlVM = ctrlST.subTopology.getVMinSubClassbyName("ctrl");
 			String tmpFilePath = System.getProperty("java.io.tmpdir") + File.separator + "AppInfs.tar.gz";
 			
+			File rootDir = new File(appRootDir);
 			try {
-				TARGZ.compress(tmpFilePath, new File(appRootDir));
+				TARGZ.compress(tmpFilePath, rootDir.listFiles());
 			} catch (IOException e) {
 				e.printStackTrace();
 				return ;
@@ -210,12 +211,12 @@ public class ICYAML {
 			try {
 				shell = new SSH(ctrlVM.publicAddress, 22, ctrlVM.defaultSSHAccount, ctrlST.subTopology.accessKeyPair.privateKeyString);
 				File appTARGZ = new File(tmpFilePath);
-				String appDir = "/root/" + System.currentTimeMillis() ;
-				new Shell.Safe(shell).exec(
+				String appDir = "/tmp";
+				/*new Shell.Safe(shell).exec(
 						  "sudo mkdir "+ appDir + "/",
 						  null,
 						  new NullOutputStream(), new NullOutputStream()
-						);
+						);*/
 				new Shell.Safe(shell).exec(
 						  "sudo cat > "+ appDir + "/AppInfs.tar.gz",
 						  new FileInputStream(appTARGZ),
@@ -239,22 +240,18 @@ public class ICYAML {
 	
 	/**
 	 * Execute the infrastructure code only in 'LOCAL' mode ignore the definition.
-	 * @param logsDir
+	 * @param logsPath
 	 */
-	public void run(String logsDir){
-		File logsDirF = new File(logsDir);
-		if(!logsDirF.exists())
-			logsDirF.mkdir();
+	public void run(String logsPath){
 		
-		String icLogPath = logsDir + "InfrasCode.log";
 		FileWriter icLoggerFW = null;
 		try {
-			icLoggerFW = new FileWriter(icLogPath, false);
+			icLoggerFW = new FileWriter(logsPath, false);
 			icLoggerFW.write("LOGs:\n");
 			icLoggerFW.flush();
 		} catch (IOException e1) {
 			e1.printStackTrace();
-			logger.error("Cannot build log file for "+icLogPath);
+			logger.error("Cannot build log file for "+logsPath);
 			return ;
 		}
 		this.icLogger = icLoggerFW;

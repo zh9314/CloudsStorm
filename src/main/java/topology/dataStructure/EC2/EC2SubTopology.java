@@ -44,7 +44,7 @@ public class EC2SubTopology extends SubTopology{
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     	try {
     		String yamlString = mapper.writeValueAsString(this);
-			String content = "";
+		String content = "";
         	String [] lines = yamlString.split("\\\n");
         	for(int i = 0 ; i<lines.length ; i++){
         		if(lines[i].trim().equals("subnetName: null")

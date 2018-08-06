@@ -19,6 +19,7 @@
 package standalone;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 
 import lambdaExprs.infrasCode.main.ICYAML;
@@ -59,7 +60,9 @@ public class MainAsTool {
 	 *    -> This command is used to delete some extra resources. <br>
 	 *       When the option is 'all', this command deletes all the resources except the controlling agent. <br>
 	 *       'ctrl' deletes all the resources including the controlling agent. <br>
-	 *    4. java -jar CloudsStorm.jar partition srcDir dstDir (TBD) <br>
+	 *    4. java -jar CloudsStorm.jar ctrl icPath icLogPath <br>
+	 *    -> This is used to execute the infrastructure code directly and genenrate the log at the icLogPath. <br>
+	 *    5. java -jar CloudsStorm.jar partition srcDir dstDir (TBD) <br>
 	 *    -> src is the file path of the abstract topology description. <br>
 	 *    -> dstDir is the directory of concrete topology description files.  <br>
 	 * @param args
@@ -147,7 +150,7 @@ public class MainAsTool {
 			if(!ic.loadInfrasCodes(ICPath, appRootDir))
 				return ;
 			
-			ic.run(logsDir);
+			ic.run(logsDir + "InfrasCode.log");
 			
 			logger.warn("Finished!");
 			
@@ -157,8 +160,9 @@ public class MainAsTool {
 				return ;
 			}
 			String appFilePath = args[1];
-			String appUpDir = CommonTool.getPathDir(appFilePath);
-			String appDirName = args[2];
+			//String appUpDir = CommonTool.getPathDir(appFilePath);
+			String appUpDir = "/tmp/";
+			String appDirName = "AppInfs"; // args[2];
 			String appRootDir = appUpDir + appDirName + File.separator;
 			
 			String topTopologyLoadingPath = appRootDir + topologyInf;
@@ -167,13 +171,15 @@ public class MainAsTool {
 			String ICPath = appRootDir + icInf;
 			String logsDir = appRootDir + logsInf;
 			
+			
 			try {
-				TARGZ.decompress(appFilePath, new File(appUpDir));
+				TARGZ.decompress(appFilePath, new File(appRootDir));
 			} catch (IOException e) {
 				e.printStackTrace();
 				logger.error("Cannot decompress "+appFilePath);
 				return ;
 			}
+			
 			
 			String ctrlFPath = appRootDir + ctrlInf;
 			File ctrlF = new File(ctrlFPath);
@@ -205,7 +211,17 @@ public class MainAsTool {
 				return ;
 			}
 			
-			ic.run(logsDir);
+			String tmpInfoPath = System.getProperty("java.io.tmpdir") + File.separator + "info";
+			try {
+				FileWriter infoFW = new FileWriter(tmpInfoPath, false);
+				infoFW.write(appRootDir);
+				infoFW.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				return ;
+			}
+			
+			ic.run(logsDir + "InfrasCode.log");
 			
 			logger.warn("Finished!");
 			
@@ -250,6 +266,35 @@ public class MainAsTool {
 				}
 				tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReq);
 			}
+		}else if(args[0].trim().toLowerCase().equals("ctrl")){
+			if(args.length != 4){
+				System.out.println("ERROR! There should be three arguments for 'ctrl'!");
+				return ;
+			}
+			
+			String appRootDir = CommonTool.formatDirWithSep(args[1]);
+			
+			String topTopologyLoadingPath = appRootDir + topologyInf;
+			String credentialsPath = appRootDir + credInf;
+			String dbsPath = appRootDir + dbInf;
+			String ICPath = args[2];
+			String ICLogPath = args[3];
+			
+			TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
+			if(!tam.fullLoadWholeTopology())
+				return;
+			
+			UserCredential userCredential = new UserCredential();
+			userCredential.loadCloudAccessCreds(credentialsPath);
+			UserDatabase userDatabase = new UserDatabase();
+			userDatabase.loadCloudDBs(dbsPath);
+			
+			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
+			if(!ic.loadInfrasCodes(ICPath, appRootDir))
+				return ;
+			ic.run(ICLogPath);
+			
+			logger.warn("Finished!");
 		}
 		else
 			System.out.println("ERROR! Invalid arguments!");
