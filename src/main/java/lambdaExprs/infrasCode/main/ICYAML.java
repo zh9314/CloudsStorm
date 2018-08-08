@@ -18,6 +18,8 @@
  */
 package lambdaExprs.infrasCode.main;
 
+import infscall.CtrlAgent;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -58,6 +60,8 @@ public class ICYAML {
 	 * a remote controller; "CTRL", all the applications will be controlled by a remote controller. 
 	 */
 	public String Mode;
+	
+	public String AppID;
 	
 	public ArrayList<Code> InfrasCodes;
 	
@@ -124,6 +128,10 @@ public class ICYAML {
         	}
         	InfrasCodes = icYaml.InfrasCodes;
         	Mode = icYaml.Mode;
+        	if(AppID == null || AppID.trim().equals(""))
+        		AppID = "123";
+        	else
+        		AppID = icYaml.AppID.trim();
         	logger.info("Infrastructure code from " + IC + " is loaded successfully!");
         	return true;
         } catch (Exception e) {
@@ -163,7 +171,7 @@ public class ICYAML {
 				icLoggerFW.flush();
 			} catch (IOException e1) {
 				e1.printStackTrace();
-				logger.error("Cannot build log file for "+icLogPath);
+				logger.error("Cannot build log file for " + icLogPath);
 				return ;
 			}
 			this.icLogger = icLoggerFW;
@@ -178,24 +186,23 @@ public class ICYAML {
 				return ;
 			}
 			
-			ProvisionRequest pq = new ProvisionRequest();
-			pq.content.put("_ctrl", false); 
-			
-			TEngine tEngine = new TEngine();
-			
-			if( !tEngine.provision(topTopology, userCredential, userDatabase, pq) ){
-				logger.error("The controller cannot be provisioned!");
-				return ;
-			}
-			
-			////Get the IP address of the controller if it is running
+			////Get the IP address of the controller if it is running, otherwise provisioning
 			SubTopologyInfo ctrlST = topTopology.getSubtopology("_ctrl");
 			if(ctrlST == null || !ctrlST.status.trim().equals("running")){
-				logger.error("The controller is not provisioned! EXIT!");
-				return ;
+			
+				ProvisionRequest pq = new ProvisionRequest();
+				pq.content.put("_ctrl", false); 
+				
+				TEngine tEngine = new TEngine();
+				
+				if( !tEngine.provision(topTopology, userCredential, userDatabase, pq) ){
+					logger.error("The controller cannot be provisioned!");
+					return ;
+				}
 			}
+			
 			VM ctrlVM = ctrlST.subTopology.getVMinSubClassbyName("ctrl");
-			String tmpFilePath = System.getProperty("java.io.tmpdir") + File.separator + "AppInfs.tar.gz";
+			String tmpFilePath = System.getProperty("java.io.tmpdir") + File.separator + this.AppID + ".tar.gz";
 			
 			File rootDir = new File(appRootDir);
 			try {
@@ -205,29 +212,26 @@ public class ICYAML {
 				return ;
 			}
 			
-			String rootDirName = CommonTool.getDirName(appRootDir);
-			
 			Shell shell;
 			try {
 				shell = new SSH(ctrlVM.publicAddress, 22, ctrlVM.defaultSSHAccount, ctrlST.subTopology.accessKeyPair.privateKeyString);
 				File appTARGZ = new File(tmpFilePath);
 				String appDir = "/tmp";
-				/*new Shell.Safe(shell).exec(
-						  "sudo mkdir "+ appDir + "/",
-						  null,
-						  new NullOutputStream(), new NullOutputStream()
-						);*/
 				new Shell.Safe(shell).exec(
-						  "sudo cat > "+ appDir + "/AppInfs.tar.gz",
+						  "sudo cat > "+ appDir + "/"+ this.AppID +".tar.gz",
 						  new FileInputStream(appTARGZ),
 						  new NullOutputStream(), new NullOutputStream()
 						);
-				logger.warn("Now application is deploying and running on the remote! You can terminate this and check the info on remote controller!");
-				new Shell.Safe(shell).exec(
-						  "sudo nohup java -jar /root/CloudsStorm.jar go "+ appDir + "/AppInfs.tar.gz "+rootDirName+" &",
-						  null,
-						  new NullOutputStream(), new NullOutputStream()
-						);
+				CtrlAgent ctrlAgent = new CtrlAgent();
+				if( ctrlAgent.init(ctrlVM.publicAddress) == null){
+					logger.error("Control agent at "+ctrlVM.publicAddress+" is not online!");
+					return ;
+				}
+				if( ctrlAgent.exeIC(this.AppID) == null ){
+					logger.error("Infrastructure code is not executed properly!");
+					return ;
+				}
+				logger.warn("Now application is deploying and running on the control agent! You can check the progress!");
 				FileUtils.deleteQuietly(appTARGZ);
 			} catch (IOException e) {
 				e.printStackTrace();
