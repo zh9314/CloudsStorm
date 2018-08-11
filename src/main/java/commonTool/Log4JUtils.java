@@ -100,5 +100,10 @@ public class Log4JUtils {
 		
 		return true;
 	}
+	
+	public static void removeAllLogAppender(){
+		Logger.getRootLogger().removeAllAppenders();
+		
+	}
 
 }

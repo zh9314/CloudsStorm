@@ -92,7 +92,7 @@ public class SEngine_delete extends SEngineAdapter{
 			}
 			if(!((SEngineKeyMethod)sEngine).delete(subTopologyInfo, credential, database)){
 				logger.error("Delete for sub-topology '"+subTopologyInfo.topology+"' failed!");
-				subTopologyInfo.status = Values.STStatus.unknown;
+				//subTopologyInfo.status = Values.STStatus.unknown;
 				opResult = false;
 			}else
 				logger.info("Sub-topology '"+subTopologyInfo.topology+"' has been deleted!");

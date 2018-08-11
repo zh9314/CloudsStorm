@@ -223,11 +223,7 @@ public class ICYAML {
 						  new NullOutputStream(), new NullOutputStream()
 						);
 				CtrlAgent ctrlAgent = new CtrlAgent();
-				if( ctrlAgent.init(ctrlVM.publicAddress) == null){
-					logger.error("Control agent at "+ctrlVM.publicAddress+" is not online!");
-					return ;
-				}
-				if( ctrlAgent.exeIC(this.AppID) == null ){
+				if( ctrlAgent.init(ctrlVM.publicAddress).setAppID(this.AppID).exeIC() == null ){
 					logger.error("Infrastructure code is not executed properly!");
 					return ;
 				}

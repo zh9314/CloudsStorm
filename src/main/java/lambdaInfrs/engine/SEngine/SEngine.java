@@ -538,7 +538,7 @@ public class SEngine implements SEngineKeyMethod {
 				count++;
 				if(count > 100*xVMs.size()){
 					logger.error("Some VM cannot be deleted!");
-					subTopologyInfo.status = Values.STStatus.unknown;
+					//subTopologyInfo.status = Values.STStatus.unknown;
 					return false;
 				}
 			}
@@ -548,7 +548,7 @@ public class SEngine implements SEngineKeyMethod {
 			return false;
 		}
 		if(!checkVEnginesResults(vEAs)){
-			subTopologyInfo.status = Values.STStatus.unknown;
+			//subTopologyInfo.status = Values.STStatus.unknown;
 			return false;
 		}
 		

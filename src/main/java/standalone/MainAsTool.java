@@ -18,6 +18,8 @@
  */
 package standalone;
 
+import infscall.CtrlAgent;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -32,6 +34,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import topology.analysis.TopologyAnalysisMain;
+import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.VM;
 import commonTool.CommonTool;
 import commonTool.Log4JUtils;
 import commonTool.TARGZ;
@@ -252,49 +256,70 @@ public class MainAsTool {
 				logsDirF.mkdir();
 			Log4JUtils.setInfoLogFile(logsDir + "CloudsStorm.log");
 			
-			if(object.trim().equalsIgnoreCase("ctrl")){
+			if(object.trim().toLowerCase().contains("ctrl")){
+				
+				SubTopologyInfo ctrlST = tam.wholeTopology.getSubtopology("_ctrl");
+				if(ctrlST == null){
+					logger.error("There is no control agent! Use 'delete all' instead!");
+					return ;
+				}
+				if( ctrlST.status.trim().equals("running") ){
+					VM ctrlVM = ctrlST.subTopology.getVMinSubClassbyName("ctrl");
+					CtrlAgent ctrlAgent = new CtrlAgent();
+					///by default, 'AppID' is '123'.
+					String AppID = "123";
+					if( object.trim().contains(":") ){
+						String ids [] = object.trim().split(":");
+						AppID = ids[1];
+					}
+					if( ctrlAgent.init(ctrlVM.publicAddress).setAppID(AppID).deleteCtrl() == null ){
+						logger.error("'AppID' is wrong!");
+						return ;
+					}
+				}
+				
 				TEngine tEngine = new TEngine();
 				tEngine.deleteAll(tam.wholeTopology, userCredential, userDatabase);
 			}
-			if(object.trim().equalsIgnoreCase("all")){
-				TEngine tEngine = new TEngine();
-				DeleteRequest deleteReq = new DeleteRequest();
-				for(int si = 0 ; si<tam.wholeTopology.topologies.size() ; si++){
-					if(tam.wholeTopology.topologies.get(si).topology.equalsIgnoreCase("_ctrl"))
-						continue;
-					deleteReq.content.put(tam.wholeTopology.topologies.get(si).topology, false);
+			if(object.trim().toLowerCase().contains("all")){
+				
+				SubTopologyInfo ctrlST = tam.wholeTopology.getSubtopology("_ctrl");
+				if(ctrlST == null || !ctrlST.status.trim().equals("running")){   ////in ctrl mode
+					VM ctrlVM = ctrlST.subTopology.getVMinSubClassbyName("ctrl");
+					CtrlAgent ctrlAgent = new CtrlAgent();
+					///by default, 'AppID' is '123'
+					String AppID = "123";
+					if( object.trim().contains(":") ){
+						String ids [] = object.trim().split(":");
+						AppID = ids[1];
+					}
+					if( ctrlAgent.init(ctrlVM.publicAddress).setAppID(AppID).deleteAll() == null ){
+						logger.error("'AppID' is wrong!");
+						return ;
+					}
+					
+					TEngine tEngine = new TEngine();
+					DeleteRequest deleteReq = new DeleteRequest();
+					for(int si = 0 ; si<tam.wholeTopology.topologies.size() ; si++){
+						if(tam.wholeTopology.topologies.get(si).topology.equalsIgnoreCase("_ctrl"))
+							continue;
+						deleteReq.content.put(tam.wholeTopology.topologies.get(si).topology, false);
+					}
+					tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReq);
+					
+				}else{
+					TEngine tEngine = new TEngine();
+					DeleteRequest deleteReq = new DeleteRequest();
+					for(int si = 0 ; si<tam.wholeTopology.topologies.size() ; si++){
+						if(tam.wholeTopology.topologies.get(si).topology.equalsIgnoreCase("_ctrl"))
+							continue;
+						deleteReq.content.put(tam.wholeTopology.topologies.get(si).topology, false);
+					}
+					tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReq);
 				}
-				tEngine.delete(tam.wholeTopology, userCredential, userDatabase, deleteReq);
+				
+				
 			}
-		}else if(args[0].trim().toLowerCase().equals("ctrl")){
-			if(args.length != 4){
-				System.out.println("ERROR! There should be three arguments for 'ctrl'!");
-				return ;
-			}
-			
-			String appRootDir = CommonTool.formatDirWithSep(args[1]);
-			
-			String topTopologyLoadingPath = appRootDir + topologyInf;
-			String credentialsPath = appRootDir + credInf;
-			String dbsPath = appRootDir + dbInf;
-			String ICPath = args[2];
-			String ICLogPath = args[3];
-			
-			TopologyAnalysisMain tam = new TopologyAnalysisMain(topTopologyLoadingPath);
-			if(!tam.fullLoadWholeTopology())
-				return;
-			
-			UserCredential userCredential = new UserCredential();
-			userCredential.loadCloudAccessCreds(credentialsPath);
-			UserDatabase userDatabase = new UserDatabase();
-			userDatabase.loadCloudDBs(dbsPath);
-			
-			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
-			if(!ic.loadInfrasCodes(ICPath, appRootDir))
-				return ;
-			ic.run(ICLogPath);
-			
-			logger.warn("Finished!");
 		}
 		else
 			System.out.println("ERROR! Invalid arguments!");
