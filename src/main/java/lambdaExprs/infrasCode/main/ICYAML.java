@@ -90,12 +90,13 @@ public class ICYAML {
 	 * A variable to record current directory for this infrastructure code.
 	 */
 	@JsonIgnore
-	public String curDir;
+	public String curDir = "./";
 	
 	/**
 	 * A variable to record the root directory for this infrastructure code. It always ends up with file separator.
 	 * This value can be assigned in the standalone mode. The default value is the current directory.
 	 */
+	@JsonIgnore
 	public String rootDir = "./";
 	
 	public ICYAML(){

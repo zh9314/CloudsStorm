@@ -273,8 +273,7 @@ public class MainAsTool {
 						AppID = ids[1];
 					}
 					if( ctrlAgent.init(ctrlVM.publicAddress).setAppID(AppID).deleteCtrl() == null ){
-						logger.error("'AppID' is wrong!");
-						return ;
+						logger.error("'Delete' operation has some problems. 'AppID' might be wrong!");
 					}
 				}
 				

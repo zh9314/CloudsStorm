@@ -40,6 +40,7 @@ import com.jcabi.ssh.Shell;
 import commonTool.CommonTool;
 import topology.description.actual.ActualConnectionPoint;
 import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.TopTopology;
 import topology.description.actual.VM;
 
 /**
@@ -239,6 +240,9 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 			logger.warn("The username is not specified! Unified ssh account will not be configured!");
 			return true;
 		}
+		TopTopology topTopology = curSTI.pointBack2TTI;
+		SubTopologyInfo ctrlSTI = topTopology.getSubtopology("_ctrl");
+		
 		String runFilePath = System.getProperty("java.io.tmpdir") + File.separator 
 				+ "runSSH_" + curVM.name + System.nanoTime() + ".sh";
 		String pubFilePath = System.getProperty("java.io.tmpdir") + File.separator 
@@ -272,6 +276,14 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 		    
 		    fw.write("echo \"StrictHostKeyChecking no\" >> /etc/ssh/ssh_config\n");
 		    fw.write("echo \"UserKnownHostsFile=/dev/null\" >> /etc/ssh/ssh_config\n");
+		    
+		    
+		    ///configure the control agent address
+		    if(ctrlSTI != null){
+		    		VM ctrlVM = ctrlSTI.subTopology.getVMinSubClassbyName("ctrl");
+		    		if(ctrlVM != null)
+		    			fw.write("echo \""+ctrlVM.publicAddress+"\" >> /tmp/ctrl.info\n");
+		    }
 		    
 		    fw.close();
 		}catch (IOException e1){

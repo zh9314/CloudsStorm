@@ -62,5 +62,5 @@ public class Operation {
 	 * In the infrastructure code, it is identified as '$counter'
 	 */
 	@JsonIgnore
-	public int loopCounter;
+	public int loopCounter = 0;
 }

@@ -135,6 +135,10 @@ public class SubTopologyInfo {
     @JsonIgnore
     public String publicKeyString;
     
+    ///point back to the top-topology, used to configure the control agent address
+    @JsonIgnore
+    public TopTopology pointBack2TTI;
+    
     /**
      * Identify whether this sub-topology is a scaled copy.
      * When a scaled copy is deleted, it must be totally deleted from the entire topoloty. 

@@ -652,6 +652,7 @@ public class OPInterpreter {
 								.replaceAll("\\$cur_dir", CommonTool.formatDirWithoutSep(ic.curDir))
 								.replaceAll("\\$root_dir", CommonTool.formatDirWithoutSep(ic.rootDir));
 		}
+		
 		Map<String, String> actualOptions = null;
 		if(opInput.Options != null){
 			actualOptions = new HashMap<String, String>();

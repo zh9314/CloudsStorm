@@ -69,6 +69,7 @@ public class TopologyAnalysisMain{
 				logger.error("One of the sub-topology cannot be loaded!");
 				return false;
 			}
+			tmpInfo.pointBack2TTI = wholeTopology;
 			if(tmpInfo.sshKeyPairId != null){
 				tmpInfo.subTopology.accessKeyPair = new SSHKeyPair();
 				String sshKeyDir = topologiesDir + tmpInfo.sshKeyPairId + File.separator;

@@ -119,7 +119,7 @@ public class ParallelExecutor implements Runnable {
 									new FileInputStream(srcFile), cmdOutputBytes, cmdOutputBytes);
 							String ret = cmdOutputBytes.toString("UTF-8");
 							if(ret.trim().equals("")){
-								new Shell.Safe(shell).exec("sudo tar -xzf " + formatDstPath + "/Upload.tar.gz -C "+formatDstPath,
+								new Shell.Safe(shell).exec("sudo tar -C " + formatDstPath + " -xzf " + formatDstPath + "/Upload.tar.gz",
 										null, new NullOutputStream(), new NullOutputStream());
 								new Shell.Safe(shell).exec("sudo rm " + formatDstPath + "/Upload.tar.gz",
 										null, new NullOutputStream(), new NullOutputStream());
@@ -210,7 +210,7 @@ public class ParallelExecutor implements Runnable {
 					String srcDirName = CommonTool.getDirNameInUnix(srcRealPath);
 					
 					Shell shell = new SSH(pubIP, 22, user, privateKeyString);
-					new Shell.Safe(shell).exec("sudo tar -czf /tmp/D.tar.gz "+srcDirName+" -C " + srcParentDir,
+					new Shell.Safe(shell).exec("sudo tar -C " + srcParentDir + " -czf /tmp/D.tar.gz "+srcDirName,
 							null, new NullOutputStream(), new NullOutputStream());
 					new Shell.Safe(shell).exec("sudo cat /tmp/D.tar.gz",
 							null, cmdOutputBytes, cmdOutputBytes);
