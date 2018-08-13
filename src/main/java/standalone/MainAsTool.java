@@ -283,7 +283,7 @@ public class MainAsTool {
 			if(object.trim().toLowerCase().contains("all")){
 				
 				SubTopologyInfo ctrlST = tam.wholeTopology.getSubtopology("_ctrl");
-				if(ctrlST == null || !ctrlST.status.trim().equals("running")){   ////in ctrl mode
+				if(ctrlST != null && ctrlST.status.trim().equals("running")){   ////in ctrl mode
 					VM ctrlVM = ctrlST.subTopology.getVMinSubClassbyName("ctrl");
 					CtrlAgent ctrlAgent = new CtrlAgent();
 					///by default, 'AppID' is '123'
