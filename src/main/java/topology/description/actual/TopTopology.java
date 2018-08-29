@@ -1074,6 +1074,7 @@ public class TopTopology extends Topology implements TopologyMethod{
 			}
 			
 			this.topologies.add(scaledSTI);
+			scaledSTI.pointBack2TTI = this;
 			this.subTopologyIndex.put(scaledSTI.topology, scaledSTI);
 
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1197,6 +1198,7 @@ public class TopTopology extends Topology implements TopologyMethod{
 			}
 			
 			this.topologies.add(scaledSTI);
+			scaledSTI.pointBack2TTI = this;
 			this.subTopologyIndex.put(scaledSTI.topology, scaledSTI);
 			
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1281,6 +1283,7 @@ public class TopTopology extends Topology implements TopologyMethod{
 			}
 			
 			this.topologies.add(targetSTI);
+			targetSTI.pointBack2TTI = this;
 			this.subTopologyIndex.put(targetSTI.topology, targetSTI);
 			
 			
