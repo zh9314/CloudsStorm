@@ -56,31 +56,50 @@ public class SSHKeyPair {
         String publicKeyIdPath = sshKeyDir + "name.pub";
         File publicKeyIdFile = new File(publicKeyIdPath);
         String privateKeyString = null, publicKeyString = null, publicKeyIdString = null;
-        try {
-        		if(privateKeyFile.exists())
-        			privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
-        		else
-        			return false;
-        		boolean atLeastOne = false;
-        		if(publicKeyFile.exists()){
-        			publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
-        			atLeastOne = true;
-        		}
-        		if(publicKeyIdFile.exists()){
-        			publicKeyIdString = FileUtils.readFileToString(publicKeyIdFile, "UTF-8");
-        			atLeastOne = true;
-        		}
-        		if(!atLeastOne)
-        			return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        boolean success = false;
+        int count = 0;    ////try some times, in case the key is generating.
+        while(!success && count < 5){
+        		success = true;
+	        	try {
+	        		if(privateKeyFile.exists())
+	        			privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
+	        		else
+	        			success = false;
+	        		if(success){
+		        		boolean atLeastOne = false;
+		        		if(publicKeyFile.exists()){
+		        			publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
+		        			atLeastOne = true;
+		        		}
+		        		if(publicKeyIdFile.exists()){
+		        			publicKeyIdString = FileUtils.readFileToString(publicKeyIdFile, "UTF-8");
+		        			atLeastOne = true;
+		        		}
+		        		if(!atLeastOne)
+		        			success = false;
+	        		}
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	            success = false;
+	        }
+	        	
+	        	if(success){
+	        		this.publicKeyString = publicKeyString;
+		        this.privateKeyString = privateKeyString;
+		        this.publicKeyId = publicKeyIdString;
+		        this.SSHKeyPairId = sshKeyPairId;
+	        }else{
+	        		try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+	        }
+	        	
+	        	count++;
         }
-        this.publicKeyString = publicKeyString;
-        this.privateKeyString = privateKeyString;
-        this.publicKeyId = publicKeyIdString;
-        this.SSHKeyPairId = sshKeyPairId;
-        return true;
+        
+        return success;
 	}
 
 }
