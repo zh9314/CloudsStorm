@@ -149,6 +149,7 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 						fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
 						fw.flush();
 						curVM.selfEthAddresses.put(entry.getKey(), linkName);
+						count++;
 					}
 				}
 			}

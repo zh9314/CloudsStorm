@@ -128,6 +128,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 						fw.write("route add -host "+localPrivateAddress+" dev "+linkName+"\n");
 						fw.flush();
 						curVM.selfEthAddresses.put(entry.getKey(), linkName);
+						count++;
 					}
 				}
 			}
