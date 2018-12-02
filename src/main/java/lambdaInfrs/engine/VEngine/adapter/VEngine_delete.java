@@ -64,8 +64,10 @@ public class VEngine_delete extends VEngineAdapter{
 				return ;
 			}
 			curVM.publicAddress = null;
-			for(int ci = 0 ; ci < curVM.vmConnectors.size() ; ci++)
-				curVM.vmConnectors.get(ci).ethName = null;
+			if(curVM.vmConnectors != null){
+				for(int ci = 0 ; ci < curVM.vmConnectors.size() ; ci++)
+					curVM.vmConnectors.get(ci).ethName = null;
+			}
 			
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();

@@ -115,8 +115,8 @@ public class EC2SubTopology extends SubTopology{
 			}else{
 				try {
 					int diskSize = Integer.parseInt(curVM.diskSize);
-					if(diskSize<8){
-						logger.error("The minimum number for field 'diskSize' of EC2VM '"+curVM.name+"' is 8!");
+					if(diskSize<1){
+						logger.error("The minimum number for field 'diskSize' of EC2VM '"+curVM.name+"' is 1!");
 						return false;
 					}
 					if(diskSize > 16000){   ///Maxium is 16TB.

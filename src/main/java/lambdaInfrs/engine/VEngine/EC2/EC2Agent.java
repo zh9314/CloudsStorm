@@ -25,6 +25,8 @@ import java.util.Map;
 
 import topology.dataStructure.EC2.EC2VM;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AttachInternetGatewayRequest;
@@ -89,7 +91,7 @@ public class EC2Agent {
 	}
 	
 	
-	public String createKeyPair(String keyName){
+	public String createKeyPair(String keyName) throws AmazonServiceException, AmazonClientException{
 		CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest();
 		createKeyPairRequest.withKeyName(keyName);
 		CreateKeyPairResult createKeyPairResult =

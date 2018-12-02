@@ -115,13 +115,13 @@ public class ParallelExecutor implements Runnable {
 							String srcDirName = CommonTool.getDirName(srcRealPath);
 							srcFile = new File(tmpFilePath);
 							Shell shell = new SSH(pubIP, 22, user, privateKeyString);
-							new Shell.Safe(shell).exec("sudo cat > " + formatDstPath + "/Upload.tar.gz",
+							new Shell.Safe(shell).exec("sudo cat > " + "/tmp/Upload.tar.gz",
 									new FileInputStream(srcFile), cmdOutputBytes, cmdOutputBytes);
 							String ret = cmdOutputBytes.toString("UTF-8");
 							if(ret.trim().equals("")){
-								new Shell.Safe(shell).exec("sudo tar -C " + formatDstPath + " -xzf " + formatDstPath + "/Upload.tar.gz",
+								new Shell.Safe(shell).exec("sudo tar -C " + formatDstPath + " -xzf " + "/tmp/Upload.tar.gz",
 										null, new NullOutputStream(), new NullOutputStream());
-								new Shell.Safe(shell).exec("sudo rm " + formatDstPath + "/Upload.tar.gz",
+								new Shell.Safe(shell).exec("sudo rm " + "/tmp/Upload.tar.gz",
 										null, new NullOutputStream(), new NullOutputStream());
 								exeResult = "Directory "+srcDirName+" is uploaded!";
 							}
@@ -132,11 +132,15 @@ public class ParallelExecutor implements Runnable {
 						}else{
 							String srcFileName = srcFile.getName();
 							Shell shell = new SSH(pubIP, 22, user, privateKeyString);
-							new Shell.Safe(shell).exec("sudo cat > " + formatDstPath + "/" + srcFileName,
+							new Shell.Safe(shell).exec("sudo cat > /tmp/"+srcFileName,
 									new FileInputStream(srcFile), cmdOutputBytes, cmdOutputBytes);
 							String ret = cmdOutputBytes.toString("UTF-8");
-							if(ret.trim().equals(""))
+							if(ret.trim().equals("")){
+								new Shell.Safe(shell).exec("sudo mv /tmp/"+srcFileName+" " 
+																+ formatDstPath + "/" + srcFileName,
+												null, new NullOutputStream(), new NullOutputStream());
 								exeResult = "File "+srcFileName+" is uploaded!";
+							}
 							else
 								exeResult = cmdOutputBytes.toString("UTF-8");
 						}

@@ -29,6 +29,9 @@ import lambdaInfrs.engine.VEngine.VEngine;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+
 import commonTool.CommonTool;
 import topology.dataStructure.EC2.EC2SubTopology;
 import topology.dataStructure.EC2.EC2Subnet;
@@ -222,7 +225,16 @@ public class EC2VEngine extends VEngine{
 		EC2Credential ec2Credential = (EC2Credential)credential;
 		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
 		ec2agent.setEndpoint(subTopologyInfo.endpoint);
-		String privateKeyString = ec2agent.createKeyPair(publicKeyId);
+		String privateKeyString = "";
+		try{
+			privateKeyString = ec2agent.createKeyPair(publicKeyId);
+		}catch(AmazonServiceException e){
+			logger.warn(e.getMessage());
+			return null;
+		}catch(AmazonClientException e){
+			logger.warn(e.getMessage());
+			return null;
+		}
 		return privateKeyString;
 	}
 	

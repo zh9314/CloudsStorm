@@ -157,6 +157,10 @@ public class SubTopologyInfo {
     		///logs will be refreshed every time
     		this.logsInfo = new HashMap<String, String>();
     		String className = this.subTopologyClass;
+    		if(this.cloudProvider == null){
+    			logger.error("'cloudProvider' must be set!");
+    			return false;
+    		}
     		String cp = this.cloudProvider.trim().toLowerCase();
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		Object xSubTopology = null;
