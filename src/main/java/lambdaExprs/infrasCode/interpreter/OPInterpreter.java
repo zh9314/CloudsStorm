@@ -748,6 +748,7 @@ public class OPInterpreter {
 			if(tail != -1)
 				logString = logString.substring(0, tail);
 			logsInfo.put("MSG", logString);
+			opInput.LogString = logsInfo;
 			
 			
 			///if the 'Log' option is not set, then the output will be logged by default

@@ -43,6 +43,12 @@ public class Operation {
 	 */
 	public String Log;
 	
+	/**
+	 * It records the output of the command. Only valid 
+	 * when the operation is 'execute'.
+	 */
+	public Map<String, String> LogString;
+	
 	
 	/**
 	 * The type of the object of this operation.
