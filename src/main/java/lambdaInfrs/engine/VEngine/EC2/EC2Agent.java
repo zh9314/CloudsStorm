@@ -19,6 +19,7 @@
 package lambdaInfrs.engine.VEngine.EC2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,11 @@ import topology.dataStructure.EC2.EC2VM;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AttachInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.AttachVolumeRequest;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
@@ -45,6 +49,7 @@ import com.amazonaws.services.ec2.model.CreateVolumeRequest;
 import com.amazonaws.services.ec2.model.CreateVolumeResult;
 import com.amazonaws.services.ec2.model.CreateVpcRequest;
 import com.amazonaws.services.ec2.model.CreateVpcResult;
+import com.amazonaws.services.ec2.model.CreditSpecificationRequest;
 import com.amazonaws.services.ec2.model.DeleteInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.DeleteSubnetRequest;
@@ -64,6 +69,7 @@ import com.amazonaws.services.ec2.model.DetachVolumeRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateName;
 import com.amazonaws.services.ec2.model.IpPermission;
+import com.amazonaws.services.ec2.model.IpRange;
 import com.amazonaws.services.ec2.model.KeyPair;
 import com.amazonaws.services.ec2.model.ModifySubnetAttributeRequest;
 import com.amazonaws.services.ec2.model.ModifyVpcAttributeRequest;
@@ -82,12 +88,54 @@ import com.amazonaws.services.ec2.model.VolumeType;
 public class EC2Agent {
 	
 	
-	private AmazonEC2Client ec2Client;
+	private AmazonEC2 ec2Client = null;
 	
-	public EC2Agent(String accessKey, String secretKey){
+	public EC2Agent(String accessKey, String secretKey, String datacenter){
+		if(datacenter == null)
+			return;
+		String dc = datacenter.trim().toLowerCase();
+		Regions target;
+		if(dc.contains("virginia"))
+			target = Regions.US_EAST_1;
+		else if(dc.contains("ohio"))
+			target = Regions.US_EAST_2;
+		else if(dc.contains("california"))
+			target = Regions.US_WEST_1;
+		else if(dc.contains("oregon"))
+			target = Regions.US_WEST_2;
+		else if(dc.contains("mumbai"))
+			target = Regions.AP_SOUTH_1;
+		else if(dc.contains("seoul"))
+			target = Regions.AP_NORTHEAST_2;
+		else if(dc.contains("singapore"))
+			target = Regions.AP_SOUTHEAST_1;
+		else if(dc.contains("sydney"))
+			target = Regions.AP_SOUTHEAST_2;
+		else if(dc.contains("tokyo"))
+			target = Regions.AP_NORTHEAST_1;
+		else if(dc.contains("central"))
+			target = Regions.CA_CENTRAL_1;
+		else if(dc.contains("frankfurt"))
+			target = Regions.EU_CENTRAL_1;
+		else if(dc.contains("ireland"))
+			target = Regions.EU_WEST_1;
+		else if(dc.contains("london"))
+			target = Regions.EU_WEST_2;
+		else if(dc.contains("paris"))
+			target = Regions.EU_WEST_3;
+		else if(dc.contains("stockholm"))
+			target = Regions.EU_NORTH_1;
+		else if(dc.contains("paulo"))
+			target = Regions.SA_EAST_1;
+		else
+			return;
+		
 		BasicAWSCredentials credentials = 
 				new BasicAWSCredentials(accessKey, secretKey);
-		ec2Client = new AmazonEC2Client(credentials);
+		ec2Client = AmazonEC2ClientBuilder.standard()
+					.withCredentials(new AWSStaticCredentialsProvider(credentials))
+					.withRegion(target)
+					.build();
 	}
 	
 	
@@ -102,10 +150,7 @@ public class EC2Agent {
 		return privateKey;
 	}
 	
-	public void setEndpoint(String endpoint){
-		ec2Client.setEndpoint(endpoint);
-	}
-	
+
 	public String createVPC(String vpcCIDR){
 		CreateVpcRequest request = new CreateVpcRequest().withCidrBlock(vpcCIDR);
 	    CreateVpcResult result = ec2Client.createVpc(request);
@@ -165,14 +210,14 @@ public class EC2Agent {
 	}
 	
 	public String getAssociateRouteTableId(String vpcId){
-		System.out.println(vpcId);
+		//System.out.println(vpcId);
 		DescribeRouteTablesRequest describeRouteTablesRequest = new DescribeRouteTablesRequest();
 	    DescribeRouteTablesResult describeRouteTablesResult = ec2Client.describeRouteTables(describeRouteTablesRequest);
 	    List<RouteTable> rTables = describeRouteTablesResult.getRouteTables();
 	    String routeTableId = null;
 	    for(int i = 0 ; i<rTables.size() ; i++){
 		    	String tmpVpcId = rTables.get(i).getVpcId();
-		    	System.out.println(tmpVpcId+" "+rTables.get(i).getRouteTableId());
+		    //	System.out.println(tmpVpcId+" "+rTables.get(i).getRouteTableId());
 		    	if(tmpVpcId.equals(vpcId)){
 		    		routeTableId = rTables.get(i).getRouteTableId();
 		    		break;
@@ -224,7 +269,8 @@ public class EC2Agent {
 		CreateSecurityGroupResult createSecurityGroupResult = ec2Client.createSecurityGroup(csgr);
 		String securityGroupId = createSecurityGroupResult.getGroupId();
 		IpPermission ipPermission = new IpPermission();
-		ipPermission.withIpRanges("0.0.0.0/0")
+		IpRange ipRange = new IpRange().withCidrIp("0.0.0.0/0");
+		ipPermission.withIpv4Ranges(Arrays.asList(new IpRange[] { ipRange }))
 						.withIpProtocol("-1")
 			            .withFromPort(0)
 			            .withToPort(65535);
@@ -240,14 +286,22 @@ public class EC2Agent {
 			String imageId, String privateIpAddress, String instanceType, String keyName){
 		RunInstancesRequest runInstancesRequest =
 			      new RunInstancesRequest();
+		
+		CreditSpecificationRequest creditSpecificationRequest = 
+				new CreditSpecificationRequest();
+		creditSpecificationRequest.setCpuCredits("standard");
 
 		runInstancesRequest.withImageId(imageId)
-		.withSubnetId(subnetId).withSecurityGroupIds(securityGroupId).withPrivateIpAddress(privateIpAddress)
+		.withSubnetId(subnetId).withSecurityGroupIds(securityGroupId)
 			                     .withInstanceType(instanceType)
+			                     .withCreditSpecification(creditSpecificationRequest)
 			                     .withMinCount(1)
 			                     .withMaxCount(1)
-			                     .withKeyName(keyName)
-			                     ;
+			                     .withKeyName(keyName);
+
+		if(privateIpAddress != null)
+			runInstancesRequest.withPrivateIpAddress(privateIpAddress);
+		
 		RunInstancesResult runInstancesResult =
 			      ec2Client.runInstances(runInstancesRequest);
 		Reservation rv = runInstancesResult.getReservation();

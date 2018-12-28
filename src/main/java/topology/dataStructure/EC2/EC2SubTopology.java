@@ -34,6 +34,9 @@ public class EC2SubTopology extends SubTopology{
 	
 	private static final Logger logger = Logger.getLogger(EC2SubTopology.class);
 	
+	///to define whether the VPC is created. It determines whether the VPC should be deleted
+	public String WhetherCreateVPC;
+	
 	//Indicate different VMs.
 	public ArrayList<EC2VM> VMs;
 	
@@ -87,14 +90,12 @@ public class EC2SubTopology extends SubTopology{
 	@Override
 	public boolean formatChecking(String topologyStatus) {
 		
-		
+		if(WhetherCreateVPC == null)
+			WhetherCreateVPC = "false";
 		for(int vmi = 0 ; vmi < this.VMs.size() ; vmi++){
 			EC2VM curVM = VMs.get(vmi);
 			if(topologyStatus.equals("fresh")){
-				if(curVM.instanceId != null
-					|| curVM.securityGroupId != null
-					|| curVM.vpcId != null
-					|| curVM.subnetId != null){
+				if(curVM.instanceId != null){
 					logger.error("Some information in VM '"+curVM.name+"' cannot be defined in a 'fresh' sub-topology!");
 					return false;
 				}

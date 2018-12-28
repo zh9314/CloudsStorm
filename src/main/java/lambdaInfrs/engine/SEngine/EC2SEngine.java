@@ -19,10 +19,12 @@
 package lambdaInfrs.engine.SEngine;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import lambdaInfrs.credential.Credential;
 import lambdaInfrs.credential.SSHKeyPair;
+import lambdaInfrs.database.BasicDCMetaInfo;
 import lambdaInfrs.database.BasicVMMetaInfo;
 import lambdaInfrs.database.Database;
 import lambdaInfrs.database.EC2.EC2Database;
@@ -35,10 +37,12 @@ import topology.dataStructure.EC2.EC2SubTopology;
 import topology.dataStructure.EC2.EC2VM;
 import topology.description.actual.SubTopology;
 import topology.description.actual.SubTopologyInfo;
+import topology.description.actual.VM;
 
 public class EC2SEngine extends SEngine {
 	
 	private static final Logger logger = Logger.getLogger(EC2SEngine.class);
+	
 	
 	/**
 	 * 1. Update the AMI information.
@@ -76,6 +80,21 @@ public class EC2SEngine extends SEngine {
 	        		logger.error("There must be 'AMI' information in EC2Database!");
 	        		return false;
 	        }
+	        
+	        BasicDCMetaInfo ec2DCMetaInfo = null;
+            if((ec2DCMetaInfo = ((BasicDCMetaInfo)ec2Database.getDCMetaInfo(domain))) == null){
+            	 	logger.error("The EC2 datacenter meta information for domain '" + domain 
+            	 			+ "' is not known!");
+                 return false;
+            }
+            if(ec2DCMetaInfo.extraInfo != null){
+	        		curVM.vpcId = ec2DCMetaInfo.extraInfo.get("vpcId");
+	        		curVM.subnetId = ec2DCMetaInfo.extraInfo.get("subnetId");
+	        		curVM.securityGroupId = ec2DCMetaInfo.extraInfo.get("securityGroupId");
+	        		curVM.routeTableId = ec2DCMetaInfo.extraInfo.get("routeTableId");
+	        		curVM.internetGatewayId = ec2DCMetaInfo.extraInfo.get("internetGatewayId");
+            }
+	        
 		}
 		
 		return true;
@@ -127,11 +146,28 @@ public class EC2SEngine extends SEngine {
 	@Override
 	public boolean provision(SubTopologyInfo subTopologyInfo,
 			Credential credential, Database database) {
-		/////Create a common Subnet first
-		if(!EC2VEngine.createCommonSubnet(subTopologyInfo, credential)){
-			logger.error("Cannot create common Subnet!");
-			subTopologyInfo.logsInfo.put("ERROR", "Cannot create common Subnet!");
-			return false;
+		/////Create a common Subnet if there is a VM do not specify the VPC id etc.
+		ArrayList<VM> vms = subTopologyInfo.subTopology.getVMsinSubClass();
+		boolean needCommonSubnet = false;
+		if(vms != null){
+			for(int vi = 0 ; vi < vms.size() ; vi++){
+				EC2VM curVM = (EC2VM)vms.get(vi);
+				if(curVM.vpcId == null
+					|| curVM.subnetId == null 
+					|| curVM.securityGroupId == null
+					|| curVM.routeTableId == null
+					|| curVM.internetGatewayId == null){
+					needCommonSubnet = true;
+					break;
+				}
+			}
+		}
+		if(needCommonSubnet){
+			if(!EC2VEngine.createCommonSubnet(subTopologyInfo, credential)){
+				logger.error("Cannot create common Subnet!");
+				subTopologyInfo.logsInfo.put("ERROR", "Cannot create common Subnet!");
+				return false;
+			}
 		}
 		if(super.provision(subTopologyInfo, credential, database))
 			return true;
@@ -156,8 +192,10 @@ public class EC2SEngine extends SEngine {
 		if(subTopologyInfo.topology.startsWith("_tmp_"))
 			return true;
 		
-		if(!EC2VEngine.deleteVPC(subTopologyInfo, credential))
-			return false;
+		if( ((EC2SubTopology)(subTopologyInfo.subTopology)).WhetherCreateVPC.equalsIgnoreCase("true") ){
+			if(!EC2VEngine.deleteVPC(subTopologyInfo, credential))
+				return false;
+		}
 		
 		return true;
 	}

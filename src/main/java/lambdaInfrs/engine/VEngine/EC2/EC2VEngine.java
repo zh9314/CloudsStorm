@@ -48,11 +48,10 @@ public class EC2VEngine extends VEngine{
 			Credential credential, Database database) {
 		SubTopologyInfo subTopologyInfo = subjectVM.ponintBack2STI;
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+								ec2Credential.secretKey, subTopologyInfo.domain);
 		if(subTopologyInfo.endpoint == null)
 			return false;
-		
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
 		
 		EC2VM curVM = (EC2VM)subjectVM;
 		EC2SubTopology curST = (EC2SubTopology)subTopologyInfo.subTopology;
@@ -65,7 +64,7 @@ public class EC2VEngine extends VEngine{
 			return false;
 		}
 		if(curVM.subnetId == null || curVM.securityGroupId == null
-				|| curVM.AMI == null || curVM.actualPrivateAddress == null
+				|| curVM.AMI == null 
 				|| curVM.nodeType == null){
 			String msg = "Missing key information to provision VM '"+curVM.name+"'";
 			logger.error(msg);
@@ -135,11 +134,11 @@ public class EC2VEngine extends VEngine{
 			Credential credential, Database database) {
 		SubTopologyInfo subTopologyInfo = subjectVM.ponintBack2STI;
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
 		if(subTopologyInfo.endpoint == null)
 			return false;
 		
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
 		
 		EC2VM curVM = (EC2VM)subjectVM;
 		if(!ec2agent.terminateInstance(curVM)){
@@ -158,10 +157,10 @@ public class EC2VEngine extends VEngine{
 		SubTopologyInfo subTopologyInfo = subjectVM.ponintBack2STI;
 		EC2Credential ec2Credential = (EC2Credential)credential;
 		EC2VM curVM = (EC2VM)subjectVM;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
 		if(subTopologyInfo.endpoint == null)
 			return false;
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
 		
 		if(curVM.instanceId == null)
 			return false;
@@ -200,11 +199,10 @@ public class EC2VEngine extends VEngine{
 			Credential credential, Database database) {
 		SubTopologyInfo subTopologyInfo = subjectVM.ponintBack2STI;
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
 		if(subTopologyInfo.endpoint == null)
 			return false;
-		
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
 		
 		EC2VM curVM = (EC2VM)subjectVM;
 		ArrayList<String> instances = new ArrayList<String>();
@@ -223,8 +221,9 @@ public class EC2VEngine extends VEngine{
 	public static String createSSHKeyPair(SubTopologyInfo subTopologyInfo,
 			Credential credential, String publicKeyId){
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
+
 		String privateKeyString = "";
 		try{
 			privateKeyString = ec2agent.createKeyPair(publicKeyId);
@@ -242,9 +241,9 @@ public class EC2VEngine extends VEngine{
 			Credential credential){
 		
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
-		
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
+
 		
 		ArrayList<EC2VM> vms = ((EC2SubTopology)subTopologyInfo.subTopology).VMs;
 		EC2VM vm1 = vms.get(0);
@@ -276,8 +275,9 @@ public class EC2VEngine extends VEngine{
 	public static boolean createCommonSubnet(SubTopologyInfo subTopologyInfo, Credential credential){
 		EC2SubTopology ec2SubTopology = (EC2SubTopology)subTopologyInfo.subTopology;
 		EC2Credential ec2Credential = (EC2Credential)credential;
-		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, ec2Credential.secretKey);
-		ec2agent.setEndpoint(subTopologyInfo.endpoint);
+		EC2Agent ec2agent = new EC2Agent(ec2Credential.accessKey, 
+				ec2Credential.secretKey, subTopologyInfo.domain);
+		ec2SubTopology.WhetherCreateVPC = "true";
 		String vpcId4all = null;
 		vpcId4all = ec2agent.createVPC("172.31.0.0/16");
 		if(vpcId4all == null){
