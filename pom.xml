@@ -14,11 +14,10 @@
     <dependencies>     
 
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.472</version>
-            <type>jar</type>
-        </dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-ec2</artifactId>
+		    <version>1.11.472</version>
+		</dependency>
         
         <dependency>
             <groupId>aspectj</groupId>
