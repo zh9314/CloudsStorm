@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.uva.sne.zh</groupId>
     <artifactId>CloudsStorm</artifactId>
-    <version>b.1.0</version>
+    <version>b.1.1</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.14</version>
+            <version>1.18</version>
         </dependency>
 
         <dependency>
@@ -58,19 +58,19 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>3.0.7.RELEASE</version>
+            <version>5.1.4.RELEASE</version>
         </dependency>
         
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>3.0.7.RELEASE</version>
+            <version>5.1.4.RELEASE</version>
         </dependency>
         
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>3.0.7.RELEASE</version>
+            <version>5.1.4.RELEASE</version>
         </dependency>
         
         <dependency>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.5.0</version>
+            <version>2.9.0</version>
         </dependency>
      
         <dependency>
@@ -94,7 +94,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.5.0</version>
+            <version>2.9.0</version>
         </dependency>
      
         <dependency>

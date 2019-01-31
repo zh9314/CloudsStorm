@@ -142,7 +142,8 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 						int netmaskNum = CommonTool.netmaskStringToInt(netmask);
 						String subnet = CommonTool.getSubnet(localPrivateAddress, netmaskNum);
 						
-						fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+						fw.write("ethName=`ip r show|grep \"default \"|cut -d \" \" -f 5`\n");
+						fw.write("lp=`ifconfig $ethName|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 						fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 						fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
 						fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
@@ -195,7 +196,8 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 					curACP.ethName = linkName;
 					logger.debug("Configure connection name "+linkName);
 					
-					fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+					fw.write("ethName=`ip r show|grep \"default \"|cut -d \" \" -f 5`\n");
+					fw.write("lp=`ifconfig $ethName|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 					fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 					fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
 					fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");

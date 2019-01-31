@@ -121,7 +121,8 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 						int netmaskNum = CommonTool.netmaskStringToInt(netmask);
 						String subnet = CommonTool.getSubnet(localPrivateAddress, netmaskNum);
 						
-						fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+						fw.write("ethName=`ip r show|grep \"default \"|cut -d \" \" -f 5`\n");
+						fw.write("lp=`ifconfig $ethName|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 						fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 						fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
 						fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
@@ -173,7 +174,8 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 					curACP.ethName = linkName;
 					logger.debug("Configure connection name "+linkName);
 					
-					fw.write("lp=`ifconfig eth0|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
+					fw.write("ethName=`ip r show|grep \"default \"|cut -d \" \" -f 5`\n");
+					fw.write("lp=`ifconfig $ethName|grep 'inet addr'|awk -F'[ :]' '{print $13}'`\n");
 					fw.write("ip tunnel add "+linkName+" mode ipip remote "+remotePubAddress+" local $lp\n");
 					fw.write("ifconfig "+linkName+" "+localPrivateAddress+" netmask "+netmask+"\n");
 					fw.write("route del -net "+subnet+" netmask "+netmask+" dev "+linkName+"\n");
@@ -237,10 +239,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 			return false;
 		}
 		SubTopologyInfo curSTI = curVM.ponintBack2STI;
-		if(curSTI.userName == null || curSTI.publicKeyString == null){
-			logger.warn("The username is not specified! Unified ssh account will not be configured!");
-			return true;
-		}
+		
 		TopTopology topTopology = curSTI.pointBack2TTI;
 		SubTopologyInfo ctrlSTI = topTopology.getSubtopology("_ctrl");
 		
@@ -257,21 +256,38 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 			fw.close();
 			
 			fw = new FileWriter(runFilePath, false);
-			fw.write("useradd -d \"/home/"+curSTI.userName+"\" -m -s \"/bin/bash\" "+curSTI.userName+"\n");
-			fw.write("mkdir /home/"+curSTI.userName+"/.ssh \n");
-			fw.write("mv user.pub /home/"+curSTI.userName+"/.ssh/authorized_keys \n");
 			
 			///configure the overall ssh key
-			fw.write("cat id_rsa.pub >> /home/"+curSTI.userName+"/.ssh/authorized_keys \n");
-			fw.write("cat id_rsa.pub >> /root/.ssh/authorized_keys \n");
 			fw.write("chmod 400 id_rsa\n");
-			fw.write("cp id_rsa /home/"+curSTI.userName+"/.ssh/id_rsa\n");
+			fw.write("cat id_rsa.pub >> /root/.ssh/authorized_keys \n");
 			fw.write("cp id_rsa /root/.ssh/id_rsa\n");
-			fw.write("rm id_rsa.pub id_rsa\n");
+			
+			if(curSTI.userName != null && curSTI.publicKeyString != null){
+				
+				fw.write("useradd -d \"/home/"+curSTI.userName+"\" -m -s \"/bin/bash\" "+curSTI.userName+"\n");
+				fw.write("mkdir /home/"+curSTI.userName+"/.ssh \n");
+				fw.write("mv user.pub /home/"+curSTI.userName+"/.ssh/authorized_keys \n");
+				fw.write("cat id_rsa.pub >> /home/"+curSTI.userName+"/.ssh/authorized_keys \n");
+			    fw.write("chmod 740 /etc/sudoers \n");
+			    fw.write("echo \""+curSTI.userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
+			    fw.write("chmod 440 /etc/sudoers \n");
+			    fw.write("chown -R "+curSTI.userName+":"+curSTI.userName+" /home/"+curSTI.userName+"/.ssh/\n");
+			    fw.write("cp id_rsa /home/"+curSTI.userName+"/.ssh/id_rsa\n");
+			}else
+				logger.warn("The username is not specified! The user account will not be configured!");
+			
+			////configure an system overall account "CloudsStorm"
+			fw.write("useradd -d \"/home/CloudsStorm\" -m -s \"/bin/bash\" CloudsStorm\n");
+			fw.write("mkdir /home/CloudsStorm/.ssh \n");
+			fw.write("mv user.pub /home/CloudsStorm/.ssh/authorized_keys \n");
+			fw.write("cat id_rsa.pub >> /home/CloudsStorm/.ssh/authorized_keys \n");
 		    fw.write("chmod 740 /etc/sudoers \n");
-		    fw.write("echo \""+curSTI.userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
+		    fw.write("echo \"CloudsStorm ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
 		    fw.write("chmod 440 /etc/sudoers \n");
-		    fw.write("chown -R "+curSTI.userName+":"+curSTI.userName+" /home/"+curSTI.userName+"/.ssh/\n");
+		    fw.write("chown -R CloudsStorm:CloudsStorm /home/CloudsStorm/.ssh/\n");
+		    fw.write("cp id_rsa /home/CloudsStorm/.ssh/id_rsa\n");
+			
+			fw.write("rm id_rsa.pub id_rsa\n");
 		    
 		    fw.write("hostname "+curVM.name+"\n");
 		    
