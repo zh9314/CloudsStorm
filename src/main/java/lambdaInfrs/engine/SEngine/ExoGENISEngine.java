@@ -93,7 +93,7 @@ public class ExoGENISEngine extends SEngine{
 		////only when there is no slice name, we need to generate one.
 		////or when it is failed, we also need to generate one.
 		if(exoGENISubTopology.sliceName == null || subTopologyInfo.status.equals("failed"))	
-			exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"_"+UUID.randomUUID().toString();	
+			exoGENISubTopology.sliceName = exoGENISubTopology.topologyName+"-"+UUID.randomUUID().toString();	
 			
 		return true;
 	}
