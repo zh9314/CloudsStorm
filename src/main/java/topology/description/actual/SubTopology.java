@@ -292,6 +292,7 @@ public abstract class SubTopology implements SubTopologyMethod, TopologyMethod, 
 		        		return false;
 		        	}
 		        	File priKeyFile = new File(keyDirPath+"id_rsa");
+                                priKeyFile.setReadOnly();
 		        	FileUtils.writeStringToFile(priKeyFile, curKey.privateKeyString, "UTF-8", false);
 		        	
 		        	if(curKey.publicKeyId != null){
