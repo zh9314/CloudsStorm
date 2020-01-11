@@ -48,9 +48,10 @@ public class ExoGENISEngine extends SEngine {
     /**
      * 1. Update the endpoint 2. Update the OSurl and OSguid for each VM 3.
      * Every VM creates the corresponding VEngine. 4. Generate the sliceName.
+     *
      * @param subTopologyInfo
      * @param database
-     * @return 
+     * @return
      */
     @Override
     public boolean runtimeCheckandUpdate(SubTopologyInfo subTopologyInfo,
