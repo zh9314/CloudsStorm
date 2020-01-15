@@ -367,7 +367,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                 }
             } catch (IOException e) {
                 ////In this case, we give more chances to test.
-                if (e.getMessage().contains("timeout: socket is not established")) {
+                if (e.getMessage().contains("timeout: socket is not established") || e instanceof IOException) {
                     logger.warn(curVM.name + ": " + e.getMessage());
                     try {
                         Thread.sleep(2000);
