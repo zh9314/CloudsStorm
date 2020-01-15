@@ -7,17 +7,17 @@
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
     
     <dependencies>     
 
         <dependency>
-		    <groupId>com.amazonaws</groupId>
-		    <artifactId>aws-java-sdk-ec2</artifactId>
-		    <version>1.11.472</version>
-		</dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-ec2</artifactId>
+            <version>1.11.472</version>
+        </dependency>
         
         <dependency>
             <groupId>aspectj</groupId>
@@ -147,10 +147,10 @@
         </dependency>
         
         <dependency>
-		    <groupId>org.apache.httpcomponents</groupId>
-		    <artifactId>httpclient</artifactId>
-		    <version>4.5.3</version>
-		</dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+        </dependency>
 	
         <dependency>
             <groupId>org.apache.xmlrpc</groupId>
@@ -177,10 +177,10 @@
         </dependency>
         
         <dependency>
-	      <groupId>nl.uva.sne.zh</groupId>
-	      <artifactId>CloudsStormREST</artifactId>
-	      <version>b.0.1</version>
-	  	</dependency>
+            <groupId>nl.uva.sne.zh</groupId>
+            <artifactId>CloudsStormREST</artifactId>
+            <version>b.0.1</version>
+        </dependency>
 	        
     </dependencies>
     

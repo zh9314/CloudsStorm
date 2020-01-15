@@ -25,32 +25,31 @@ import org.apache.commons.io.FileUtils;
 
 import commonTool.CommonTool;
 
-
-
 /**
  * This is a class to store the ssh keys.
  *
  */
 public class SSHKeyPair {
-	
-	
-	//This is a GUID. In some case, the public and key files are store in the directory of this GUID.
-	//And this directory is in the same folder of the description files.
-	//The public key file name is always 'id_rsa.pub' and the private key file name is always 'id_rsa'.
-	//If the public key content cannot be got, there will  be a file called 'name.pub' to store the public key name.
-	public String SSHKeyPairId;
-	
-	public String publicKeyString;
-	
-	//In some case, the public key string is unknown. You can just get the key id, EC2 for instance.
-	public String publicKeyId;
-	
-	public String privateKeyString;
-	
-	public boolean loadSSHKeyPair(String sshKeyPairId, String keyDir){
-		String sshKeyDir = CommonTool.formatDirWithSep(keyDir);
-		String privateKeyPath = sshKeyDir + "id_rsa";
+
+    //This is a GUID. In some case, the public and key files are store in the directory of this GUID.
+    //And this directory is in the same folder of the description files.
+    //The public key file name is always 'id_rsa.pub' and the private key file name is always 'id_rsa'.
+    //If the public key content cannot be got, there will  be a file called 'name.pub' to store the public key name.
+    public String SSHKeyPairId;
+
+    public String publicKeyString;
+
+    //In some case, the public key string is unknown. You can just get the key id, EC2 for instance.
+    public String publicKeyId;
+
+    public String privateKeyString;
+
+    public boolean loadSSHKeyPair(String sshKeyPairId, String keyDir) {
+        String sshKeyDir = CommonTool.formatDirWithSep(keyDir);
+        String privateKeyPath = sshKeyDir + "id_rsa";
         File privateKeyFile = new File(privateKeyPath);
+        privateKeyFile.setReadOnly();
+
         String publicKeyPath = sshKeyDir + "id_rsa.pub";
         File publicKeyFile = new File(publicKeyPath);
         String publicKeyIdPath = sshKeyDir + "name.pub";
@@ -58,48 +57,50 @@ public class SSHKeyPair {
         String privateKeyString = null, publicKeyString = null, publicKeyIdString = null;
         boolean success = false;
         int count = 0;    ////try some times, in case the key is generating.
-        while(!success && count < 5){
-        		success = true;
-	        	try {
-	        		if(privateKeyFile.exists())
-	        			privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
-	        		else
-	        			success = false;
-	        		if(success){
-		        		boolean atLeastOne = false;
-		        		if(publicKeyFile.exists()){
-		        			publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
-		        			atLeastOne = true;
-		        		}
-		        		if(publicKeyIdFile.exists()){
-		        			publicKeyIdString = FileUtils.readFileToString(publicKeyIdFile, "UTF-8");
-		        			atLeastOne = true;
-		        		}
-		        		if(!atLeastOne)
-		        			success = false;
-	        		}
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	            success = false;
-	        }
-	        	
-	        	if(success){
-	        		this.publicKeyString = publicKeyString;
-		        this.privateKeyString = privateKeyString;
-		        this.publicKeyId = publicKeyIdString;
-		        this.SSHKeyPairId = sshKeyPairId;
-	        }else{
-	        		try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-	        }
-	        	
-	        	count++;
+        while (!success && count < 5) {
+            success = true;
+            try {
+                if (privateKeyFile.exists()) {
+                    privateKeyString = FileUtils.readFileToString(privateKeyFile, "UTF-8");
+                } else {
+                    success = false;
+                }
+                if (success) {
+                    boolean atLeastOne = false;
+                    if (publicKeyFile.exists()) {
+                        publicKeyString = FileUtils.readFileToString(publicKeyFile, "UTF-8");
+                        atLeastOne = true;
+                    }
+                    if (publicKeyIdFile.exists()) {
+                        publicKeyIdString = FileUtils.readFileToString(publicKeyIdFile, "UTF-8");
+                        atLeastOne = true;
+                    }
+                    if (!atLeastOne) {
+                        success = false;
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                success = false;
+            }
+
+            if (success) {
+                this.publicKeyString = publicKeyString;
+                this.privateKeyString = privateKeyString;
+                this.publicKeyId = publicKeyIdString;
+                this.SSHKeyPairId = sshKeyPairId;
+            } else {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            count++;
         }
-        
+
         return success;
-	}
+    }
 
 }
