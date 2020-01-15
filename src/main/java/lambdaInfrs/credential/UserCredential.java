@@ -32,6 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import commonTool.CommonTool;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.Set;
 import topology.description.actual.TopTopology;
 
 /**
@@ -123,8 +128,9 @@ public class UserCredential {
      * @param sshKeysDir
      * @param topTopology
      * @return
+     * @throws java.io.IOException
      */
-    public boolean initalSSHKeys(String sshKeysDir, TopTopology topTopology) {
+    public boolean initalSSHKeys(String sshKeysDir, TopTopology topTopology) throws IOException {
         if (topTopology == null) {
             logger.error("Toptopology should be first initialized!");
             return false;
@@ -155,7 +161,7 @@ public class UserCredential {
      * null. If there is no key pairs available, the size of the array will be
      * 0.
      */
-    private ArrayList<SSHKeyPair> loadSSHKeyPairFromFile(String currentDir) {
+    private ArrayList<SSHKeyPair> loadSSHKeyPairFromFile(String currentDir) throws IOException {
         ArrayList<SSHKeyPair> keyPairs = new ArrayList<SSHKeyPair>();
         File curDir = new File(currentDir);
         File[] files = curDir.listFiles();
@@ -165,7 +171,9 @@ public class UserCredential {
                     SSHKeyPair kp = new SSHKeyPair();
                     kp.SSHKeyPairId = f.getName();
                     File priKeyFile = new File(f.getAbsolutePath() + File.separator + "id_rsa");
-                    priKeyFile.setReadOnly();
+                    Set<PosixFilePermission> perms = new HashSet<>();
+                    perms.add(PosixFilePermission.OWNER_READ);
+                    Files.setPosixFilePermissions(Paths.get(priKeyFile.getAbsolutePath()), perms);
                     File pubKeyFile = new File(f.getAbsolutePath() + File.separator + "id_rsa.pub");
                     File pubKeyIdFile = new File(f.getAbsolutePath() + File.separator + "name.pub");
 

@@ -24,6 +24,11 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 
 import commonTool.CommonTool;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This is a class to store the ssh keys.
@@ -44,11 +49,13 @@ public class SSHKeyPair {
 
     public String privateKeyString;
 
-    public boolean loadSSHKeyPair(String sshKeyPairId, String keyDir) {
+    public boolean loadSSHKeyPair(String sshKeyPairId, String keyDir) throws IOException {
         String sshKeyDir = CommonTool.formatDirWithSep(keyDir);
         String privateKeyPath = sshKeyDir + "id_rsa";
         File privateKeyFile = new File(privateKeyPath);
-        privateKeyFile.setReadOnly();
+        Set<PosixFilePermission> perms = new HashSet<>();
+        perms.add(PosixFilePermission.OWNER_READ);
+        Files.setPosixFilePermissions(Paths.get(privateKeyFile.getAbsolutePath()), perms);
 
         String publicKeyPath = sshKeyDir + "id_rsa.pub";
         File publicKeyFile = new File(publicKeyPath);

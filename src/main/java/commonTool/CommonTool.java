@@ -36,6 +36,11 @@ import org.apache.log4j.Logger;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.KeyPair;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.Set;
 
 import topology.description.actual.ActualConnection;
 import topology.description.actual.ActualConnectionPoint;
@@ -479,13 +484,10 @@ public class CommonTool {
             kpair.writePublicKey(keyDirPath + "id_rsa.pub", "keyPair-" + UUID.randomUUID().toString());
             kpair.dispose();
 
-            File file = new File(keyDirPath + "id_rsa");
-            file.setReadOnly();
-// verify if file is made read-only
-            if (file.canWrite()) {
-                logger.warn("File: " + file.getAbsolutePath() + " is not read-only");
-                return false;
-            }
+            File privateKeyFile = new File(keyDirPath + "id_rsa");
+            Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            Files.setPosixFilePermissions(Paths.get(privateKeyFile.getAbsolutePath()), perms);
 
         } catch (JSchException | IOException e) {
             e.printStackTrace();
