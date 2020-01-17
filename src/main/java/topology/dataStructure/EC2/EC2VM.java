@@ -26,23 +26,13 @@ import topology.description.actual.BasicVM;
 
 public class EC2VM extends BasicVM {
 
-    /**
-     * @return the cpu
-     */
-    public String getCpu() {
-        return cpu;
-    }
-
-    /**
-     * @param cpu the cpu to set
-     */
-    public void setCpu(String cpu) {
-        this.cpu = cpu;
-    }
-
     @JsonProperty("CPU")
     @JsonAlias({"cpu"})
-    private String cpu = null;
+    public String cpu;
+
+    @JsonProperty("mem")
+    @JsonAlias({"MEM"})
+    public String mem;
 
     //The unit is GigaByte and must be a positive integer. 
     //This field is only valid when this sub-topology is from EC2. 
