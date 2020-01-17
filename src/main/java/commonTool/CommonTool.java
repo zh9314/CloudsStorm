@@ -36,6 +36,11 @@ import org.apache.log4j.Logger;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.KeyPair;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.Set;
 
 import topology.description.actual.ActualConnection;
 import topology.description.actual.ActualConnectionPoint;
@@ -45,8 +50,9 @@ public class CommonTool {
     private static final Logger logger = Logger.getLogger(CommonTool.class);
 
     /**
-     * Make sure the directory path end up with 'File.seperator'
-     * Only when the input dir equals "", it does not end with 'File.seperator'
+     * Make sure the directory path end up with 'File.seperator' Only when the
+     * input dir equals "", it does not end with 'File.seperator'
+     *
      * @param inputDir
      * @return
      */
@@ -60,54 +66,62 @@ public class CommonTool {
         }
         return outputDir;
     }
-    
-    
+
     /**
      * Make sure the directory path does not end up with 'File.seperator'
+     *
      * @param inputDir
      * @return
      */
     public static String formatDirWithoutSep(String inputDir) {
         String outputDir = inputDir;
-        if (inputDir.equals("")) 
+        if (inputDir.equals("")) {
             return outputDir;
-        if (outputDir.lastIndexOf(File.separator) == outputDir.length() - 1) 
-        		outputDir = outputDir.substring(0, outputDir.length() - 1);
+        }
+        if (outputDir.lastIndexOf(File.separator) == outputDir.length() - 1) {
+            outputDir = outputDir.substring(0, outputDir.length() - 1);
+        }
         return outputDir;
     }
-    
+
     /**
      * Get rid of all the '\n' and ' ' in the tail.
+     *
      * @return
      */
-    public static String formatString(String input){
-    		int endIndex;
-    		for(endIndex = input.length()-1 ; endIndex >= 0 ; endIndex--){
-    			if(input.charAt(endIndex) != '\n'
-    				&& input.charAt(endIndex) != ' ')
-    				break;
-    		}
-    		String output = input.substring(0, endIndex+1);
-    		return output;
+    public static String formatString(String input) {
+        int endIndex;
+        for (endIndex = input.length() - 1; endIndex >= 0; endIndex--) {
+            if (input.charAt(endIndex) != '\n'
+                    && input.charAt(endIndex) != ' ') {
+                break;
+            }
+        }
+        String output = input.substring(0, endIndex + 1);
+        return output;
     }
-    
+
     /**
      * The directory name must not end up with file separator
+     *
      * @param dirPath
      * @return
      */
-    public static String getDirName(String dirPath){
-	    	String dirName = dirPath;
-	    	if(dirPath.equals(""))
-	    		return "";
-	    	
-	    	if (dirPath.lastIndexOf(File.separator) == dirPath.length() - 1) 
-	    		dirName = dirPath.substring(0, dirPath.length() - 1);
-	    	int index = dirName.lastIndexOf(File.separator);
-	    	if(index != -1)
-	    		return dirName.substring(index+1);
-	    	else
-	    		return dirName;
+    public static String getDirName(String dirPath) {
+        String dirName = dirPath;
+        if (dirPath.equals("")) {
+            return "";
+        }
+
+        if (dirPath.lastIndexOf(File.separator) == dirPath.length() - 1) {
+            dirName = dirPath.substring(0, dirPath.length() - 1);
+        }
+        int index = dirName.lastIndexOf(File.separator);
+        if (index != -1) {
+            return dirName.substring(index + 1);
+        } else {
+            return dirName;
+        }
     }
 
     /**
@@ -123,44 +137,49 @@ public class CommonTool {
         }
         return dir;
     }
-    
-    
+
     /**
-     * The input is a file or directory path of Unix based system. The output is the parent directory path of the input.
-     * This output directory must not end up with a "/", only when like "/1.txt"
+     * The input is a file or directory path of Unix based system. The output is
+     * the parent directory path of the input. This output directory must not
+     * end up with a "/", only when like "/1.txt"
      */
     public static String getParentDirInUnix(String inputPath) {
         String dir = "";
-	    	if (inputPath.lastIndexOf("/") == inputPath.length() - 1) 
-	    		inputPath = inputPath.substring(0, inputPath.length() - 1);
+        if (inputPath.lastIndexOf("/") == inputPath.length() - 1) {
+            inputPath = inputPath.substring(0, inputPath.length() - 1);
+        }
         if (inputPath.contains("/")) {
             int index = inputPath.lastIndexOf("/");
-            if(index == 0)
-            		dir = "/";
-            else
-            		dir = inputPath.substring(0, index);
+            if (index == 0) {
+                dir = "/";
+            } else {
+                dir = inputPath.substring(0, index);
+            }
         }
         return dir;
     }
-    
-    
+
     /**
      * The directory name must not end up with "/"
+     *
      * @param dirPath
      * @return
      */
-    public static String getDirNameInUnix(String dirPath){
-	    	String dirName = dirPath;
-	    	if(dirPath.equals(""))
-	    		return "";
-	    	
-	    	if (dirPath.lastIndexOf("/") == dirPath.length() - 1) 
-	    		dirName = dirPath.substring(0, dirPath.length() - 1);
-	    	int index = dirName.lastIndexOf("/");
-	    	if(index != -1)
-	    		return dirName.substring(index+1);
-	    	else
-	    		return dirName;
+    public static String getDirNameInUnix(String dirPath) {
+        String dirName = dirPath;
+        if (dirPath.equals("")) {
+            return "";
+        }
+
+        if (dirPath.lastIndexOf("/") == dirPath.length() - 1) {
+            dirName = dirPath.substring(0, dirPath.length() - 1);
+        }
+        int index = dirName.lastIndexOf("/");
+        if (index != -1) {
+            return dirName.substring(index + 1);
+        } else {
+            return dirName;
+        }
     }
 
     // converting to netmask
@@ -190,12 +209,10 @@ public class CommonTool {
     }
 
     /**
-     * Convert netmask int to string (null returned if nm > 32 or nm <
-     * 1)
-	 * @
+     * Convert netmask int to string (null returned if nm > 32 or nm < 1) @
      *
-     * param nm
-     * @return
+     *
+     * param nm @return
      */
     public static String netmaskIntToString(int nm) {
         if ((nm > 32) || (nm < 1)) {
@@ -230,8 +247,9 @@ public class CommonTool {
         String subnet = "";
         String[] subPriAddress = ip.split("\\.");
         String combineAddress = "";
-        if(subPriAddress.length != 4)
-        		return null;
+        if (subPriAddress.length != 4) {
+            return null;
+        }
         for (int i = 0; i < subPriAddress.length; i++) {
             int subAddNum = Integer.valueOf(subPriAddress[i]);
             String bString = Integer.toBinaryString(subAddNum);
@@ -284,13 +302,14 @@ public class CommonTool {
     }
 
     /**
-     * Combine the subnet and host number to be the full IP address.
-     * Return 'null' when host number is less than 1 or exceeds the capacity of the subnet,
-     * or it is a broadcast address
+     * Combine the subnet and host number to be the full IP address. Return
+     * 'null' when host number is less than 1 or exceeds the capacity of the
+     * subnet, or it is a broadcast address
      */
     public static String getFullAddress(String subnet, int netmaskNum, int hostNum) {
-    		if(hostNum <= 0)
-    			return null;
+        if (hostNum <= 0) {
+            return null;
+        }
         String[] subPriAddress = subnet.split("\\.");
         String combineAddress = "";
         for (int i = 0; i < subPriAddress.length; i++) {
@@ -307,12 +326,14 @@ public class CommonTool {
         String fillingS = "";
         int fillingLen = (32 - netmaskNum) - binaryHostNum.length();
         ///Host number exceeds the capacity of the subnet
-        if(fillingLen < 0)
-        		return null;
+        if (fillingLen < 0) {
+            return null;
+        }
         //// This is the broadcast address, cannot be a host IP address
-        if(fillingLen == 0 && !binaryHostNum.contains("0"))
-        		return null;
-        for (int i = 0; i < fillingLen ; i++) {
+        if (fillingLen == 0 && !binaryHostNum.contains("0")) {
+            return null;
+        }
+        for (int i = 0; i < fillingLen; i++) {
             fillingS += "0";
         }
         String binaryFullAddress = binarySubnet + fillingS + binaryHostNum;
@@ -390,29 +411,33 @@ public class CommonTool {
         return outputString;
 
     }
-    
+
     public static String getFilePathType(String filePath) {
-    		int firstIndex = filePath.indexOf("@");
+        int firstIndex = filePath.indexOf("@");
         if (firstIndex == -1) {
             return null;
         }
         String prefix = filePath.substring(0, firstIndex);
         return prefix;
     }
-    
+
     public static String getFilePath(String filePath) {
-		int firstIndex = filePath.indexOf("@");
-	    if (firstIndex == -1) {
-	        return null;
-	    }
-	    String realPath = filePath.substring(firstIndex + 1, filePath.length());
-	    return realPath;
+        int firstIndex = filePath.indexOf("@");
+        if (firstIndex == -1) {
+            return null;
+        }
+        String realPath = filePath.substring(firstIndex + 1, filePath.length());
+        return realPath;
     }
 
     /**
      * Given a source or target connection point and a set of top connections.
      * This method is to find whether there is a top connection contains this
      * point.
+     *
+     * @param topConnections
+     * @param tcp
+     * @return
      */
     public static ActualConnection getActualConnectionByPoint(ArrayList<ActualConnection> topConnections,
             ActualConnectionPoint tcp) {
@@ -438,6 +463,7 @@ public class CommonTool {
      * the file separator. The private key is always named as id_rsa and the
      * public key is always named as id_rsa.pub. The return value is boolean.
      *
+     * @param keyDirPath
      * @return
      */
     public static boolean rsaKeyGenerate(String keyDirPath) {
@@ -457,39 +483,44 @@ public class CommonTool {
             kpair.writePrivateKey(keyDirPath + "id_rsa");
             kpair.writePublicKey(keyDirPath + "id_rsa.pub", "keyPair-" + UUID.randomUUID().toString());
             kpair.dispose();
+
+            File privateKeyFile = new File(keyDirPath + "id_rsa");
+            Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            Files.setPosixFilePermissions(Paths.get(privateKeyFile.getAbsolutePath()), perms);
+
         } catch (JSchException | IOException e) {
             e.printStackTrace();
             return false;
         }
         return true;
     }
-    
-    public static boolean rmObjInMap(Map<?, ?> map, Object targetObj){
-    	 	Iterator<?> it = map.entrySet().iterator();
-    	    while (it.hasNext())
-    	    {
-    	    		Entry<?, ?> item = (Entry<?, ?>) it.next();
-    	    		if(item.getKey() == targetObj){
-    	    			it.remove();
-    	    			return true;
-    	    		}
-    	    }
-    	    return false;
+
+    public static boolean rmObjInMap(Map<?, ?> map, Object targetObj) {
+        Iterator<?> it = map.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<?, ?> item = (Entry<?, ?>) it.next();
+            if (item.getKey() == targetObj) {
+                it.remove();
+                return true;
+            }
+        }
+        return false;
     }
-    
-    public static boolean rmKeyInMap(Map<?, ?> map, Object targetKey){
-    		if(targetKey == null)
-    			return false;
-	 	Iterator<?> it = map.entrySet().iterator();
-	    while (it.hasNext())
-	    {
-	    		Entry<?, ?> item = (Entry<?, ?>) it.next();
-	    		if(targetKey.equals(item.getKey())){
-	    			it.remove();
-	    		}
-	    }
-	    return false;
-}
+
+    public static boolean rmKeyInMap(Map<?, ?> map, Object targetKey) {
+        if (targetKey == null) {
+            return false;
+        }
+        Iterator<?> it = map.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<?, ?> item = (Entry<?, ?>) it.next();
+            if (targetKey.equals(item.getKey())) {
+                it.remove();
+            }
+        }
+        return false;
+    }
 
     //This is used for converting the ip integer into binary string.
     //As the number of bits between '.' in IP is 8. 
