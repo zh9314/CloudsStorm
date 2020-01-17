@@ -40,6 +40,9 @@ public abstract class VM {
     public String nodeType;
     public String CPU;
     public String Mem;
+
+    @JsonProperty("OStype")
+    @JsonAlias({"os", "OS", "ostype"})
     public String OStype;
 
     //@JsonIgnore

@@ -73,10 +73,6 @@ public class EC2VM extends BasicVM {
     @JsonIgnore
     public String AMI;
 
-    @JsonProperty("OStype")
-    @JsonAlias({"os", "OS"})
-    public String ostype;
-
     @JsonProperty("Price")
     public String price;
 
