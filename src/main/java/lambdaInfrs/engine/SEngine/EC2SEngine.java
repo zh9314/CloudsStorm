@@ -48,6 +48,9 @@ public class EC2SEngine extends SEngine {
     /**
      * 1. Update the AMI information. 2. Update the endpoint information. 3. To
      * be completed, check the validity of nodeType.
+     * @param subTopologyInfo
+     * @param database
+     * @return 
      */
     @Override
     public boolean runtimeCheckandUpdate(SubTopologyInfo subTopologyInfo,

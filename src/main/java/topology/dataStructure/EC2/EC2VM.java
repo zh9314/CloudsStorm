@@ -64,7 +64,7 @@ public class EC2VM extends BasicVM {
     //Used for updating all the information above.
     //@JsonIgnore
     //public EC2Subnet subnetAllInfo;
-    //This is the actual private address in EC2 subnet, 
+    //This is the actual public address in EC2 subnet, 
     @JsonIgnore
     public String actualPrivateAddress;
 
@@ -72,5 +72,28 @@ public class EC2VM extends BasicVM {
     //This will be loaded depending on the domain, OStype and VMtype.
     @JsonIgnore
     public String AMI;
+
+    @JsonProperty("OStype")
+    @JsonAlias({"os", "OS"})
+    public String ostype;
+
+    @JsonProperty("Price")
+    public String price;
+
+    @JsonProperty("availability")
+    public String availability;
+
+    @JsonProperty("VEngineClass")
+    public String vEngineClass;
+
+    @JsonProperty("VNFType")
+    public String vNFType;
+
+    @JsonProperty("OS_URL")
+    public String OS_URL;
+
+    @JsonProperty("OS_GUID")
+    public String OS_GUID;
+           
 
 }
