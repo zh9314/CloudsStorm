@@ -31,13 +31,14 @@ import lambdaInfrs.engine.VEngine.VEngineOpMethod;
 import lambdaInfrs.engine.VEngine.OS.VEngineOS;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
 
 import commonTool.CommonTool;
+import java.io.ByteArrayOutputStream;
+import java.util.logging.Level;
 import topology.description.actual.ActualConnectionPoint;
 import topology.description.actual.SubTopologyInfo;
 import topology.description.actual.TopTopology;
@@ -197,18 +198,14 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                         curVM.ponintBack2STI.subTopology.accessKeyPair.privateKeyString);
                 File file = new File(confFilePath);
                 if (file.exists()) {
-                    new Shell.Safe(shell).exec(
-                            "cat > connection.sh && sudo bash connection.sh ",
-                            new FileInputStream(file),
-                            new NullOutputStream(), new NullOutputStream()
-                    );
+
+                    String cmd = "cat > connection.sh && sudo bash connection.sh ";
+                    int exitCode = execShell(cmd, new FileInputStream(file), shell);
+
                     FileUtils.deleteQuietly(file);
                 }
-                new Shell.Safe(shell).exec(
-                        "rm connection.sh",
-                        null,
-                        new NullOutputStream(), new NullOutputStream()
-                );
+                String cmd = "rm connection.sh";
+                int exitCode = execShell(cmd, null, shell);
 
             } catch (IOException e) {
                 ////In this case, we give more chances to test.
@@ -262,7 +259,6 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
             fw.write("cp id_rsa /root/.ssh/id_rsa\n");
 
             if (curSTI.userName != null && curSTI.publicKeyString != null) {
-
                 fw.write("useradd -d \"/home/" + curSTI.userName + "\" -m -s \"/bin/bash\" " + curSTI.userName + "\n");
                 fw.write("mkdir /home/" + curSTI.userName + "/.ssh \n");
                 fw.write("mv user.pub /home/" + curSTI.userName + "/.ssh/authorized_keys \n");
@@ -317,11 +313,10 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                         curSTI.subTopology.accessKeyPair.privateKeyString);
                 File pubFile = new File(pubFilePath);
                 if (!op1) {
-                    new Shell.Safe(shell).exec(
-                            "cat > user.pub",
-                            new FileInputStream(pubFile),
-                            new NullOutputStream(), new NullOutputStream()
-                    );
+                    ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
+                    ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
+
+                    int execShell = execShell("cat > user.pub", new FileInputStream(pubFile), shell);
                     FileUtils.deleteQuietly(pubFile);
                     op1 = true;
                 }
@@ -330,39 +325,26 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                         + File.separator + "id_rsa.pub";
                 File clusterPubKey = new File(clusterPubKeyPath);
                 if (!op2) {
-                    new Shell.Safe(shell).exec(
-                            "cat > id_rsa.pub",
-                            new FileInputStream(clusterPubKey),
-                            new NullOutputStream(), new NullOutputStream()
-                    );
+
+                    execShell("cat > id_rsa.pub", new FileInputStream(clusterPubKey), shell);
                     op2 = true;
                 }
                 String clusterPriKeyPath = currentDir + "clusterKeyPair"
                         + File.separator + "id_rsa";
                 File clusterPriKey = new File(clusterPriKeyPath);
                 if (!op3) {
-                    new Shell.Safe(shell).exec(
-                            "cat > id_rsa",
-                            new FileInputStream(clusterPriKey),
-                            new NullOutputStream(), new NullOutputStream()
-                    );
+                    execShell("cat > id_rsa", new FileInputStream(clusterPriKey), shell);
                     op3 = true;
                 }
 
                 if (!op4) {
                     File sshFile = new File(runFilePath);
-                    new Shell.Safe(shell).exec(
-                            "cat > sshconf.sh && sudo bash sshconf.sh ",
-                            new FileInputStream(sshFile),
-                            new NullOutputStream(), new NullOutputStream());
+                    execShell("cat > sshconf.sh && sudo bash sshconf.sh ", new FileInputStream(sshFile), shell);
                     FileUtils.deleteQuietly(sshFile);
                     op4 = true;
                 }
                 if (!op5) {
-                    new Shell.Safe(shell).exec(
-                            "rm sshconf.sh",
-                            null,
-                            new NullOutputStream(), new NullOutputStream());
+                    execShell("rm sshconf.sh", null, shell);
                     op5 = true;
                 }
             } catch (IOException e) {
@@ -415,10 +397,7 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                         curSTI.subTopology.accessKeyPair.privateKeyString);
                 if (!op1) {
                     File scriptFile = new File(scriptPath);
-                    new Shell.Safe(shell).exec(
-                            "cat > script.sh",
-                            new FileInputStream(scriptFile),
-                            new NullOutputStream(), new NullOutputStream());
+                    execShell("cat > script.sh", new FileInputStream(scriptFile), shell);
                     FileUtils.deleteQuietly(scriptFile);
                     op1 = true;
                 }
@@ -430,20 +409,13 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                     logger.debug("The log file of executing script on '" + curVM.name + "' is redirected to " + logPath);
                     File logFile = new File(logPath);
                     FileOutputStream logOutput = new FileOutputStream(logFile, false);
-                    new Shell.Safe(shell).exec(
-                            "sudo bash script.sh",
-                            null,
-                            logOutput,
-                            logOutput);
+                    execShell("sudo bash script.sh", null, shell);
                     logOutput.close();
                     op2 = true;
                 }
                 if (curSTI.userName != null && curSTI.publicKeyString != null) {
                     if (!op3) {
-                        new Shell.Safe(shell).exec(
-                                "sudo mv script.sh /home/" + curSTI.userName + "/",
-                                null,
-                                new NullOutputStream(), new NullOutputStream());
+                        execShell("sudo mv script.sh /home/" + curSTI.userName + "/", null, shell);
                         op3 = true;
                     }
                 }
@@ -527,18 +499,12 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                             curVM.ponintBack2STI.subTopology.accessKeyPair.privateKeyString);
                     if (!op1) {
                         File file = new File(confFilePath);
-                        new Shell.Safe(shell).exec(
-                                "cat > " + rmConnectionName + " && sudo bash " + rmConnectionName,
-                                new FileInputStream(file),
-                                new NullOutputStream(), new NullOutputStream());
+                        execShell("cat > " + rmConnectionName + " && sudo bash " + rmConnectionName, new FileInputStream(file), shell);
                         FileUtils.deleteQuietly(file);
                         op1 = true;
                     }
                     if (!op2) {
-                        new Shell.Safe(shell).exec(
-                                "rm " + rmConnectionName,
-                                null,
-                                new NullOutputStream(), new NullOutputStream());
+                        execShell("rm " + rmConnectionName, null, shell);
                         op2 = true;
                     }
                 }
@@ -560,6 +526,19 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
             return true;
         }
         return false;
+    }
+
+    private int execShell(String cmd, FileInputStream input, Shell shell) throws IOException {
+        int exitCode;
+        exitCode = new Shell.Safe(shell).exec(
+                cmd,
+                input,
+                com.jcabi.log.Logger.stream(Level.INFO, this), com.jcabi.log.Logger.stream(Level.WARNING, this)
+        );
+        logger.info("Command: " + cmd +" exitCode: " + exitCode);
+
+        return exitCode;
+
     }
 
 }
