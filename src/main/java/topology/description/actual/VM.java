@@ -38,7 +38,12 @@ public abstract class VM {
     @JsonProperty("nodeType")
     @JsonAlias({"type", "VMType", "vmType"})
     public String nodeType;
+    @JsonProperty("CPU")
+    @JsonAlias({"cpu"})
     public String CPU;
+
+    @JsonProperty("mem")
+    @JsonAlias({"Mem", "MEM"})
     public String Mem;
 
     @JsonProperty("OStype")
