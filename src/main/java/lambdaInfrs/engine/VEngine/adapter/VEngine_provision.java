@@ -27,84 +27,98 @@ import lambdaInfrs.engine.VEngine.VEngineOpMethod;
 import org.apache.log4j.Logger;
 
 import commonTool.ClassDB;
+import java.util.logging.Level;
 import topology.description.actual.VM;
 
 /**
- * For provisioning, the default process of the VEngine is
- * 1. provision the VM
- * 2. configure the SSH account
- * 3. configure and install the app-defined the environment 
+ * For provisioning, the default process of the VEngine is 1. provision the VM
+ * 2. configure the SSH account 3. configure and install the app-defined the
+ * environment
+ *
  * @author huan
  *
  */
-public class VEngine_provision extends VEngineAdapter{
-	
-	private static final Logger logger = Logger.getLogger(VEngine_provision.class);
+public class VEngine_provision extends VEngineAdapter {
 
+    private static final Logger logger = Logger.getLogger(VEngine_provision.class);
 
-	public VEngine_provision(VM subjectVM, 
-			Credential credential, Database database){
-		this.curVM = subjectVM;
-		this.credential = credential;
-		this.curSTI = subjectVM.ponintBack2STI;
-		this.database = database;
-		this.opResult = true;
-	}
-	
-	@Override
-	public void run() {
-		Class<?> CurVEngine = ClassDB.getVEngine(curSTI.cloudProvider, 
-				curVM.VEngineClass, curVM.OStype);
-		if(CurVEngine == null){
-			logger.error("VEngine cannot be loaded for '"+curVM.name+"'!");
-			curSTI.logsInfo.put(curVM.name+"#ERROR", "VEngine not found!");
-			opResult = false;
-			return ;
-		}
-		try {
-			Object vEngine = (VEngine)CurVEngine.newInstance();
-			////if the agent is not initialized, first initialize it 
+    public VEngine_provision(VM subjectVM,
+            Credential credential, Database database) {
+        this.curVM = subjectVM;
+        this.credential = credential;
+        this.curSTI = subjectVM.ponintBack2STI;
+        this.database = database;
+        this.opResult = true;
+    }
 
-			long time1 = System.currentTimeMillis();
-			
-			if( !((VEngineOpMethod)vEngine).provision(curVM, credential, database) ){
-				logger.error("VM '"+curVM.name+"' cannot be provisioned!");
-				opResult = false;
-				return ;
-			}
-			
-			long time2 = System.currentTimeMillis();
-			curSTI.logsInfo.put(curVM.name+"#provision", (time2 - time1) + "@" + time1);
-			
-			if( !((VEngineConfMethod)vEngine).confSSH(curVM) ){
-				logger.warn("SSH account for VM '" + curVM.name 
-						+ "' might not be properly configured! ");
-				opResult = false;
-				return ;
-			}
-			
-			
-			long time4 = System.currentTimeMillis();
-			
-			
-			if( !((VEngineConfMethod)vEngine).confENV(curVM) ){
-				logger.warn("Environment on VM '" + curVM.name 
-						+ "' might not be properly configured! ");
-				opResult = false;
-				return ;
-			}
-			
-			long time5 = System.currentTimeMillis();
-			curSTI.logsInfo.put(curVM.name+"#deploy", (time5 - time4) + "@" + time4);
-			
-		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
-			logger.error(e.getMessage());
-			curSTI.logsInfo.put(curVM.name+"#ERROR", 
-					CurVEngine.getName()+" is not valid!");
-			opResult = false;
-			return ;
-		}
-	}
+    @Override
+    public void run() {
+        Class<?> CurVEngine = ClassDB.getVEngine(curSTI.cloudProvider,
+                curVM.VEngineClass, curVM.OStype);
+        if (CurVEngine == null) {
+            logger.error("VEngine cannot be loaded for '" + curVM.name + "'!");
+            curSTI.logsInfo.put(curVM.name + "#ERROR", "VEngine not found!");
+            opResult = false;
+            return;
+        }
+        try {
+            Object vEngine = (VEngine) CurVEngine.newInstance();
+            ////if the agent is not initialized, first initialize it 
+
+            long time1 = System.currentTimeMillis();
+
+            if (!((VEngineOpMethod) vEngine).provision(curVM, credential, database)) {
+                logger.error("VM '" + curVM.name + "' cannot be provisioned!");
+                opResult = false;
+                return;
+            }
+
+            long time2 = System.currentTimeMillis();
+            curSTI.logsInfo.put(curVM.name + "#provision", (time2 - time1) + "@" + time1);
+
+            boolean done = (((VEngineConfMethod) vEngine).confSSH(curVM));
+            int count = 0;
+            while (!done) {
+                Thread.currentThread().sleep(2000);
+                done = (((VEngineConfMethod) vEngine).confSSH(curVM));
+                count++;
+                logger.warn("Environment on VM '" + curVM.name
+                        + "' might not be properly configured! Retring, attemt num.: " + count);
+                if (count >= 100) {
+                    done = true;
+                    break;
+                }
+            }
+
+            if (!((VEngineConfMethod) vEngine).confSSH(curVM)) {
+                logger.warn("SSH account for VM '" + curVM.name
+                        + "' might not be properly configured! ");
+                opResult = false;
+                return;
+            }
+
+            long time4 = System.currentTimeMillis();
+
+            if (!((VEngineConfMethod) vEngine).confENV(curVM)) {
+                logger.warn("Environment on VM '" + curVM.name
+                        + "' might not be properly configured! ");
+                opResult = false;
+                return;
+            }
+
+            long time5 = System.currentTimeMillis();
+            curSTI.logsInfo.put(curVM.name + "#deploy", (time5 - time4) + "@" + time4);
+
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            logger.error(e.getMessage());
+            curSTI.logsInfo.put(curVM.name + "#ERROR",
+                    CurVEngine.getName() + " is not valid!");
+            opResult = false;
+            return;
+        } catch (InterruptedException ex) {
+            java.util.logging.Logger.getLogger(VEngine_provision.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
 }
