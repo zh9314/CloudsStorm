@@ -79,10 +79,12 @@ public class VEngine_provision extends VEngineAdapter {
             boolean done = (((VEngineConfMethod) vEngine).confSSH(curVM));
             int count = 0;
             while (!done) {
-                Thread.currentThread().sleep(500);
+                Thread.currentThread().sleep(2000);
                 done = (((VEngineConfMethod) vEngine).confSSH(curVM));
                 count++;
-                if (count >= 10) {
+                logger.warn("Environment on VM '" + curVM.name
+                        + "' might not be properly configured! Retring, attemt num.: " + count);
+                if (count >= 100) {
                     done = true;
                     break;
                 }

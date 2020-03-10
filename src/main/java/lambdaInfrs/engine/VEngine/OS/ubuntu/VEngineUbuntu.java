@@ -35,9 +35,16 @@ import org.apache.log4j.Logger;
 
 import com.jcabi.ssh.SSH;
 import com.jcabi.ssh.Shell;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 
 import commonTool.CommonTool;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.logging.Level;
 import topology.description.actual.ActualConnectionPoint;
 import topology.description.actual.SubTopologyInfo;
@@ -535,10 +542,55 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
                 input,
                 com.jcabi.log.Logger.stream(Level.INFO, this), com.jcabi.log.Logger.stream(Level.WARNING, this)
         );
-        logger.info("Command: " + cmd +" exitCode: " + exitCode);
+        logger.info("Command: " + cmd + " exitCode: " + exitCode);
 
         return exitCode;
 
     }
+//    private int execShell(String serverIp, String command, String usernameString, String password) throws IOException, JSchException {
+//        JSch jsch = new JSch();
+//
+//        Session session;
+//
+//        // Open a Session to remote SSH server and Connect.
+//        // Set User and IP of the remote host and SSH port.
+//        session = jsch.getSession(usernameString, serverIp, 22);
+//        // When we do SSH to a remote host for the 1st time or if key at the remote host 
+//        // changes, we will be prompted to confirm the authenticity of remote host. 
+//        // This check feature is controlled by StrictHostKeyChecking ssh parameter. 
+//        // By default StrictHostKeyChecking  is set to yes as a security measure.
+//        session.setConfig("StrictHostKeyChecking", "no");
+//        //Set password
+//        session.setPassword(password);
+//        session.connect();
+//
+//        // create the execution channel over the session
+//        ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
+//        // Set the command to execute on the channel and execute the command
+//        channelExec.setCommand(command);
+//        channelExec.connect();
+//
+//        // Get an InputStream from this channel and read messages, generated 
+//        // by the executing command, from the remote side.
+//        InputStream in = channelExec.getInputStream();
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+//        String line;
+//        logger.info("ssh output: ");
+//        while ((line = reader.readLine()) != null) {
+//            logger.info(line);
+//        }
+//
+//        // Command execution completed here.
+//        // Retrieve the exit status of the executed command
+//        int exitStatus = channelExec.getExitStatus();
+//        if (exitStatus > 0) {
+//            logger.warn("Remote script exec error! exit status: " + exitStatus);
+//        }
+//        //Disconnect the Session
+//        session.disconnect();
+//
+//        return exitStatus;
+//
+//    }
 
 }

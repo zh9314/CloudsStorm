@@ -59,10 +59,12 @@ public class ExoGENIVEngine_provision extends VEngineAdapter {
             boolean done = (((VEngineConfMethod) vEngine).confSSH(curVM));
             int count = 0;
             while (!done) {
-                Thread.currentThread().sleep(500);
+                Thread.currentThread().sleep(2000);
                 done = (((VEngineConfMethod) vEngine).confSSH(curVM));
                 count++;
-                if (count >= 10) {
+                logger.warn("SSH account for VM '" + curVM.name
+                        + "' not be properly configured! Retring, attemt num.: " + count);
+                if (count >= 100) {
                     done = true;
                     break;
                 }
@@ -76,6 +78,21 @@ public class ExoGENIVEngine_provision extends VEngineAdapter {
             }
 
             long time4 = System.currentTimeMillis();
+
+            done = (((VEngineConfMethod) vEngine).confENV(curVM));
+            count = 0;
+            while (!done) {
+                Thread.currentThread().sleep(2000);
+                done = (((VEngineConfMethod) vEngine).confENV(curVM));
+                count++;
+                logger.warn("Environment on VM '" + curVM.name
+                        + "' might not be properly configured! Retring, attemt num.: " + count);
+
+                if (count >= 100) {
+                    done = true;
+                    break;
+                }
+            }
 
             if (!((VEngineConfMethod) vEngine).confENV(curVM)) {
                 logger.warn("Environment on VM '" + curVM.name
