@@ -204,7 +204,7 @@ public class EC2Agent {
 		AttachVolumeRequest attachVolumeRequest = new AttachVolumeRequest();
 		attachVolumeRequest.setVolumeId(volumeId);
 		attachVolumeRequest.setInstanceId(instanceId);
-		attachVolumeRequest.setDevice("/dev/sdh");
+		attachVolumeRequest.setDevice("/dev/xvdh");
 		ec2Client.attachVolume(attachVolumeRequest);
 		
 	}
