@@ -31,6 +31,20 @@ import commonTool.CommonTool;
 
 public abstract class VM {
 
+    /**
+     * @return the diskSize
+     */
+    public String getDiskSize() {
+        return diskSize;
+    }
+
+    /**
+     * @param diskSize the diskSize to set
+     */
+    public void setDiskSize(String diskSize) {
+        this.diskSize = diskSize;
+    }
+
     private static final Logger logger = Logger.getLogger(VM.class);
 
     public String name;
@@ -45,6 +59,10 @@ public abstract class VM {
     @JsonProperty("mem")
     @JsonAlias({"Mem", "MEM"})
     public String Mem;
+    
+    @JsonProperty("DiskSize")
+    @JsonAlias({"diskSize"})
+    private String diskSize;    
 
     @JsonProperty("OStype")
     @JsonAlias({"os", "OS", "ostype"})
