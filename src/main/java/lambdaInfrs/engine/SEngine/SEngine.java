@@ -221,7 +221,7 @@ public class SEngine implements SEngineKeyMethod {
 			int count = 0;
 			while (!executor4vm.awaitTermination(2, TimeUnit.SECONDS)){
 				count++;
-				if(count > 100*xVMs.size()){
+				if(count > 1000*xVMs.size()){
 					logger.error("Some VM cannot be provisioned!");
 					subTopologyInfo.status = Values.STStatus.unknown;
 					return false;

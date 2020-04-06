@@ -148,7 +148,7 @@ public class MainAsTool {
 			File logsDirF = new File(logsDir);
 			if(!logsDirF.exists())
 				logsDirF.mkdir();
-			Log4JUtils.setInfoLogFile(logsDir + "CloudsStorm.log");
+			Log4JUtils.setDebugLogFile(logsDir + "CloudsStorm.log");
 			
 			ICYAML ic = new ICYAML(tam.wholeTopology, userCredential, userDatabase);
 			if(!ic.loadInfrasCodes(ICPath, appRootDir))

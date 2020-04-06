@@ -95,7 +95,10 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 			FileWriter fw = new FileWriter(confFilePath, false);
 			
 			///only for exogeni
-			fw.write("service neuca stop\nufw disable\n");
+			//fw.write("service neuca stop\nufw disable\n");
+			fw.write("python /usr/local/bin/neucad stop\nufw disable\n");  //update the neuca stopping method
+
+			
 			
 			////do not need to check whether this is the first time to configure the network
 			////always reconfigure the /etc/hosts
@@ -227,11 +230,11 @@ public class ExoGENIVEngineUbuntu extends VEngineUbuntu{
 				);
 				FileUtils.deleteQuietly(file);
 			}
-			new Shell.Safe(shell).exec(
+			/*new Shell.Safe(shell).exec(
 					  "rm connection.sh",
 					  null,
 					  new NullOutputStream(), new NullOutputStream()
-			);
+			);*/
 
 			}catch (IOException e) {
 				////In this case, we give more chances to test.

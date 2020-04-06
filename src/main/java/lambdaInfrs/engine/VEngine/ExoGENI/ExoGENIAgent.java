@@ -65,6 +65,9 @@ public class ExoGENIAgent {
 			nodeSet.add((ExoGENIVM)exoGENISubTopology.VMs.get(ni));
 		String indl_s = indlGenerator.generateINDL(nodeSet,
 								Integer.valueOf(exoGENISubTopology.duration));
+		
+		logger.debug(indl_s);
+		
 		ExoGENIRPCConnector rpc = new ExoGENIRPCConnector(cloudEntry, userKeyPath,
 			keyAlias, keyPass);
 		
@@ -81,6 +84,8 @@ public class ExoGENIAgent {
 				String status = rpc.sliceStatus(sliceName);
 				
 				int statusNow = analysisStatus(status);
+				
+				logger.debug(status);
 				
 				////Check the status every 15s, in order to reduce workload on server
 				Thread.sleep(15000);

@@ -252,7 +252,8 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 		FileWriter fw;
 		try {
 			fw = new FileWriter(pubFilePath, false);
-			fw.write(curSTI.publicKeyString);
+			if(curSTI.userName != null && curSTI.publicKeyString != null)
+				fw.write(curSTI.publicKeyString);
 			fw.close();
 			
 			fw = new FileWriter(runFilePath, false);
@@ -271,8 +272,9 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 			    fw.write("chmod 740 /etc/sudoers \n");
 			    fw.write("echo \""+curSTI.userName+" ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
 			    fw.write("chmod 440 /etc/sudoers \n");
-			    fw.write("chown -R "+curSTI.userName+":"+curSTI.userName+" /home/"+curSTI.userName+"/.ssh/\n");
 			    fw.write("cp id_rsa /home/"+curSTI.userName+"/.ssh/id_rsa\n");
+			    fw.write("chown -R "+curSTI.userName+":"+curSTI.userName+" /home/"+curSTI.userName+"/.ssh/\n");
+			    
 			}else
 				logger.warn("The username is not specified! The user account will not be configured!");
 			
@@ -284,10 +286,10 @@ public abstract class VEngineUbuntu extends VEngineOS implements VEngineOpMethod
 		    fw.write("chmod 740 /etc/sudoers \n");
 		    fw.write("echo \"CloudsStorm ALL=(ALL)NOPASSWD: ALL\" >> /etc/sudoers \n");
 		    fw.write("chmod 440 /etc/sudoers \n");
-		    fw.write("chown -R CloudsStorm:CloudsStorm /home/CloudsStorm/.ssh/\n");
 		    fw.write("cp id_rsa /home/CloudsStorm/.ssh/id_rsa\n");
+		    fw.write("chown -R CloudsStorm:CloudsStorm /home/CloudsStorm/.ssh/\n");
 			
-			fw.write("rm id_rsa.pub id_rsa\n");
+			fw.write("rm id_rsa.pub id_rsa /root/.ssh/id_rsa.pub\n");
 		    
 		    fw.write("hostname "+curVM.name+"\n");
 		    

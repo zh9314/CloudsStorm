@@ -110,8 +110,9 @@ public class EC2VEngine extends VEngine{
 		
 		//Wait for 5min (300s) for maximum.
 		long sshStartTime = System.currentTimeMillis();
-		long sshEndTime = System.currentTimeMillis();
-		while((sshEndTime - sshStartTime) < 300000){
+		long sshEndTime = System.currentTimeMillis();		
+		while((sshEndTime - sshStartTime) < 300000*10){
+			
 			if(VEngine.isAlive(publicAddress, 22, 
 					curST.accessKeyPair.privateKeyString, curVM.defaultSSHAccount)){
 				curVM.publicAddress = publicAddress;
@@ -123,6 +124,13 @@ public class EC2VEngine extends VEngine{
 				}
 				return true;
 			}
+			/*
+			///wait 10s to start a new round
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}*/
 			sshEndTime = System.currentTimeMillis();
 		}
 		curVM.publicAddress = null;

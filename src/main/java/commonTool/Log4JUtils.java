@@ -87,6 +87,27 @@ public class Log4JUtils {
 		return true;
 	}
 	
+	
+	//This is set the debug log files to some outputPath
+	public static boolean setDebugLogFile(String outputPath){
+		Logger root = Logger.getRootLogger();
+		try {
+			PatternLayout patternLayout = new PatternLayout();
+			patternLayout.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] [%c.%M]	%m%n");
+			FileAppender appender = new FileAppender(patternLayout, outputPath, true);
+			
+			appender.setThreshold(Level.DEBUG);
+			
+			root.addAppender(appender);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}    
+		return true;
+	}
+	
+	
 	public static boolean setSystemOutputLogFile(Level logLevel){
 		Logger root = Logger.getRootLogger();
 		
